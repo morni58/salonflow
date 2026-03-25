@@ -28,8 +28,8 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-3xl border border-transparent bg-white px-5 py-3.5 text-sm outline-none transition-colors shadow-soft";
-const cardBorder = { borderColor: "transparent" };
+  "min-w-0 w-full max-w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-3.5 text-sm outline-none backdrop-blur-md transition-colors";
+const cardBorder = { borderColor: "var(--color-border-card)" };
 
 export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const { items, totalPrice, totalDuration, clearCart } = useCart();
@@ -95,7 +95,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         >
           <CheckCircle size={40} style={{ color: "var(--color-primary)" }} />
         </div>
-        <h2 className="font-serif text-3xl font-semibold" style={{ color: "var(--color-text)" }}>
+        <h2 className="text-3xl font-bold" style={{ color: "var(--color-text)" }}>
           Заявка отправлена!
         </h2>
         <p className="mt-3 max-w-sm opacity-65" style={{ color: "var(--color-text)" }}>
@@ -124,14 +124,11 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <ArrowLeft size={16} /> Назад к услугам
       </button>
 
-      <h2 className="font-serif mb-6 text-3xl font-semibold" style={{ color: "var(--color-text)" }}>
+      <h2 className="mb-6 text-3xl font-bold" style={{ color: "var(--color-text)" }}>
         Оформление записи
       </h2>
 
-      <div
-        className="mb-6 max-w-full overflow-hidden rounded-3xl border border-transparent bg-white p-5 shadow-soft"
-        style={cardBorder}
-      >
+      <div className="glass mb-6 max-w-full overflow-hidden rounded-2xl p-5">
         <p
           className="line-clamp-4 text-sm leading-relaxed opacity-55"
           style={{ color: "var(--color-text)", overflowWrap: "anywhere" }}
@@ -174,8 +171,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 setContactValue("");
               }}
               className={cn(
-                "rounded-3xl border border-transparent py-3.5 text-center text-sm transition-all shadow-soft",
-                contactType === c.type ? "shadow-soft" : "bg-white hover:brightness-[0.99]"
+                "rounded-2xl border py-3.5 text-center text-sm transition-all",
+                contactType === c.type ? "shadow-lg" : "border-white/10 bg-white/5 hover:bg-white/10"
               )}
               style={
                 contactType === c.type
@@ -184,7 +181,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                       borderColor: "transparent",
                       color: "var(--color-primary-foreground)",
                     }
-                  : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
+                  : { color: "var(--color-text)" }
               }
             >
               <span className="text-lg">{c.icon}</span>
@@ -218,8 +215,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 type="button"
                 onClick={() => setSelectedDate(d)}
                 className={cn(
-                  "flex shrink-0 flex-col items-center rounded-3xl border border-transparent px-4 py-4 transition-all shadow-soft",
-                  selectedDate === d ? "shadow-soft" : "bg-white hover:brightness-[0.995]"
+                  "flex shrink-0 flex-col items-center rounded-2xl border px-4 py-4 transition-all",
+                  selectedDate === d ? "shadow-lg" : "border-white/10 bg-white/5 hover:bg-white/10"
                 )}
                 style={
                   selectedDate === d
@@ -263,8 +260,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-3xl border border-transparent py-3.5 text-sm font-medium transition-all shadow-soft",
-                    selectedTime === slot ? "shadow-soft" : "bg-white hover:brightness-[0.99]"
+                    "rounded-2xl border py-3.5 text-sm font-medium transition-all",
+                    selectedTime === slot ? "shadow-lg" : "border-white/10 bg-white/5 hover:bg-white/10"
                   )}
                   style={
                     selectedTime === slot

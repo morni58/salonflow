@@ -8,14 +8,15 @@ export function ToastProvider() {
       position="top-center"
       toastOptions={{
         style: {
-          background: "rgba(251, 255, 252, 0.97)",
-          border: "1px solid var(--color-border-muted, rgba(53, 64, 56, 0.12))",
-          color: "var(--color-text, #433935)",
-          boxShadow: "var(--shadow-soft-md, 0 8px 32px -6px rgba(30, 55, 42, 0.1))",
+          background: "rgba(15, 23, 42, 0.92)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          color: "var(--color-text, #f8fafc)",
+          boxShadow: "0 16px 48px -8px rgba(0, 0, 0, 0.45)",
           backdropFilter: "blur(12px)",
         },
       }}
       richColors
+      theme="dark"
     />
   );
 }

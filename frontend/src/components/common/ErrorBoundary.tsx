@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
           style={{ color: "var(--color-text)" }}
         >
           <div className="text-5xl">😵</div>
-          <h2 className="font-serif text-xl font-semibold">Что-то пошло не так</h2>
+          <h2 className="text-xl font-bold">Что-то пошло не так</h2>
           <p className="max-w-sm text-sm opacity-50">
             {this.state.error?.message || "Произошла неожиданная ошибка"}
           </p>

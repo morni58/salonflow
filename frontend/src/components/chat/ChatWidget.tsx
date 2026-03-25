@@ -70,10 +70,11 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
           onClick={() => setOpen(true)}
           className="fixed z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-soft-md transition duration-300 hover:brightness-[0.96] active:scale-95"
           style={{
-            background: "var(--color-primary-solid)",
-            color: "var(--color-on-solid)",
+            background: "var(--color-accent)",
+            color: "#0f172a",
             bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
             right: "max(1rem, env(safe-area-inset-right, 0px))",
+            boxShadow: "0 12px 40px color-mix(in srgb, var(--color-accent) 45%, transparent)",
           }}
           aria-label="Открыть чат"
         >
@@ -87,11 +88,12 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
           style={{
             background: "var(--color-bg-elevated)",
             boxShadow: "var(--shadow-soft-md)",
+            border: "1px solid rgba(255,255,255,0.1)",
           }}
         >
           <div
             className="flex items-center justify-between px-4 py-3"
-            style={{ background: "var(--color-primary-solid)", color: "var(--color-on-solid)" }}
+            style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
           >
             <div className="flex items-center gap-2">
               <Bot size={20} />
@@ -135,7 +137,7 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                 )}
                 <div
                   className={`max-w-[min(75%,20rem)] min-w-0 overflow-hidden rounded-3xl px-3.5 py-2.5 text-sm leading-relaxed break-words ${
-                    msg.role === "user" ? "shadow-soft" : "bg-white shadow-soft"
+                    msg.role === "user" ? "shadow-soft" : "shadow-soft"
                   }`}
                   style={
                     msg.role === "user"
@@ -145,6 +147,8 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                           overflowWrap: "anywhere",
                         }
                       : {
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.1)",
                           color: "var(--color-text)",
                           overflowWrap: "anywhere",
                         }
@@ -154,8 +158,7 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                 </div>
                 {msg.role === "user" && (
                   <div
-                    className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-white"
-                    style={{ borderColor: "var(--color-border-muted)" }}
+                    className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10"
                   >
                     <User size={14} style={{ color: "var(--color-text)" }} />
                   </div>
@@ -173,7 +176,7 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={remaining > 0 ? "Спросите что-нибудь..." : "Лимит сообщений исчерпан"}
                 disabled={remaining <= 0 || streaming}
-                className="flex-1 rounded-3xl border border-transparent bg-white px-4 py-2.5 text-sm shadow-soft outline-none transition-colors disabled:opacity-40"
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none backdrop-blur-sm transition-colors disabled:opacity-40"
                 style={{ color: "var(--color-text)" }}
               />
               <button
@@ -181,7 +184,7 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                 onClick={handleSend}
                 disabled={!input.trim() || streaming || remaining <= 0}
                 className="btn-primary-soft flex h-10 w-10 items-center justify-center rounded-full shadow-soft disabled:opacity-35"
-                style={{ background: "var(--color-primary-solid)", color: "var(--color-on-solid)" }}
+                style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
                 aria-label="Отправить"
               >
                 <Send size={16} />

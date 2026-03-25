@@ -25,25 +25,22 @@ function AppInner() {
 
   if (loading) {
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center gap-4"
-        style={{ background: "var(--color-bg, #faf8f5)" }}
-      >
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4" style={{ background: "var(--color-bg, #0f172a)" }}>
         <div className="relative h-12 w-12">
           <div
             className="absolute inset-0 animate-spin rounded-full border-2 border-transparent"
-            style={{ borderTopColor: "var(--color-primary, #c39077)" }}
+            style={{ borderTopColor: "var(--color-primary, #8b5cf6)" }}
           />
           <div
             className="absolute inset-1 animate-spin rounded-full border-2 border-transparent"
             style={{
-              borderTopColor: "var(--color-accent, #dfc6b9)",
+              borderTopColor: "var(--color-accent, #f59e0b)",
               animationDirection: "reverse",
               animationDuration: "0.85s",
             }}
           />
         </div>
-        <p className="animate-pulse text-sm opacity-45" style={{ color: "var(--color-text, #36312d)" }}>
+        <p className="animate-pulse text-sm opacity-55" style={{ color: "var(--color-text, #f8fafc)" }}>
           Загрузка...
         </p>
       </div>
@@ -54,13 +51,13 @@ function AppInner() {
     return (
       <div
         className="flex min-h-screen flex-col items-center justify-center gap-4 px-5"
-        style={{ background: "var(--color-bg, #faf8f5)" }}
+        style={{ background: "var(--color-bg, #0f172a)" }}
       >
         <div className="text-5xl">🏪</div>
-        <p className="font-serif text-lg font-semibold opacity-80" style={{ color: "var(--color-text, #36312d)" }}>
+        <p className="text-lg font-bold opacity-90" style={{ color: "var(--color-text, #f8fafc)" }}>
           Салон не найден
         </p>
-        <p className="max-w-sm text-center text-sm opacity-50" style={{ color: "var(--color-text, #36312d)" }}>
+        <p className="max-w-sm text-center text-sm opacity-55" style={{ color: "var(--color-text, #f8fafc)" }}>
           {error || "Проверьте адрес и попробуйте снова"}
         </p>
         <button
@@ -68,7 +65,7 @@ function AppInner() {
           onClick={() => window.location.reload()}
           className="btn-primary-soft mt-2 rounded-full px-8 py-4 text-sm font-semibold shadow-soft"
           style={{
-            background: "var(--color-primary, #c39077)",
+            background: "var(--color-primary, #8b5cf6)",
             color: "var(--color-primary-foreground, #ffffff)",
           }}
         >
@@ -140,23 +137,34 @@ function AppInner() {
       <ChatWidget tenantId={tenant.id} sessionId={sessionId} />
 
       <footer
-        className="border-t border-brand-100 bg-white py-10 md:py-12"
-        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+        className="border-t border-white/10 py-10 md:py-12"
+        style={{
+          paddingBottom: "max(2rem, env(safe-area-inset-bottom))",
+          background: "color-mix(in srgb, var(--color-text) 4%, var(--color-bg))",
+        }}
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row lg:px-8">
           <div className="flex items-center gap-2">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 font-serif text-sm font-bold italic text-brand-600"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+              style={{
+                background: "color-mix(in srgb, var(--color-primary) 35%, transparent)",
+                color: "var(--color-text)",
+              }}
               aria-hidden
             >
               {tenant.name.trim().charAt(0).toUpperCase() || "•"}
             </div>
-            <span className="font-serif text-xl font-semibold text-ink-dark">{tenant.name}</span>
+            <span className="text-xl font-bold" style={{ color: "var(--color-text)" }}>
+              {tenant.name}
+            </span>
           </div>
-          <p className="text-center text-sm text-ink-light">
+          <p className="text-center text-sm opacity-70" style={{ color: "var(--color-text)" }}>
             © {new Date().getFullYear()} {tenant.name}. Все права защищены.
           </p>
-          <p className="text-xs text-ink-light/70">SalonFlow</p>
+          <p className="text-xs opacity-45" style={{ color: "var(--color-text)" }}>
+            SalonFlow
+          </p>
         </div>
       </footer>
     </div>

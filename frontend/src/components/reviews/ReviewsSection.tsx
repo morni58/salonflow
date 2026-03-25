@@ -18,7 +18,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
   if (loading) {
     return (
       <section id="reviews" data-anchor-section>
-        <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--color-text)" }}>
+        <h2 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--color-text)" }}>
           Отзывы
         </h2>
         <div className="flex gap-3 overflow-hidden">
@@ -39,7 +39,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
 
   return (
     <section id="reviews" data-anchor-section>
-      <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--color-text)" }}>
+      <h2 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--color-text)" }}>
         Отзывы
       </h2>
 
