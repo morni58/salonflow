@@ -51,43 +51,27 @@ function mixHex(a: string, b: string, t: number): string {
   return `#${[r, g, bb].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
 }
 
-function luminance(hex: string): number {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return 0.5;
-  const lin = [rgb.r, rgb.g, rgb.b].map((v) => {
-    const x = v / 255;
-    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-}
-
-/** База как в pox/pokaz.html */
-const HARMONY_BG = "#faf8f5";
-const HARMONY_TEXT = "#36312d";
-const HARMONY_PRIMARY = "#c39077";
-const HARMONY_ACCENT = "#dfc6b9";
-
-function softenLegacyTheme(bg: string, text: string): { bg: string; text: string } {
-  if (luminance(bg) >= 0.42) return { bg, text };
-  const softBg = mixHex(bg, HARMONY_BG, 0.92);
-  const textOut = luminance(text) > 0.55 ? HARMONY_TEXT : text;
-  return { bg: softBg, text: textOut };
-}
-
-function harmonizeChampagnePowder(primary: string, accent: string) {
-  return {
-    primary: mixHex(primary, HARMONY_PRIMARY, 0.45),
-    accent: mixHex(accent, HARMONY_ACCENT, 0.45),
-  };
-}
+/**
+ * Визуал как в pox/pokaz.html — фиксированная терракотовая палитра.
+ * Цвета из API не подмешиваем в UI: в БД часто стоят дефолты фиолетовые/холодные,
+ * из‑за этого сайт «плывёт» от референса.
+ * Название, лого, описание — по-прежнему с бэкенда.
+ */
+const POKAZ = {
+  bg: "#faf8f5",
+  text: "#36312d",
+  primary: "#c39077",
+  primaryDark: "#b47b60",
+  accent: "#dfc6b9",
+} as const;
 
 function applyTheme(tenant: Tenant) {
   const root = document.documentElement;
-  const softened = softenLegacyTheme(tenant.color_bg, tenant.color_text);
-  const { primary, accent } = harmonizeChampagnePowder(tenant.color_primary, tenant.color_accent);
-  const bg = softened.bg;
-  const text = softened.text;
-  const primaryDark = mixHex(primary, "#1c1917", 0.18);
+  const primary = POKAZ.primary;
+  const primaryDark = POKAZ.primaryDark;
+  const bg = POKAZ.bg;
+  const text = POKAZ.text;
+  const accent = POKAZ.accent;
 
   root.style.setProperty("--tenant-primary", primary);
   root.style.setProperty("--tenant-primary-dark", primaryDark);
@@ -99,8 +83,7 @@ function applyTheme(tenant: Tenant) {
   root.style.setProperty("--color-bg", bg);
   root.style.setProperty("--color-text", text);
 
-  const primaryFg = luminance(primary) > 0.62 ? text : "#ffffff";
-  root.style.setProperty("--color-primary-foreground", primaryFg);
+  root.style.setProperty("--color-primary-foreground", "#ffffff");
   root.style.setProperty("--color-on-solid", "#ffffff");
   root.style.setProperty("--color-primary-solid", mixHex(primary, text, 0.28));
 
@@ -115,7 +98,7 @@ function applyTheme(tenant: Tenant) {
   root.style.setProperty("--color-border-muted", rgbaFromHex(text, 0.1));
   root.style.setProperty("--color-border-card", rgbaFromHex(text, 0.06));
   root.style.setProperty("--color-border-pill", rgbaFromHex(text, 0.08));
-  root.style.setProperty("--color-placeholder-surface", mixHex(HARMONY_ACCENT, HARMONY_BG, 0.65));
+  root.style.setProperty("--color-placeholder-surface", mixHex(POKAZ.accent, POKAZ.bg, 0.65));
   root.style.setProperty("--color-price-bg", rgbaFromHex(accent, 0.15));
   root.style.setProperty("--color-price-border", rgbaFromHex(accent, 0.35));
 

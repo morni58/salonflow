@@ -23,11 +23,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-64 w-48 shrink-0 animate-pulse rounded-2xl border"
-              style={{
-                borderColor: "var(--color-border-soft)",
-                background: "color-mix(in srgb, var(--color-primary) 7%, var(--color-bg))",
-              }}
+              className="h-64 w-48 shrink-0 animate-pulse rounded-2xl border border-brand-100 bg-brand-50"
             />
           ))}
         </div>
