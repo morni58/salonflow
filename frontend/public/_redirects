@@ -1,0 +1,3 @@
+# Cloudflare Pages: сначала API на Cloud Run, потом SPA (порядок важен)
+/api/* https://salonflow-api-568278480287.europe-west1.run.app/api/:splat 200
+/* /index.html 200

@@ -1,0 +1,321 @@
+@import "tailwindcss";
+
+/* Tailwind v4 — terracotta / poca */
+@theme {
+  --font-serif: "Cormorant Garamond", "Cormorant", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-50: #fbf8f6;
+  --color-brand-100: #f4ece7;
+  --color-brand-200: #ebdcd3;
+  --color-brand-300: #dfc6b9;
+  --color-brand-400: #d0a996;
+  --color-brand-500: #c39077;
+  --color-brand-600: #b47b60;
+  --color-brand-700: #96634e;
+  --color-brand-800: #7c5342;
+  --color-brand-900: #654538;
+  --color-ink: #36312d;
+  --color-ink-light: #7a726c;
+  --color-ink-dark: #1c1917;
+  --color-surface: #ffffff;
+  --color-base: #faf8f5;
+}
+
+/* ── Терракота / крем (макет poca) + динамика тенанта через --color-* ── */
+:root {
+  --color-bg: #faf8f5;
+  --color-text: #36312d;
+  --color-primary: #c39077;
+  --color-accent: #dfc6b9;
+  --color-primary-foreground: #ffffff;
+  --color-primary-solid: #96634e;
+  --color-on-solid: #ffffff;
+  --color-primary-20: rgba(212, 163, 115, 0.22);
+  --color-primary-40: rgba(212, 163, 115, 0.38);
+  --color-primary-muted: rgba(212, 163, 115, 0.22);
+  --color-bg-card: rgba(255, 255, 255, 0.8);
+  --color-bg-elevated: #ffffff;
+  --color-bg-glass: rgba(255, 255, 255, 0.82);
+  --color-placeholder-surface: #f4ece7;
+  --color-border-soft: rgba(54, 49, 45, 0.06);
+  --color-border-muted: rgba(54, 49, 45, 0.1);
+  --color-border-card: rgba(54, 49, 45, 0.06);
+  --color-border-pill: rgba(54, 49, 45, 0.08);
+  --color-price-bg: rgba(195, 144, 119, 0.15);
+  --color-price-border: rgba(195, 144, 119, 0.35);
+  --shadow-soft: 0 4px 20px -2px rgba(54, 49, 45, 0.05);
+  --shadow-soft-md: 0 12px 30px -4px rgba(54, 49, 45, 0.08);
+  --shadow-float: 0 12px 30px -4px rgba(54, 49, 45, 0.08);
+  --color-portfolio-bg: #654538;
+  --color-portfolio-muted: #ebdcd3;
+  /* Ширина контентной колонки на ПК (шире 6xl, чтобы не «пустел» край) */
+  --layout-max: min(100%, 90rem);
+}
+
+/* ── Base ── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  width: 100%;
+  max-width: 100%;
+  background: var(--color-bg);
+}
+
+#root {
+  width: 100%;
+  min-height: 100dvh;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+body {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Заголовки секций — Cormorant Garamond, «журнальный» вид */
+main h1,
+main h2,
+main h3.font-serif,
+.font-serif.font-heading {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+main h2 {
+  font-weight: 600;
+}
+
+/* Якоря под липкой шапкой */
+main section[id],
+main [data-anchor-section] {
+  scroll-margin-top: max(4.5rem, env(safe-area-inset-top));
+}
+@media (min-width: 768px) {
+  main section[id],
+  main [data-anchor-section] {
+    scroll-margin-top: max(5.5rem, env(safe-area-inset-top));
+  }
+}
+
+.font-heading,
+h1.font-heading,
+h2.font-heading {
+  font-family: var(--font-serif);
+}
+
+/* ── Scrollbar ── */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Animations ── */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.92);
+  }
+  70% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(6px, -8px) scale(1.01);
+  }
+  66% {
+    transform: translate(-5px, 5px) scale(0.99);
+  }
+}
+
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ── Glass / карточки на светлом фоне ── */
+.glass {
+  background: var(--color-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: none;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ── Input focus ── */
+input:focus {
+  outline: none;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-20);
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-primary-40);
+  color: var(--color-text);
+}
+
+.text-clamp-safe {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(67, 57, 53, 0.04) 25%,
+    rgba(212, 163, 115, 0.1) 50%,
+    rgba(67, 57, 53, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+.shadow-soft-md {
+  box-shadow: var(--shadow-soft-md);
+}
+
+/* Primary-кнопки: плавное увеличение при hover */
+.btn-primary-soft {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-primary-soft:hover {
+  transform: scale(1.03);
+}
+
+/* Шапка как в макете poca */
+.glass-nav {
+  background: rgba(250, 248, 245, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(54, 49, 45, 0.05);
+}
+
+.service-card-poca {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (hover: hover) {
+  .service-card-poca:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-float);
+  }
+}
+
+/* Горизонтальный скролл табов на мобилке */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+.animate-delay-100 {
+  animation-delay: 100ms;
+}
+.animate-delay-200 {
+  animation-delay: 200ms;
+}
+.animate-delay-300 {
+  animation-delay: 300ms;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 6px;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: var(--color-brand-200, #ebdcd3);
+  border-radius: 10px;
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-300, #dfc6b9);
+}
