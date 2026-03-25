@@ -5,6 +5,15 @@ import { fetchTenant } from "../api/client";
 function getSubdomain(): string {
   const hostname = window.location.hostname;
   if (hostname === "localhost" || hostname === "127.0.0.1") return "demo";
+
+  const fromEnv = import.meta.env.VITE_TENANT_SUBDOMAIN?.trim();
+  if (fromEnv) return fromEnv;
+
+  /* Netlify / Cloudflare Pages: хост вида xxx.netlify.app — не поддомен салона */
+  if (hostname.endsWith(".netlify.app") || hostname.endsWith(".pages.dev")) {
+    return "demo";
+  }
+
   const parts = hostname.split(".");
   if (parts.length >= 3) return parts[0];
   return "demo";
