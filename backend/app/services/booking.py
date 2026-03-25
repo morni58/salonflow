@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 from app.models.schemas import BookingCreate, BookingOut
 import httpx
@@ -135,8 +137,7 @@ async def _notify_bot(
     )
 
 
-async def confirm_booking(booking_id: str) -> None:
-    """Confirm a booking (payment received). CRM stats update on completion."""
+def _confirm_booking_sync(booking_id: str) -> None:
     sb = get_supabase()
     sb.table("bookings").update({
         "status": "confirmed",
@@ -144,16 +145,17 @@ async def confirm_booking(booking_id: str) -> None:
     }).eq("id", booking_id).execute()
 
 
-async def complete_booking(booking_id: str) -> None:
-    """Mark booking as completed after client visit. Updates CRM stats."""
-    sb = get_supabase()
+async def confirm_booking(booking_id: str) -> None:
+    """Confirm a booking (payment received). CRM stats update on completion."""
+    await run_sync(_confirm_booking_sync, booking_id)
 
-    # Update booking status
+
+def _complete_booking_sync(booking_id: str) -> None:
+    sb = get_supabase()
     sb.table("bookings").update({
         "status": "completed",
     }).eq("id", booking_id).execute()
 
-    # Update client stats
     booking = (
         sb.table("bookings")
         .select("client_id, total_price, tenant_id")
@@ -179,20 +181,32 @@ async def complete_booking(booking_id: str) -> None:
             }).eq("id", b["client_id"]).execute()
 
 
-async def cancel_booking(booking_id: str) -> None:
-    """Cancel a booking."""
+async def complete_booking(booking_id: str) -> None:
+    """Mark booking as completed after client visit. Updates CRM stats."""
+    await run_sync(_complete_booking_sync, booking_id)
+
+
+def _cancel_booking_sync(booking_id: str) -> None:
     sb = get_supabase()
     sb.table("bookings").update({
         "status": "cancelled",
     }).eq("id", booking_id).execute()
 
 
-async def set_booking_waiting(booking_id: str) -> None:
-    """Set booking to waiting status with 48h expiry."""
+async def cancel_booking(booking_id: str) -> None:
+    """Cancel a booking."""
+    await run_sync(_cancel_booking_sync, booking_id)
+
+
+def _set_booking_waiting_sync(booking_id: str) -> None:
     sb = get_supabase()
-    from datetime import timedelta
     expires = datetime.utcnow() + timedelta(hours=48)
     sb.table("bookings").update({
         "status": "waiting",
         "waiting_expires_at": expires.isoformat(),
     }).eq("id", booking_id).execute()
+
+
+async def set_booking_waiting(booking_id: str) -> None:
+    """Set booking to waiting status with 48h expiry."""
+    await run_sync(_set_booking_waiting_sync, booking_id)

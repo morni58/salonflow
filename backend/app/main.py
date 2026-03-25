@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -133,6 +134,14 @@ async def health():
 
 # ── Telegram Webhook ─────────────────────────────
 
+async def _process_telegram_update(bot: Bot, update: Update) -> None:
+    """Обработка апдейта вне HTTP-запроса — Telegram сразу получает 200, UI не «висит»."""
+    try:
+        await dp.feed_update(bot=bot, update=update)
+    except Exception:
+        logger.exception("feed_update failed")
+
+
 @app.post("/api/webhook/tg/{tenant_id}")
 async def telegram_webhook(tenant_id: str, request: Request):
     """Handle Telegram webhook updates for a specific tenant."""
@@ -143,10 +152,11 @@ async def telegram_webhook(tenant_id: str, request: Request):
     try:
         data = await request.json()
         update = Update.model_validate(data, context={"bot": bot})
-        await dp.feed_update(bot=bot, update=update)
     except Exception:
-        # Логируем полностью, не роняем воркер; 200 — чтобы Telegram не ушёл в бесконечные ретраи
-        logger.exception("telegram_webhook failed tenant_id=%s", tenant_id)
+        logger.exception("telegram_webhook parse tenant_id=%s", tenant_id)
+        return {"ok": True}
+
+    asyncio.create_task(_process_telegram_update(bot, update))
     return {"ok": True}
 
 

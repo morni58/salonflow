@@ -3,6 +3,7 @@ import logging
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 import httpx
 
@@ -47,7 +48,7 @@ NLP_SYSTEM_PROMPT = """Ты — AI-помощник для управления 
 """
 
 
-def _get_user_tenant(tg_id: int) -> tuple[str | None, str | None]:
+def _get_user_tenant_role_sync(tg_id: int) -> tuple[str | None, str | None]:
     sb = get_supabase()
     r = sb.table("users").select("tenant_id, role").eq("telegram_user_id", tg_id).limit(1).execute()
     if r.data:
@@ -55,20 +56,8 @@ def _get_user_tenant(tg_id: int) -> tuple[str | None, str | None]:
     return None, None
 
 
-async def handle_nlp_command(message: Message) -> bool:
-    """Try to process free-text as NLP command. Returns True if handled."""
-    tenant_id, role = _get_user_tenant(message.from_user.id)
-    if not tenant_id or role not in ("owner", "admin"):
-        return False
-
-    text = message.text.strip()
-    # Skip short messages or obvious non-commands
-    if len(text) < 10:
-        return False
-
+def _nlp_services_and_keys_sync(tenant_id: str) -> tuple[list, list] | None:
     sb = get_supabase()
-
-    # Get services for context
     services = (
         sb.table("services")
         .select("id, name, price")
@@ -77,16 +66,33 @@ async def handle_nlp_command(message: Message) -> bool:
         .filter("deleted_at", "is", "null")
         .execute()
     )
-    services_text = "\n".join(
-        f"- {s['name']} (ID: {s['id']}, текущая цена: {s['price'] // 100}₸)"
-        for s in services.data
-    )
-
-    # Get Groq key
     tenant = sb.table("tenants").select("groq_api_keys").eq("id", tenant_id).limit(1).execute()
     keys = tenant.data[0].get("groq_api_keys", []) if tenant.data else []
     if not keys:
+        return None
+    return (services.data or [], keys)
+
+
+async def handle_nlp_command(message: Message) -> bool:
+    """Try to process free-text as NLP command. Returns True if handled."""
+    tenant_id, role = await run_sync(_get_user_tenant_role_sync, message.from_user.id)
+    if not tenant_id or role not in ("owner", "admin"):
         return False
+
+    text = message.text.strip()
+    # Skip short messages or obvious non-commands
+    if len(text) < 10:
+        return False
+
+    loaded = await run_sync(_nlp_services_and_keys_sync, tenant_id)
+    if not loaded:
+        return False
+    services_data, keys = loaded
+
+    services_text = "\n".join(
+        f"- {s['name']} (ID: {s['id']}, текущая цена: {s['price'] // 100}₸)"
+        for s in services_data
+    )
 
     from datetime import date
     system_prompt = NLP_SYSTEM_PROMPT.format(
@@ -151,7 +157,7 @@ async def handle_nlp_command(message: Message) -> bool:
             is_delta = action.get("is_delta", False)
 
             # Find matching services
-            matched = [s for s in services.data if svc_name.lower() in s["name"].lower()]
+            matched = [s for s in services_data if svc_name.lower() in s["name"].lower()]
             for m in matched:
                 old_price = m["price"] // 100  # tiyn → tenge
                 if is_delta:
@@ -176,7 +182,7 @@ async def handle_nlp_command(message: Message) -> bool:
             active = action.get("active", False)
             status = "показать" if active else "скрыть"
             preview_lines.append(f"{i}. {status.capitalize()} «{svc_name}»")
-            matched = [s for s in services.data if svc_name.lower() in s["name"].lower()]
+            matched = [s for s in services_data if svc_name.lower() in s["name"].lower()]
             for m in matched:
                 resolved_actions.append({"type": "toggle_service", "id": m["id"], "active": active})
 
@@ -206,16 +212,9 @@ async def handle_nlp_command(message: Message) -> bool:
     return True
 
 
-@router.callback_query(F.data == "nlp:confirm")
-async def nlp_confirm(callback: CallbackQuery):
-    """Execute confirmed NLP actions."""
-    pending = _pending_actions.pop(callback.from_user.id, None)
-    if not pending:
-        await callback.answer("Нет ожидающих действий")
-        return
-
+def _execute_nlp_pending_sync(pending: dict) -> list[str]:
     sb = get_supabase()
-    results = []
+    results: list[str] = []
 
     for action in pending["actions"]:
         try:
@@ -223,7 +222,6 @@ async def nlp_confirm(callback: CallbackQuery):
                 old = sb.table("services").select("name, price").eq("id", action["id"]).limit(1).execute()
                 sb.table("services").update({"price": action["new_price"]}).eq("id", action["id"]).execute()
 
-                # Audit log
                 sb.table("audit_log").insert({
                     "tenant_id": pending["tenant_id"],
                     "action_type": "update_price",
@@ -260,14 +258,27 @@ async def nlp_confirm(callback: CallbackQuery):
         except Exception as e:
             results.append(f"❌ Ошибка: {e}")
 
+    return results
+
+
+@router.callback_query(F.data == "nlp:confirm")
+async def nlp_confirm(callback: CallbackQuery):
+    """Execute confirmed NLP actions."""
+    pending = _pending_actions.pop(callback.from_user.id, None)
+    if not pending:
+        await callback.answer("Нет ожидающих действий")
+        return
+
+    await callback.answer()
+    results = await run_sync(_execute_nlp_pending_sync, pending)
+
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.reply("📋 <b>Результат:</b>\n" + "\n".join(results), parse_mode="HTML")
-    await callback.answer()
 
 
 @router.callback_query(F.data == "nlp:cancel")
 async def nlp_cancel(callback: CallbackQuery):
+    await callback.answer()
     _pending_actions.pop(callback.from_user.id, None)
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.reply("❌ Отменено.")
-    await callback.answer()
