@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     netlify_site_id: str = ""
     domain_suffix: str = "salonflow.kz"
 
+    # FSM бота (иначе на Cloud Run >1 инстанса состояние теряется). Пример: Upstash Redis URL
+    redis_url: str = ""
+
 
 @lru_cache()
 def get_settings() -> Settings:

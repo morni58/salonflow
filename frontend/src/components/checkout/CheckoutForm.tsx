@@ -44,10 +44,14 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  /** Локальная дата YYYY-MM-DD (без UTC-сдвига). Первый день — сегодня. */
   const dates = Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() + i + 1);
-    return d.toISOString().split("T")[0];
+    d.setDate(d.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   });
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
     setSlotsLoading(true);
     setSelectedTime("");
     fetchSlots(tenantId, selectedDate)
-      .then((res) => setSlots(res.slots))
+      .then((res) => setSlots(res.slots ?? []))
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
   }, [selectedDate, tenantId]);

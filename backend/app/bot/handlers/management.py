@@ -1,5 +1,9 @@
+import asyncio
+import io
 import logging
+import uuid
 from datetime import datetime, date
+
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
@@ -178,6 +182,13 @@ async def receive_photo(message: Message, state: FSMContext):
         .execute()
     )
 
+    if not cats.data:
+        await state.clear()
+        await message.reply(
+            "❌ Нет активных категорий в каталоге. Добавьте категории в Supabase (таблица categories) или восстановите seed."
+        )
+        return
+
     buttons = []
     for c in cats.data:
         buttons.append([InlineKeyboardButton(
@@ -192,57 +203,83 @@ async def receive_photo(message: Message, state: FSMContext):
     )
 
 
-@router.callback_query(PortfolioStates.waiting_category_choice, F.data.startswith("port:cat:"))
-async def assign_photo_category(callback: CallbackQuery, state: FSMContext):
-    """Download photo, upload to Supabase, save to DB."""
-    cat_id = callback.data.split(":")[2]
-    data = await state.get_data()
-    tenant_id = _get_user_tenant(callback.from_user.id)
-
-    # Download from Telegram
-    import io
+def _portfolio_upload_sync(
+    tenant_id: str,
+    cat_id: str,
+    file_id: str,
+    raw_bytes: bytes,
+) -> None:
+    """Тяжёлая sync-работа в thread pool (PIL + Supabase), чтобы не блокировать event loop."""
     from PIL import Image
 
-    file = await callback.bot.get_file(data["file_id"])
-    bio = io.BytesIO()
-    await callback.bot.download_file(file.file_path, bio)
+    sb = get_supabase()
+    bio = io.BytesIO(raw_bytes)
     bio.seek(0)
-
-    # Resize and convert to WebP
     img = Image.open(bio)
     max_dim = 1200
     if max(img.size) > max_dim:
         ratio = max_dim / max(img.size)
-        new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
-        img = img.resize(new_size, Image.LANCZOS)
+        img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.LANCZOS)
 
     output = io.BytesIO()
     img.save(output, format="WEBP", quality=85)
     output.seek(0)
+    body = output.getvalue()
 
-    # Upload to Supabase Storage
-    filename = f"{tenant_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{data['file_id'][:8]}.webp"
-    sb = get_supabase()
+    filename = f"{tenant_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:10]}.webp"
 
     sb.storage.from_("portfolio").upload(
         path=filename,
-        file=output.getvalue(),
+        file=body,
         file_options={"content-type": "image/webp"},
     )
 
-    # Get public URL
     public_url = sb.storage.from_("portfolio").get_public_url(filename)
+    if isinstance(public_url, dict):
+        public_url = public_url.get("publicUrl") or str(public_url)
 
-    # Save to DB
     sb.table("portfolio").insert({
         "tenant_id": tenant_id,
         "category_id": cat_id,
         "image_url": public_url,
     }).execute()
 
+
+@router.callback_query(PortfolioStates.waiting_category_choice, F.data.startswith("port:cat:"))
+async def assign_photo_category(callback: CallbackQuery, state: FSMContext):
+    """Download photo, upload to Supabase, save to DB."""
+    await callback.answer("Загружаю…")
+
+    cat_id = callback.data.split(":")[2]
+    data = await state.get_data()
+    tenant_id = _get_user_tenant(callback.from_user.id)
+
+    if not data.get("file_id") or not tenant_id:
+        await state.clear()
+        await callback.message.reply(
+            "❌ Сессия загрузки сброшена (часто после перезапуска сервера без Redis). "
+            "Нажми «Загрузить фото» ещё раз. Для Cloud Run настрой REDIS_URL."
+        )
+        return
+
+    file = await callback.bot.get_file(data["file_id"])
+    bio = io.BytesIO()
+    await callback.bot.download_file(file.file_path, bio)
+    raw = bio.getvalue()
+
+    try:
+        await asyncio.to_thread(_portfolio_upload_sync, tenant_id, cat_id, data["file_id"], raw)
+    except Exception as e:
+        logger.exception("portfolio upload failed")
+        await state.clear()
+        await callback.message.reply(
+            f"❌ Не удалось загрузить в портфолио: {e}\n"
+            "Проверь бакет «portfolio» в Supabase Storage и права (service_role)."
+        )
+        return
+
     await state.clear()
     await callback.message.reply("✅ Фото загружено в портфолио!")
-    await callback.answer()
 
 
 @router.callback_query(F.data == "port:delete")
@@ -337,21 +374,12 @@ async def start_review_upload(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.message(ReviewStates.waiting_screenshot, F.photo)
-async def receive_review(message: Message, state: FSMContext):
-    """Upload review screenshot to storage."""
-    import io
+def _review_upload_sync(tenant_id: str, raw: bytes) -> None:
     from PIL import Image
 
-    tenant_id = _get_user_tenant(message.from_user.id)
-    photo = message.photo[-1]
-    file = await message.bot.get_file(photo.file_id)
-
-    bio = io.BytesIO()
-    await message.bot.download_file(file.file_path, bio)
+    sb = get_supabase()
+    bio = io.BytesIO(raw)
     bio.seek(0)
-
-    # Resize
     img = Image.open(bio)
     max_dim = 1200
     if max(img.size) > max_dim:
@@ -362,20 +390,47 @@ async def receive_review(message: Message, state: FSMContext):
     img.save(output, format="WEBP", quality=85)
     output.seek(0)
 
-    filename = f"{tenant_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_review.webp"
-    sb = get_supabase()
-
+    filename = f"{tenant_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}_review.webp"
     sb.storage.from_("reviews").upload(
         path=filename,
         file=output.getvalue(),
         file_options={"content-type": "image/webp"},
     )
     public_url = sb.storage.from_("reviews").get_public_url(filename)
+    if isinstance(public_url, dict):
+        public_url = public_url.get("publicUrl") or str(public_url)
 
     sb.table("reviews").insert({
         "tenant_id": tenant_id,
         "image_url": public_url,
     }).execute()
+
+
+@router.message(ReviewStates.waiting_screenshot, F.photo)
+async def receive_review(message: Message, state: FSMContext):
+    """Upload review screenshot to storage."""
+    tenant_id = _get_user_tenant(message.from_user.id)
+    if not tenant_id:
+        await state.clear()
+        await message.reply("❌ Нет доступа.")
+        return
+
+    photo = message.photo[-1]
+    file = await message.bot.get_file(photo.file_id)
+    bio = io.BytesIO()
+    await message.bot.download_file(file.file_path, bio)
+    raw = bio.getvalue()
+
+    try:
+        await asyncio.to_thread(_review_upload_sync, tenant_id, raw)
+    except Exception as e:
+        logger.exception("review upload failed")
+        await state.clear()
+        await message.reply(
+            f"❌ Не удалось загрузить отзыв: {e}\n"
+            "Проверь бакет «reviews» в Supabase Storage."
+        )
+        return
 
     await state.clear()
     await message.reply("✅ Отзыв опубликован на сайте!")

@@ -1,10 +1,25 @@
 import logging
+import os
 
 from aiogram import Dispatcher, Router
 from aiogram.types import Message
 from aiogram.fsm.storage.memory import MemoryStorage
 
+from app.core.config import get_settings
+
 logger = logging.getLogger(__name__)
+
+
+def _fsm_storage():
+    url = (os.getenv("REDIS_URL") or getattr(get_settings(), "redis_url", None) or "").strip()
+    if url:
+        try:
+            from aiogram.fsm.storage.redis import RedisStorage
+
+            return RedisStorage.from_url(url)
+        except Exception as e:
+            logger.warning("REDIS_URL задан, но Redis FSM недоступен: %s — используем MemoryStorage", e)
+    return MemoryStorage()
 from app.bot.handlers.start import router as start_router
 from app.bot.handlers.booking_actions import router as booking_router
 from app.bot.handlers.catalog_mgmt import router as catalog_router
@@ -32,7 +47,7 @@ async def fallback_nlp(message: Message):
 
 def create_dispatcher() -> Dispatcher:
     """Create and configure the aiogram dispatcher."""
-    dp = Dispatcher(storage=MemoryStorage())
+    dp = Dispatcher(storage=_fsm_storage())
 
     # Register routers (order matters — specific handlers first)
     dp.include_router(start_router)
