@@ -50,7 +50,8 @@
   --color-price-bg: rgba(195, 144, 119, 0.15);
   --color-price-border: rgba(195, 144, 119, 0.35);
   --shadow-soft-md: 0 12px 30px -4px rgba(54, 49, 45, 0.08);
-  --layout-max: min(100%, 80rem);
+  /* Шире 7xl: контент совпадает с шапкой, меньше «пустого поля» по бокам */
+  --layout-max: min(100%, 96rem);
 }
 
 * {

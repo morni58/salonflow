@@ -19,8 +19,8 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
 
   if (loading) {
     return (
-      <section id="portfolio" data-anchor-section className="bg-brand-900 py-16 text-white md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section id="portfolio" data-anchor-section className="bg-brand-900 pt-16 pb-0 text-white md:pt-20">
+        <div className="mx-auto w-full px-0 pb-16 md:pb-20">
           <h2 className="font-serif mb-4 text-center text-3xl font-semibold tracking-tight text-balance md:mb-6 md:text-4xl lg:text-5xl">Портфолио</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             {[1, 2, 3, 4].map((i) => (
@@ -31,6 +31,7 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
             ))}
           </div>
         </div>
+        <div className="h-16 w-full bg-gradient-to-b from-brand-900 to-base md:h-24" aria-hidden />
       </section>
     );
   }
@@ -45,8 +46,8 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
     : data.flatMap((d) => d.images);
 
   return (
-    <section id="portfolio" data-anchor-section className="bg-brand-900 py-16 text-white md:py-20">
-      <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+    <section id="portfolio" data-anchor-section className="bg-brand-900 pt-16 pb-0 text-white md:pt-20">
+      <div className="mx-auto w-full px-0 pb-16 text-center md:pb-20">
         <h2 className="font-serif mb-4 text-3xl font-semibold tracking-tight text-balance md:mb-6 md:text-4xl lg:text-5xl">Портфолио</h2>
         <p className="mx-auto mb-8 max-w-2xl text-sm text-brand-200 md:mb-12 md:text-base">
           Вдохновляйтесь нашими работами. Идеальный результат — наша визитная карточка.
@@ -92,6 +93,8 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
           </>
         )}
       </div>
+
+      <div className="h-16 w-full bg-gradient-to-b from-brand-900 to-base md:h-24" aria-hidden />
 
       {lightbox && (
         <div

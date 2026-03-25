@@ -47,7 +47,7 @@ export function Header({ tenant, onOpenCart }: Props) {
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="-ml-2 p-2 text-ink-dark transition-colors hover:text-brand-500 md:hidden"
+              className="-ml-2 p-2 text-ink-dark transition-colors duration-300 ease-out hover:text-brand-500 md:hidden"
               aria-label="Открыть меню"
             >
               <Menu size={24} strokeWidth={2} />
@@ -65,7 +65,7 @@ export function Header({ tenant, onOpenCart }: Props) {
                   className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm md:h-10 md:w-10"
                 />
               ) : (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 font-serif text-lg italic text-brand-600 transition-colors duration-300 group-hover:bg-brand-500 group-hover:text-white md:h-10 md:w-10 md:text-xl">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 font-serif text-lg italic text-brand-600 transition-colors duration-300 ease-out group-hover:bg-brand-500 group-hover:text-white md:h-10 md:w-10 md:text-xl">
                   {initial}
                 </div>
               )}
@@ -83,7 +83,7 @@ export function Header({ tenant, onOpenCart }: Props) {
                   key={link.id}
                   type="button"
                   onClick={() => scrollTo(link.id)}
-                  className="text-xs font-medium tracking-wider text-ink-light uppercase transition-colors hover:text-brand-500"
+                  className="text-xs font-medium tracking-wider text-ink-light uppercase transition-colors duration-300 ease-out hover:text-brand-500"
                 >
                   {link.label}
                 </button>
@@ -96,7 +96,7 @@ export function Header({ tenant, onOpenCart }: Props) {
                 onOpenCart();
                 setDrawerOpen(false);
               }}
-              className="relative -mr-2 flex items-center gap-2 p-2 text-ink transition-colors hover:text-brand-500 md:mr-0"
+              className="relative -mr-2 flex items-center gap-2 p-2 text-ink transition-colors duration-300 ease-out hover:text-brand-500 md:mr-0"
               aria-label="Ваша запись"
             >
               <span className="hidden text-xs font-medium tracking-wider uppercase md:block">Ваша запись</span>
@@ -138,7 +138,7 @@ export function Header({ tenant, onOpenCart }: Props) {
                 key={link.id}
                 type="button"
                 onClick={() => scrollTo(link.id)}
-                className="flex items-center rounded-xl p-4 text-left text-lg font-medium text-ink-dark transition-colors hover:bg-brand-50 hover:text-brand-600"
+                className="flex items-center rounded-xl p-4 text-left text-lg font-medium text-ink-dark transition-colors duration-300 ease-out hover:bg-brand-50 hover:text-brand-600"
               >
                 <Icon className="mr-3 h-5 w-5 opacity-60" strokeWidth={2} aria-hidden />
                 {link.label}

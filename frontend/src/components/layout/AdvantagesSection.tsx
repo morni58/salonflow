@@ -55,7 +55,7 @@ function Icon({ name }: { name: (typeof ITEMS)[number]["icon"] }) {
 export function AdvantagesSection() {
   return (
     <section id="advantages" data-anchor-section className="border-y border-brand-100 bg-surface py-12 md:py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {ITEMS.map((item, i) => (
             <div

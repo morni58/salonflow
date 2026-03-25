@@ -36,7 +36,7 @@ export function SegmentedTabs({
               aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 md:px-6",
+                "min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 ease-out md:px-6",
                 !isActive && "border-white/15 bg-white/10 text-white/85 hover:border-white/30",
                 isActive && "border-transparent bg-white text-brand-900 shadow-md"
               )}
@@ -70,7 +70,7 @@ export function SegmentedTabs({
               aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "tab-btn-poca min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 md:px-6",
+                "tab-btn-poca min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 ease-out md:px-6",
                 !isActive && "border-brand-100 bg-white text-ink-light hover:border-brand-300",
                 isActive && "border-transparent text-white shadow-md"
               )}

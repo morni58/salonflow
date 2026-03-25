@@ -17,7 +17,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
 
   if (loading) {
     return (
-      <section id="reviews" data-anchor-section>
+      <section id="reviews" data-anchor-section className="pt-2 md:pt-4">
         <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">Отзывы</h2>
         <div className="flex gap-3 overflow-hidden">
           {[1, 2, 3].map((i) => (
@@ -32,7 +32,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
   }
 
   return (
-    <section id="reviews" data-anchor-section>
+    <section id="reviews" data-anchor-section className="pt-2 md:pt-4">
       <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">Отзывы</h2>
 
       {reviews.length === 0 ? (
@@ -50,7 +50,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
                 key={rev.id}
                 type="button"
                 onClick={() => setLightbox(i)}
-                className="group h-72 w-52 shrink-0 overflow-hidden rounded-2xl border border-brand-100 bg-surface shadow-soft transition-all hover:shadow-soft-md"
+                className="group h-72 w-52 shrink-0 overflow-hidden rounded-2xl border border-brand-100 bg-surface shadow-soft transition-all duration-300 ease-out hover:shadow-soft-md"
               >
                 <img
                   src={rev.url}

@@ -20,9 +20,9 @@ export function HeroSection({ tenant }: Props) {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_45%_at_50%_-8%,rgba(195,144,119,0.14),transparent_55%)]"
         aria-hidden
       />
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto w-full">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-8">
-          <div className="animate-fade-up mt-4 text-center md:mt-0 lg:text-left">
+          <div className="animate-fade-up mt-4 min-w-0 text-center md:mt-0 lg:text-left">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-[10px] font-semibold tracking-widest text-brand-700 uppercase md:text-xs">
               <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={2} aria-hidden />
               Онлайн-запись 24/7
@@ -35,25 +35,25 @@ export function HeroSection({ tenant }: Props) {
             <p className="mx-auto mb-8 max-w-lg px-2 text-base leading-relaxed font-light text-ink-light sm:px-0 md:mb-10 md:text-lg lg:mx-0">
               Премиальный сервис в {tenant.name}: мастера и атмосфера релакса. Запишитесь онлайн в два клика.
             </p>
-            <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4 lg:justify-start">
+            <div className="flex min-w-0 flex-col justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4 lg:justify-start">
               <button
                 type="button"
                 onClick={() => scrollTo("catalog")}
-                className="interactive-raise inline-flex w-full min-h-[52px] items-center justify-center rounded-full bg-brand-500 px-8 py-4 text-sm font-medium tracking-wide text-white shadow-lg shadow-brand-500/30 transition-all duration-300 hover:-translate-y-1 hover:bg-brand-600 hover:shadow-brand-500/50 sm:w-auto"
+                className="interactive-raise inline-flex w-full min-h-[52px] min-w-0 items-center justify-center rounded-full bg-brand-500 px-6 py-3.5 text-center text-sm font-medium leading-snug text-white shadow-lg shadow-brand-500/30 transition-all duration-300 hover:-translate-y-1 hover:bg-brand-600 hover:shadow-brand-500/50 sm:w-auto sm:min-w-[11rem] sm:px-10 sm:py-4"
               >
                 Выбрать услуги
               </button>
               <button
                 type="button"
                 onClick={() => scrollTo("portfolio")}
-                className="inline-flex w-full min-h-[52px] items-center justify-center rounded-full border border-brand-200 bg-white px-8 py-4 text-sm font-medium tracking-wide text-ink transition-all duration-300 hover:border-brand-500 hover:text-brand-500 sm:w-auto"
+                className="inline-flex w-full min-h-[52px] min-w-0 items-center justify-center rounded-full border border-brand-200 bg-white px-6 py-3.5 text-center text-sm font-medium leading-snug text-ink transition-all duration-300 hover:border-brand-500 hover:text-brand-500 sm:w-auto sm:min-w-[11rem] sm:px-10 sm:py-4"
               >
                 Портфолио
               </button>
             </div>
           </div>
 
-          <div className="animate-fade-up animate-delay-200 relative mt-4 lg:mt-0">
+          <div className="animate-fade-up animate-delay-200 relative mt-4 min-w-0 lg:mt-0">
             <div className="absolute top-1/2 left-1/2 -z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-100 opacity-50 blur-3xl" />
             <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-black/[0.04] md:rounded-[2rem]">
               <img
