@@ -140,9 +140,13 @@ async def telegram_webhook(tenant_id: str, request: Request):
     if not bot:
         return {"error": "Bot not found"}
 
-    data = await request.json()
-    update = Update.model_validate(data, context={"bot": bot})
-    await dp.feed_update(bot=bot, update=update)
+    try:
+        data = await request.json()
+        update = Update.model_validate(data, context={"bot": bot})
+        await dp.feed_update(bot=bot, update=update)
+    except Exception:
+        # Логируем полностью, не роняем воркер; 200 — чтобы Telegram не ушёл в бесконечные ретраи
+        logger.exception("telegram_webhook failed tenant_id=%s", tenant_id)
     return {"ok": True}
 
 

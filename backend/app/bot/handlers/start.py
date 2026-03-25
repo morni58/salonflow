@@ -1,5 +1,8 @@
 import logging
+from html import escape
+
 from aiogram import Router, F
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -40,6 +43,16 @@ def _main_menu(role: str) -> InlineKeyboardMarkup:
         )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+async def _edit_callback_safe(callback: CallbackQuery, text: str, **kwargs: object) -> None:
+    """edit_text без падения на «message is not modified» (двойной клик по меню)."""
+    try:
+        await callback.message.edit_text(text, **kwargs)
+    except TelegramBadRequest as e:
+        if "message is not modified" in str(e).lower():
+            return
+        raise
 
 
 @router.message(CommandStart())
@@ -85,11 +98,14 @@ async def back_to_menu(callback: CallbackQuery):
         await callback.answer("Нет доступа")
         return
 
-    await callback.message.edit_text(
-        "Главное меню. Выберите действие:",
-        reply_markup=_main_menu(user["role"]),
-    )
-    await callback.answer()
+    try:
+        await _edit_callback_safe(
+            callback,
+            "Главное меню. Выберите действие:",
+            reply_markup=_main_menu(user["role"]),
+        )
+    finally:
+        await callback.answer()
 
 
 @router.callback_query(F.data == "menu:bookings")
@@ -133,7 +149,7 @@ async def menu_bookings(callback: CallbackQuery):
             if b.get("client_id"):
                 cl = sb.table("clients").select("name").eq("id", b["client_id"]).limit(1).execute()
                 if cl.data:
-                    client_name = cl.data[0]["name"]
+                    client_name = escape(cl.data[0]["name"])
 
             text += f"{emoji} {dt.strftime('%H:%M')} — {client_name} — {price:,}₸\n"
 
@@ -141,5 +157,7 @@ async def menu_bookings(callback: CallbackQuery):
         [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")],
     ])
 
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=keyboard)
-    await callback.answer()
+    try:
+        await _edit_callback_safe(callback, text, parse_mode="HTML", reply_markup=keyboard)
+    finally:
+        await callback.answer()

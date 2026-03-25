@@ -1,6 +1,10 @@
+import logging
+
 from aiogram import Dispatcher, Router
 from aiogram.types import Message
 from aiogram.fsm.storage.memory import MemoryStorage
+
+logger = logging.getLogger(__name__)
 from app.bot.handlers.start import router as start_router
 from app.bot.handlers.booking_actions import router as booking_router
 from app.bot.handlers.catalog_mgmt import router as catalog_router
@@ -38,5 +42,14 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(clients_router)
     dp.include_router(nlp_router)
     dp.include_router(fallback_router)  # Must be LAST
+
+    @dp.errors()
+    async def _log_handler_errors(event: object) -> bool:
+        exc = getattr(event, "exception", None)
+        if isinstance(exc, BaseException):
+            logger.error("aiogram handler error", exc_info=exc)
+        else:
+            logger.error("aiogram handler error: %s", event)
+        return True
 
     return dp
