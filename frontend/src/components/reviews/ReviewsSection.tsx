@@ -18,9 +18,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
   if (loading) {
     return (
       <section id="reviews" data-anchor-section>
-        <h2 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--color-text)" }}>
-          Отзывы
-        </h2>
+        <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">Отзывы</h2>
         <div className="flex gap-3 overflow-hidden">
           {[1, 2, 3].map((i) => (
             <div
@@ -39,17 +37,12 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
 
   return (
     <section id="reviews" data-anchor-section>
-      <h2 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--color-text)" }}>
-        Отзывы
-      </h2>
+      <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">Отзывы</h2>
 
       {reviews.length === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center rounded-2xl border px-6 py-14 text-center shadow-sm"
-          style={{ borderColor: "var(--color-border-card)", background: "var(--color-bg-elevated)" }}
-        >
-          <MessageCircle className="mb-3 opacity-40" size={44} style={{ color: "var(--color-primary)" }} />
-          <p className="max-w-sm text-sm leading-relaxed opacity-65" style={{ color: "var(--color-text)" }}>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-brand-100 bg-surface px-6 py-14 text-center shadow-soft">
+          <MessageCircle className="mb-3 text-brand-400" size={44} aria-hidden />
+          <p className="max-w-sm text-sm leading-relaxed text-ink-light">
             Скриншоты отзывов появятся здесь после загрузки в Telegram-боте.
           </p>
         </div>
@@ -61,8 +54,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
                 key={rev.id}
                 type="button"
                 onClick={() => setLightbox(i)}
-                className="group h-72 w-52 shrink-0 overflow-hidden rounded-2xl border shadow-sm transition-all hover:shadow-soft-md"
-                style={{ borderColor: "var(--color-border-card)" }}
+                className="group h-72 w-52 shrink-0 overflow-hidden rounded-2xl border border-brand-100 bg-surface shadow-soft transition-all hover:shadow-soft-md"
               >
                 <img
                   src={rev.url}

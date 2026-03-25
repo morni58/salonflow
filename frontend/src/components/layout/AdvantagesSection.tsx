@@ -54,12 +54,7 @@ function Icon({ name }: { name: (typeof ITEMS)[number]["icon"] }) {
 
 export function AdvantagesSection() {
   return (
-    <section
-      id="advantages"
-      data-anchor-section
-      className="border-y border-white/10 py-14 md:py-20"
-      style={{ background: "color-mix(in srgb, var(--color-text) 4%, var(--color-bg))" }}
-    >
+    <section id="advantages" data-anchor-section className="border-y border-brand-100 bg-surface py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {ITEMS.map((item, i) => (
@@ -68,16 +63,12 @@ export function AdvantagesSection() {
               className={`animate-fade-up px-4 text-center ${i === 1 ? "animate-delay-100" : i === 2 ? "animate-delay-200" : ""}`}
             >
               <div
-                className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[var(--color-primary)] backdrop-blur-sm transition-transform hover:rotate-0 md:h-16 md:w-16 ${item.rotate}`}
+                className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-500 transition-transform hover:rotate-0 md:h-16 md:w-16 ${item.rotate}`}
               >
                 <Icon name={item.icon} />
               </div>
-              <h3 className="mb-2 text-xl font-bold" style={{ color: "var(--color-text)" }}>
-                {item.title}
-              </h3>
-              <p className="mx-auto max-w-xs text-sm leading-relaxed opacity-75" style={{ color: "var(--color-text)" }}>
-                {item.text}
-              </p>
+              <h3 className="font-serif mb-2 text-xl font-semibold text-ink-dark">{item.title}</h3>
+              <p className="mx-auto max-w-xs text-sm leading-relaxed text-ink-light">{item.text}</p>
             </div>
           ))}
         </div>

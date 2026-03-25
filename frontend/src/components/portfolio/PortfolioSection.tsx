@@ -17,21 +17,17 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
       .finally(() => setLoading(false));
   }, [tenantId]);
 
-  const sectionBg = "color-mix(in srgb, var(--color-text) 6%, var(--color-bg))";
-
   if (loading) {
     return (
-      <section id="portfolio" data-anchor-section className="py-16 md:py-20" style={{ background: sectionBg }}>
+      <section id="portfolio" data-anchor-section className="bg-brand-900 py-16 text-white md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2
-            className="mb-4 text-center text-3xl font-bold md:mb-6 md:text-4xl lg:text-5xl"
-            style={{ color: "var(--color-text)" }}
-          >
-            Портфолио
-          </h2>
+          <h2 className="font-serif mb-4 text-center text-3xl font-semibold tracking-tight text-balance md:mb-6 md:text-4xl lg:text-5xl">Портфолио</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton h-36 rounded-xl border border-white/10 md:h-48 md:rounded-2xl" />
+              <div
+                key={i}
+                className="h-36 animate-pulse rounded-xl border border-brand-700 bg-brand-800/50 md:h-48 md:rounded-2xl"
+              />
             ))}
           </div>
         </div>
@@ -49,19 +45,17 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
     : data.flatMap((d) => d.images);
 
   return (
-    <section id="portfolio" data-anchor-section className="py-16 md:py-20" style={{ background: sectionBg }}>
+    <section id="portfolio" data-anchor-section className="bg-brand-900 py-16 text-white md:py-20">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-        <h2 className="mb-4 text-3xl font-bold md:mb-6 md:text-4xl lg:text-5xl" style={{ color: "var(--color-text)" }}>
-          Портфолио
-        </h2>
-        <p className="mx-auto mb-8 max-w-2xl text-sm opacity-75 md:mb-12 md:text-base" style={{ color: "var(--color-text)" }}>
+        <h2 className="font-serif mb-4 text-3xl font-semibold tracking-tight text-balance md:mb-6 md:text-4xl lg:text-5xl">Портфолио</h2>
+        <p className="mx-auto mb-8 max-w-2xl text-sm text-brand-200 md:mb-12 md:text-base">
           Вдохновляйтесь нашими работами. Идеальный результат — наша визитная карточка.
         </p>
 
         {data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-14 text-center backdrop-blur-sm">
-            <Images className="mb-3 opacity-50" size={44} style={{ color: "var(--color-accent)" }} aria-hidden />
-            <p className="max-w-sm text-sm leading-relaxed opacity-80" style={{ color: "var(--color-text)" }}>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-brand-700 bg-brand-800/40 px-6 py-14 text-center">
+            <Images className="mb-3 text-brand-300" size={44} aria-hidden />
+            <p className="max-w-sm text-sm leading-relaxed text-brand-200/90">
               Здесь будут фото работ. Администратор может загрузить их в Telegram-боте в разделе портфолио.
             </p>
           </div>
@@ -84,7 +78,7 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
                   key={img.id}
                   type="button"
                   onClick={() => setLightbox(img.url)}
-                  className="group h-36 overflow-hidden rounded-xl border border-white/10 opacity-95 transition-all hover:opacity-100 active:scale-[0.98] md:h-48 md:rounded-2xl"
+                  className="group h-36 overflow-hidden rounded-xl opacity-90 transition-opacity hover:opacity-100 active:scale-[0.98] md:h-48 md:rounded-2xl"
                 >
                   <img
                     src={img.url}
@@ -101,7 +95,7 @@ export function PortfolioSection({ tenantId }: { tenantId: string }) {
 
       {lightbox && (
         <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
         >
           <button type="button" className="absolute right-4 top-4 text-white/80 hover:text-white">

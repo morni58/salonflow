@@ -68,13 +68,11 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-soft-md transition duration-300 hover:brightness-[0.96] active:scale-95"
+          className="fixed z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-soft-md transition hover:bg-brand-600 active:scale-95"
           style={{
-            background: "var(--color-accent)",
-            color: "#0f172a",
             bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
             right: "max(1rem, env(safe-area-inset-right, 0px))",
-            boxShadow: "0 12px 40px color-mix(in srgb, var(--color-accent) 45%, transparent)",
+            boxShadow: "0 12px 30px -4px rgba(54, 49, 45, 0.15)",
           }}
           aria-label="Открыть чат"
         >
@@ -84,22 +82,14 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
 
       {open && (
         <div
-          className="fixed bottom-[max(12px,env(safe-area-inset-bottom,0px))] left-3 right-3 z-50 flex h-[min(85dvh,32rem)] max-h-[min(85dvh,32rem)] flex-col overflow-hidden rounded-3xl sm:bottom-5 sm:left-auto sm:right-5 sm:h-[500px] sm:w-[360px] sm:max-h-[80vh]"
-          style={{
-            background: "var(--color-bg-elevated)",
-            boxShadow: "var(--shadow-soft-md)",
-            border: "1px solid rgba(255,255,255,0.1)",
-          }}
+          className="fixed bottom-[max(12px,env(safe-area-inset-bottom,0px))] left-3 right-3 z-50 flex h-[min(85dvh,32rem)] max-h-[min(85dvh,32rem)] flex-col overflow-hidden rounded-3xl border border-brand-100 bg-white shadow-soft-md sm:bottom-5 sm:left-auto sm:right-5 sm:h-[500px] sm:w-[360px] sm:max-h-[80vh]"
         >
-          <div
-            className="flex items-center justify-between px-4 py-3"
-            style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
-          >
+          <div className="flex items-center justify-between bg-brand-500 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <Bot size={20} />
               <div>
                 <p className="text-sm font-semibold">AI-Консультант</p>
-                <p className="text-xs opacity-85">
+                <p className="text-xs opacity-90">
                   {remaining > 0 ? `${remaining} сообщ. осталось` : "Лимит исчерпан"}
                 </p>
               </div>
@@ -114,30 +104,24 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
             </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-base p-4">
             {messages.length === 0 && (
               <div className="flex h-full items-center justify-center">
-                <p className="text-center text-sm opacity-50" style={{ color: "var(--color-text)" }}>
+                <p className="text-center text-sm text-ink-light">
                   Привет! Задайте вопрос об услугах, ценах или помогу выбрать процедуру
                 </p>
               </div>
             )}
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
+              <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
-                  <div
-                    className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: "var(--color-primary-muted)" }}
-                  >
-                    <Bot size={14} style={{ color: "var(--color-primary)" }} />
+                  <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100">
+                    <Bot size={14} className="text-brand-600" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[min(75%,20rem)] min-w-0 overflow-hidden rounded-3xl px-3.5 py-2.5 text-sm leading-relaxed break-words ${
-                    msg.role === "user" ? "shadow-soft" : "shadow-soft"
+                  className={`max-w-[min(75%,20rem)] min-w-0 overflow-hidden rounded-3xl px-3.5 py-2.5 text-sm leading-relaxed break-words shadow-soft ${
+                    msg.role === "user" ? "" : "border border-brand-100 bg-white"
                   }`}
                   style={
                     msg.role === "user"
@@ -147,8 +131,6 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                           overflowWrap: "anywhere",
                         }
                       : {
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.1)",
                           color: "var(--color-text)",
                           overflowWrap: "anywhere",
                         }
@@ -157,17 +139,15 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                   {msg.content || <span className="inline-block animate-pulse">●●●</span>}
                 </div>
                 {msg.role === "user" && (
-                  <div
-                    className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10"
-                  >
-                    <User size={14} style={{ color: "var(--color-text)" }} />
+                  <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-100 bg-white">
+                    <User size={14} className="text-ink-light" />
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          <div className="border-t p-3" style={{ borderColor: "var(--color-border-muted)" }}>
+          <div className="border-t border-brand-100 bg-white p-3">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -176,15 +156,13 @@ export function ChatWidget({ tenantId, sessionId }: Props) {
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={remaining > 0 ? "Спросите что-нибудь..." : "Лимит сообщений исчерпан"}
                 disabled={remaining <= 0 || streaming}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none backdrop-blur-sm transition-colors disabled:opacity-40"
-                style={{ color: "var(--color-text)" }}
+                className="flex-1 rounded-3xl border border-brand-100 bg-white px-4 py-2.5 text-sm text-ink outline-none shadow-soft transition-colors disabled:opacity-40"
               />
               <button
                 type="button"
                 onClick={handleSend}
                 disabled={!input.trim() || streaming || remaining <= 0}
-                className="btn-primary-soft flex h-10 w-10 items-center justify-center rounded-full shadow-soft disabled:opacity-35"
-                style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
+                className="btn-primary-soft flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-soft disabled:opacity-35"
                 aria-label="Отправить"
               >
                 <Send size={16} />

@@ -18,7 +18,6 @@ function getSubdomain(): string {
   return "demo";
 }
 
-/** #RGB or #RRGGBB → {r,g,b} */
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = hex.replace(/^#/, "").trim();
   if (h.length === 6) {
@@ -41,6 +40,17 @@ function rgbaFromHex(hex: string, alpha: number): string {
   return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
 }
 
+function mixHex(a: string, b: string, t: number): string {
+  const A = hexToRgb(a);
+  const B = hexToRgb(b);
+  if (!A || !B) return a;
+  const mix = (x: number, y: number) => Math.round(x + (y - x) * t);
+  const r = mix(A.r, B.r);
+  const g = mix(A.g, B.g);
+  const bb = mix(A.b, B.b);
+  return `#${[r, g, bb].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function luminance(hex: string): number {
   const rgb = hexToRgb(hex);
   if (!rgb) return 0.5;
@@ -51,45 +61,66 @@ function luminance(hex: string): number {
   return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
 }
 
+/** База как в pox/pokaz.html */
+const HARMONY_BG = "#faf8f5";
+const HARMONY_TEXT = "#36312d";
+const HARMONY_PRIMARY = "#c39077";
+const HARMONY_ACCENT = "#dfc6b9";
+
+function softenLegacyTheme(bg: string, text: string): { bg: string; text: string } {
+  if (luminance(bg) >= 0.42) return { bg, text };
+  const softBg = mixHex(bg, HARMONY_BG, 0.92);
+  const textOut = luminance(text) > 0.55 ? HARMONY_TEXT : text;
+  return { bg: softBg, text: textOut };
+}
+
+function harmonizeChampagnePowder(primary: string, accent: string) {
+  return {
+    primary: mixHex(primary, HARMONY_PRIMARY, 0.45),
+    accent: mixHex(accent, HARMONY_ACCENT, 0.45),
+  };
+}
+
 function applyTheme(tenant: Tenant) {
   const root = document.documentElement;
-  const { color_primary: primary, color_accent: accent, color_bg: bg, color_text: text } = tenant;
+  const softened = softenLegacyTheme(tenant.color_bg, tenant.color_text);
+  const { primary, accent } = harmonizeChampagnePowder(tenant.color_primary, tenant.color_accent);
+  const bg = softened.bg;
+  const text = softened.text;
+  const primaryDark = mixHex(primary, "#1c1917", 0.18);
+
+  root.style.setProperty("--tenant-primary", primary);
+  root.style.setProperty("--tenant-primary-dark", primaryDark);
+  root.style.setProperty("--tenant-bg", bg);
+  root.style.setProperty("--tenant-text", text);
 
   root.style.setProperty("--color-primary", primary);
   root.style.setProperty("--color-accent", accent);
   root.style.setProperty("--color-bg", bg);
   root.style.setProperty("--color-text", text);
 
-  const primaryFg = luminance(primary) > 0.55 ? text : "#ffffff";
+  const primaryFg = luminance(primary) > 0.62 ? text : "#ffffff";
   root.style.setProperty("--color-primary-foreground", primaryFg);
   root.style.setProperty("--color-on-solid", "#ffffff");
-  root.style.setProperty("--color-primary-solid", primary);
+  root.style.setProperty("--color-primary-solid", mixHex(primary, text, 0.28));
 
-  root.style.setProperty("--color-primary-20", rgbaFromHex(primary, 0.2));
-  root.style.setProperty("--color-primary-40", rgbaFromHex(primary, 0.4));
+  root.style.setProperty("--color-primary-20", rgbaFromHex(primary, 0.22));
+  root.style.setProperty("--color-primary-40", rgbaFromHex(primary, 0.38));
   root.style.setProperty("--color-primary-muted", rgbaFromHex(primary, 0.18));
 
-  root.style.setProperty("--color-bg-card", rgbaFromHex(bg, 0.78));
-  root.style.setProperty("--color-bg-elevated", rgbaFromHex(bg, 0.94));
-  root.style.setProperty("--color-bg-glass", rgbaFromHex(bg, 0.52));
+  root.style.setProperty("--color-bg-card", "rgba(255, 255, 255, 0.95)");
+  root.style.setProperty("--color-bg-elevated", "#ffffff");
+  root.style.setProperty("--color-bg-glass", "rgba(255, 255, 255, 0.82)");
+  root.style.setProperty("--color-border-soft", rgbaFromHex(text, 0.06));
+  root.style.setProperty("--color-border-muted", rgbaFromHex(text, 0.1));
+  root.style.setProperty("--color-border-card", rgbaFromHex(text, 0.06));
+  root.style.setProperty("--color-border-pill", rgbaFromHex(text, 0.08));
+  root.style.setProperty("--color-placeholder-surface", mixHex(HARMONY_ACCENT, HARMONY_BG, 0.65));
+  root.style.setProperty("--color-price-bg", rgbaFromHex(accent, 0.15));
+  root.style.setProperty("--color-price-border", rgbaFromHex(accent, 0.35));
 
-  root.style.setProperty("--color-border-soft", "rgba(255, 255, 255, 0.08)");
-  root.style.setProperty("--color-border-muted", "rgba(255, 255, 255, 0.12)");
-  root.style.setProperty("--color-border-card", "rgba(255, 255, 255, 0.1)");
-  root.style.setProperty("--color-border-pill", "rgba(255, 255, 255, 0.12)");
-  root.style.setProperty("--color-placeholder-surface", rgbaFromHex(text, 0.06));
-
-  root.style.setProperty("--color-price-bg", rgbaFromHex(accent, 0.18));
-  root.style.setProperty("--color-price-border", rgbaFromHex(accent, 0.4));
-
-  root.style.setProperty(
-    "--shadow-soft",
-    `0 4px 24px -4px ${rgbaFromHex(primary, 0.25)}`
-  );
-  root.style.setProperty(
-    "--shadow-soft-md",
-    `0 12px 40px -8px ${rgbaFromHex(bg, 0.6)}`
-  );
+  root.style.setProperty("--shadow-soft", "0 4px 20px -2px rgba(54, 49, 45, 0.05)");
+  root.style.setProperty("--shadow-soft-md", "0 12px 30px -4px rgba(54, 49, 45, 0.08)");
 
   document.title = `${tenant.name} — Онлайн-запись`;
 

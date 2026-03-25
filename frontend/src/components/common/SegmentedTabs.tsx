@@ -12,7 +12,7 @@ interface Props {
   allLabel?: string;
 }
 
-/** Табы каталога / портфолио — стиль как в спецификации: активный primary, неактивный glass */
+/** Как tab-btn в pox/pokaz.html */
 export function SegmentedTabs({
   tabs,
   activeKey,
@@ -36,19 +36,10 @@ export function SegmentedTabs({
               aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold transition-all duration-300 md:px-6",
-                !isActive && "border-white/12 bg-white/5 text-white/75 hover:border-white/25 hover:bg-white/10",
-                isActive && "border-transparent shadow-lg"
+                "min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 md:px-6",
+                !isActive && "border-white/15 bg-white/10 text-white/85 hover:border-white/30",
+                isActive && "border-transparent bg-white text-brand-900 shadow-md"
               )}
-              style={
-                isActive
-                  ? {
-                      background: "var(--color-primary)",
-                      color: "var(--color-primary-foreground)",
-                      boxShadow: "0 8px 28px color-mix(in srgb, var(--color-primary) 40%, transparent)",
-                    }
-                  : undefined
-              }
             >
               {tab.key === null ? allLabel : tab.label}
             </button>
@@ -79,18 +70,18 @@ export function SegmentedTabs({
               aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold transition-all duration-300 md:px-6",
-                !isActive && "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]",
-                isActive && "border-transparent shadow-lg"
+                "tab-btn-poca min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 md:px-6",
+                !isActive && "border-brand-100 bg-white text-ink-light hover:border-brand-300",
+                isActive && "border-transparent text-white shadow-md"
               )}
               style={
                 isActive
                   ? {
-                      background: "var(--color-primary)",
-                      color: "var(--color-primary-foreground)",
-                      boxShadow: "0 8px 28px color-mix(in srgb, var(--color-primary) 40%, transparent)",
+                      background: "var(--tenant-primary, #c39077)",
+                      borderColor: "var(--tenant-primary, #c39077)",
+                      boxShadow: "0 4px 12px rgba(195, 144, 119, 0.3)",
                     }
-                  : { color: "var(--color-text)", opacity: 0.75 }
+                  : undefined
               }
             >
               {tab.key === null ? allLabel : tab.label}

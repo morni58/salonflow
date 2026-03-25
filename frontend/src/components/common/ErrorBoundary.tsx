@@ -34,15 +34,14 @@ export class ErrorBoundary extends Component<Props, State> {
           style={{ color: "var(--color-text)" }}
         >
           <div className="text-5xl">😵</div>
-          <h2 className="text-xl font-bold">Что-то пошло не так</h2>
+          <h2 className="font-serif text-xl font-semibold">Что-то пошло не так</h2>
           <p className="max-w-sm text-sm opacity-50">
             {this.state.error?.message || "Произошла неожиданная ошибка"}
           </p>
           <button
             type="button"
             onClick={this.handleRetry}
-            className="btn-primary-soft mt-2 rounded-full px-8 py-3 text-sm font-semibold shadow-soft"
-            style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
+            className="btn-primary-soft mt-2 rounded-full bg-brand-500 px-8 py-3 text-sm font-semibold text-white shadow-soft"
           >
             Попробовать снова
           </button>

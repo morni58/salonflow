@@ -28,8 +28,8 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-3.5 text-sm outline-none backdrop-blur-md transition-colors";
-const cardBorder = { borderColor: "var(--color-border-card)" };
+  "min-w-0 w-full max-w-full rounded-3xl border border-transparent bg-white px-5 py-3.5 text-sm outline-none shadow-soft transition-colors";
+const cardBorder = { borderColor: "transparent" };
 
 export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const { items, totalPrice, totalDuration, clearCart } = useCart();
@@ -95,9 +95,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         >
           <CheckCircle size={40} style={{ color: "var(--color-primary)" }} />
         </div>
-        <h2 className="text-3xl font-bold" style={{ color: "var(--color-text)" }}>
-          Заявка отправлена!
-        </h2>
+        <h2 className="font-serif text-3xl font-semibold text-ink-dark">Заявка отправлена!</h2>
         <p className="mt-3 max-w-sm opacity-65" style={{ color: "var(--color-text)" }}>
           Мы свяжемся с вами через выбранный мессенджер для подтверждения и оплаты.
         </p>
@@ -124,11 +122,9 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <ArrowLeft size={16} /> Назад к услугам
       </button>
 
-      <h2 className="mb-6 text-3xl font-bold" style={{ color: "var(--color-text)" }}>
-        Оформление записи
-      </h2>
+      <h2 className="font-serif mb-6 text-3xl font-semibold text-ink-dark">Оформление записи</h2>
 
-      <div className="glass mb-6 max-w-full overflow-hidden rounded-2xl p-5">
+      <div className="mb-6 max-w-full overflow-hidden rounded-3xl border border-transparent bg-white p-5 shadow-soft">
         <p
           className="line-clamp-4 text-sm leading-relaxed opacity-55"
           style={{ color: "var(--color-text)", overflowWrap: "anywhere" }}
@@ -171,8 +167,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 setContactValue("");
               }}
               className={cn(
-                "rounded-2xl border py-3.5 text-center text-sm transition-all",
-                contactType === c.type ? "shadow-lg" : "border-white/10 bg-white/5 hover:bg-white/10"
+                "rounded-3xl border border-transparent py-3.5 text-center text-sm shadow-soft transition-all",
+                contactType === c.type ? "shadow-soft" : "bg-white hover:brightness-[0.99]"
               )}
               style={
                 contactType === c.type
@@ -181,7 +177,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                       borderColor: "transparent",
                       color: "var(--color-primary-foreground)",
                     }
-                  : { color: "var(--color-text)" }
+                  : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
               }
             >
               <span className="text-lg">{c.icon}</span>
@@ -215,8 +211,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 type="button"
                 onClick={() => setSelectedDate(d)}
                 className={cn(
-                  "flex shrink-0 flex-col items-center rounded-2xl border px-4 py-4 transition-all",
-                  selectedDate === d ? "shadow-lg" : "border-white/10 bg-white/5 hover:bg-white/10"
+                  "flex shrink-0 flex-col items-center rounded-3xl border border-transparent px-4 py-4 shadow-soft transition-all",
+                  selectedDate === d ? "shadow-soft" : "bg-white hover:brightness-[0.995]"
                 )}
                 style={
                   selectedDate === d
@@ -245,7 +241,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           {slotsLoading ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 animate-pulse rounded-3xl bg-black/[0.06]" />
+                <div key={i} className="h-10 animate-pulse rounded-3xl bg-brand-100" />
               ))}
             </div>
           ) : slots.length === 0 ? (
@@ -260,8 +256,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-2xl border py-3.5 text-sm font-medium transition-all",
-                    selectedTime === slot ? "shadow-lg" : "border-white/10 bg-white/5 hover:bg-white/10"
+                    "rounded-3xl border border-transparent py-3.5 text-sm font-medium shadow-soft transition-all",
+                    selectedTime === slot ? "shadow-soft" : "bg-white hover:brightness-[0.99]"
                   )}
                   style={
                     selectedTime === slot
