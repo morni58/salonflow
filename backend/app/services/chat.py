@@ -2,6 +2,7 @@ import httpx
 import json
 import logging
 from typing import AsyncGenerator
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 from app.services.catalog import get_catalog
 
@@ -54,8 +55,7 @@ def increment_session(session_id: str) -> int:
     return count
 
 
-async def get_faq_answer(tenant_id: str, message: str) -> str:
-    """Fallback: find best matching FAQ answer."""
+def _faq_answer_sync(tenant_id: str, message: str) -> str:
     sb = get_supabase()
     faqs = (
         sb.table("faq")
@@ -66,7 +66,6 @@ async def get_faq_answer(tenant_id: str, message: str) -> str:
     if not faqs.data:
         return "К сожалению, сейчас я не могу ответить. Пожалуйста, оставьте заявку, и администратор свяжется с вами."
 
-    # Simple keyword matching
     lower = message.lower()
     best_match = None
     best_score = 0
@@ -80,11 +79,13 @@ async def get_faq_answer(tenant_id: str, message: str) -> str:
     return best_match or faqs.data[0]["answer"]
 
 
-async def build_system_prompt(tenant_id: str) -> str:
-    """Build system prompt with tenant context (catalog, prices, FAQ)."""
-    sb = get_supabase()
+async def get_faq_answer(tenant_id: str, message: str) -> str:
+    """Fallback: find best matching FAQ answer."""
+    return await run_sync(_faq_answer_sync, tenant_id, message)
 
-    # Tenant info
+
+def _tenant_name_and_faq_text_sync(tenant_id: str) -> tuple[str, str]:
+    sb = get_supabase()
     tenant = (
         sb.table("tenants")
         .select("name")
@@ -93,17 +94,6 @@ async def build_system_prompt(tenant_id: str) -> str:
         .execute()
     )
     tenant_name = tenant.data[0]["name"] if tenant.data else "Салон"
-
-    # Catalog
-    catalog = await get_catalog(tenant_id)
-    catalog_text = ""
-    for cat in catalog.categories:
-        catalog_text += f"\n📂 {cat.name}:\n"
-        for svc in cat.services:
-            price_tg = svc.price // 100  # тиыны → тенге
-            catalog_text += f"  • {svc.name} — {price_tg:,}₸, {svc.duration_minutes} мин\n"
-
-    # FAQ
     faqs = (
         sb.table("faq")
         .select("question, answer")
@@ -113,6 +103,20 @@ async def build_system_prompt(tenant_id: str) -> str:
     faq_text = ""
     for f in faqs.data:
         faq_text += f"\nВ: {f['question']}\nО: {f['answer']}\n"
+    return tenant_name, faq_text
+
+
+async def build_system_prompt(tenant_id: str) -> str:
+    """Build system prompt with tenant context (catalog, prices, FAQ)."""
+    tenant_name, faq_text = await run_sync(_tenant_name_and_faq_text_sync, tenant_id)
+
+    catalog = await get_catalog(tenant_id)
+    catalog_text = ""
+    for cat in catalog.categories:
+        catalog_text += f"\n📂 {cat.name}:\n"
+        for svc in cat.services:
+            price_tg = svc.price // 100  # тиыны → тенге
+            catalog_text += f"  • {svc.name} — {price_tg:,}₸, {svc.duration_minutes} мин\n"
 
     return f"""Ты — AI-консультант салона «{tenant_name}». Твоя задача — помочь клиенту выбрать услуги, ответить на вопросы и мотивировать оставить заявку.
 
@@ -138,24 +142,24 @@ async def chat_stream(
     history: list[dict],
 ) -> AsyncGenerator[str, None]:
     """Stream chat response from Groq API."""
-    sb = get_supabase()
+    def _groq_keys_sync(tid: str) -> list[str]:
+        sb = get_supabase()
+        tenant = (
+            sb.table("tenants")
+            .select("groq_api_keys")
+            .eq("id", tid)
+            .limit(1)
+            .execute()
+        )
+        return tenant.data[0].get("groq_api_keys", []) if tenant.data else []
 
-    # Check session limit
     count = increment_session(session_id)
     if count > MAX_MESSAGES_PER_SESSION:
         fallback = await get_faq_answer(tenant_id, message)
         yield fallback
         return
 
-    # Get Groq keys
-    tenant = (
-        sb.table("tenants")
-        .select("groq_api_keys")
-        .eq("id", tenant_id)
-        .limit(1)
-        .execute()
-    )
-    keys = tenant.data[0].get("groq_api_keys", []) if tenant.data else []
+    keys = await run_sync(_groq_keys_sync, tenant_id)
     if not keys:
         fallback = await get_faq_answer(tenant_id, message)
         yield fallback
@@ -217,26 +221,42 @@ async def chat_stream(
                     {"role": "assistant", "content": full_response},
                 ]
 
-                import json as json_mod
-                existing_log = (
-                    sb.table("chat_logs")
-                    .select("id")
-                    .eq("session_id", session_id)
-                    .limit(1)
-                    .execute()
+                def _save_chat_log_sync(
+                    tid: str,
+                    sid: str,
+                    history: list,
+                    alert: bool,
+                ) -> None:
+                    import json as json_mod
+                    sb = get_supabase()
+                    existing_log = (
+                        sb.table("chat_logs")
+                        .select("id")
+                        .eq("session_id", sid)
+                        .limit(1)
+                        .execute()
+                    )
+                    dumped = json_mod.loads(json_mod.dumps(history))
+                    if existing_log.data:
+                        sb.table("chat_logs").update({
+                            "messages": dumped,
+                            "has_alert": alert,
+                        }).eq("id", existing_log.data[0]["id"]).execute()
+                    else:
+                        sb.table("chat_logs").insert({
+                            "tenant_id": tid,
+                            "session_id": sid,
+                            "messages": dumped,
+                            "has_alert": alert,
+                        }).execute()
+
+                await run_sync(
+                    _save_chat_log_sync,
+                    tenant_id,
+                    session_id,
+                    updated_history,
+                    has_alert,
                 )
-                if existing_log.data:
-                    sb.table("chat_logs").update({
-                        "messages": json_mod.loads(json_mod.dumps(updated_history)),
-                        "has_alert": has_alert,
-                    }).eq("id", existing_log.data[0]["id"]).execute()
-                else:
-                    sb.table("chat_logs").insert({
-                        "tenant_id": tenant_id,
-                        "session_id": session_id,
-                        "messages": json_mod.loads(json_mod.dumps(updated_history)),
-                        "has_alert": has_alert,
-                    }).execute()
 
                 # Alert notification
                 if has_alert:

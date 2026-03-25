@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from aiogram import Bot
 from aiogram.types import Update
 
+from app.core.async_utils import run_sync
 from app.core.config import get_settings
 from app.core.scheduler import setup_scheduler
 from app.core.rate_limit import setup_rate_limiting
@@ -25,20 +26,23 @@ dp = create_dispatcher()
 _webhook_bots: dict[str, Bot] = {}
 
 
-def _register_tenant_bots():
-    """Load all tenant bots and register webhooks."""
+def _fetch_tenant_bot_rows_sync():
     from app.core.database import get_supabase
-    settings = get_settings()
     sb = get_supabase()
-
     tenants = (
         sb.table("tenants")
         .select("id, bot_token_encrypted, subdomain")
         .eq("is_active", True)
         .execute()
     )
+    return tenants.data or []
 
-    for t in tenants.data:
+
+async def _register_tenant_bots():
+    """Load all tenant bots and register webhooks."""
+    tenants_data = await run_sync(_fetch_tenant_bot_rows_sync)
+
+    for t in tenants_data:
         token = t.get("bot_token_encrypted")
         if not token:
             continue
@@ -62,7 +66,7 @@ async def lifespan(app: FastAPI):
 
     # Register bots
     try:
-        _register_tenant_bots()
+        await _register_tenant_bots()
     except Exception as e:
         logger.error(f"Bot registration error: {e}")
 

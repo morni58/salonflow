@@ -1,17 +1,17 @@
 from datetime import datetime, timedelta
 from collections import Counter
-from app.core.database import get_supabase
+
 import httpx
 import logging
+
+from app.core.async_utils import run_sync
+from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
 
 
-async def track_event(tenant_id: str, event_type: str, session_id: str) -> None:
-    """Track an analytics event."""
+def _track_event_sync(tenant_id: str, event_type: str, session_id: str) -> None:
     sb = get_supabase()
-
-    # Deduplicate visits per session
     if event_type == "visit":
         existing = (
             sb.table("analytics")
@@ -32,28 +32,12 @@ async def track_event(tenant_id: str, event_type: str, session_id: str) -> None:
     }).execute()
 
 
-async def get_weekly_stats(tenant_id: str) -> dict:
-    """Get analytics stats for current and previous week."""
-    sb = get_supabase()
-    now = datetime.utcnow()
-
-    # Current week (Mon-Sun)
-    current_start = now - timedelta(days=now.weekday(), hours=now.hour, minutes=now.minute)
-    current_end = now
-    prev_start = current_start - timedelta(days=7)
-    prev_end = current_start
-
-    current = await _get_period_stats(sb, tenant_id, current_start, current_end)
-    previous = await _get_period_stats(sb, tenant_id, prev_start, prev_end)
-
-    return {
-        "current": current,
-        "previous": previous,
-        "deltas": _calc_deltas(current, previous),
-    }
+async def track_event(tenant_id: str, event_type: str, session_id: str) -> None:
+    """Track an analytics event."""
+    await run_sync(_track_event_sync, tenant_id, event_type, session_id)
 
 
-async def _get_period_stats(sb, tenant_id: str, start: datetime, end: datetime) -> dict:
+def _get_period_stats_sync(sb, tenant_id: str, start: datetime, end: datetime) -> dict:
     """Get stats for a specific period."""
     # Analytics events
     events = (
@@ -127,6 +111,29 @@ async def _get_period_stats(sb, tenant_id: str, start: datetime, end: datetime) 
     }
 
 
+def _get_weekly_stats_sync(tenant_id: str) -> dict:
+    sb = get_supabase()
+    now = datetime.utcnow()
+    current_start = now - timedelta(days=now.weekday(), hours=now.hour, minutes=now.minute)
+    current_end = now
+    prev_start = current_start - timedelta(days=7)
+    prev_end = current_start
+
+    current = _get_period_stats_sync(sb, tenant_id, current_start, current_end)
+    previous = _get_period_stats_sync(sb, tenant_id, prev_start, prev_end)
+
+    return {
+        "current": current,
+        "previous": previous,
+        "deltas": _calc_deltas(current, previous),
+    }
+
+
+async def get_weekly_stats(tenant_id: str) -> dict:
+    """Get analytics stats for current and previous week."""
+    return await run_sync(_get_weekly_stats_sync, tenant_id)
+
+
 def _calc_deltas(current: dict, previous: dict) -> dict:
     """Calculate percentage deltas between periods."""
     deltas = {}
@@ -144,10 +151,8 @@ def _calc_deltas(current: dict, previous: dict) -> dict:
     return deltas
 
 
-async def generate_ai_advice(tenant_id: str, stats: dict) -> str:
-    """Generate AI sales advice based on weekly stats using Groq."""
+def _fetch_groq_keys_sync(tenant_id: str) -> list[str]:
     sb = get_supabase()
-
     tenant = (
         sb.table("tenants")
         .select("groq_api_keys, name")
@@ -155,7 +160,12 @@ async def generate_ai_advice(tenant_id: str, stats: dict) -> str:
         .limit(1)
         .execute()
     )
-    keys = tenant.data[0].get("groq_api_keys", []) if tenant.data else []
+    return tenant.data[0].get("groq_api_keys", []) if tenant.data else []
+
+
+async def generate_ai_advice(tenant_id: str, stats: dict) -> str:
+    """Generate AI sales advice based on weekly stats using Groq."""
+    keys = await run_sync(_fetch_groq_keys_sync, tenant_id)
     if not keys:
         return ""
 

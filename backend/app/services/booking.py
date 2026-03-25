@@ -9,11 +9,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def create_booking(data: BookingCreate) -> BookingOut:
-    """Create a new booking and notify admin via bot webhook."""
+def _create_booking_sync(data: BookingCreate) -> dict:
+    """Вся работа с Supabase в одном sync-вызове (не блокируем event loop)."""
     sb = get_supabase()
 
-    # 1. Calculate totals from service_ids
     services = (
         sb.table("services")
         .select("id, name, price, duration_minutes")
@@ -24,7 +23,6 @@ async def create_booking(data: BookingCreate) -> BookingOut:
     total_duration = sum(s["duration_minutes"] for s in services.data)
     service_names = [s["name"] for s in services.data]
 
-    # 2. Find or create client
     existing = (
         sb.table("clients")
         .select("id, visit_count, total_spent")
@@ -36,9 +34,7 @@ async def create_booking(data: BookingCreate) -> BookingOut:
     )
 
     if existing.data:
-        client = existing.data[0]
-        client_id = client["id"]
-        # Update last_visit (will be properly updated on confirmation)
+        client_id = existing.data[0]["id"]
     else:
         new_client = (
             sb.table("clients")
@@ -53,7 +49,6 @@ async def create_booking(data: BookingCreate) -> BookingOut:
         )
         client_id = new_client.data[0]["id"]
 
-    # 3. Create booking
     booking = (
         sb.table("bookings")
         .insert({
@@ -71,28 +66,41 @@ async def create_booking(data: BookingCreate) -> BookingOut:
     )
 
     booking_data = booking.data[0]
+    return {
+        "id": booking_data["id"],
+        "status": booking_data["status"],
+        "created_at": booking_data["created_at"],
+        "client_id": client_id,
+        "service_names": service_names,
+        "total_price": total_price,
+        "total_duration": total_duration,
+    }
 
-    # 4. Notify bot (fire-and-forget)
+
+async def create_booking(data: BookingCreate) -> BookingOut:
+    """Create a new booking and notify admin via bot webhook."""
+    r = await run_sync(_create_booking_sync, data)
+
     try:
         await _notify_bot(
             tenant_id=data.tenant_id,
-            booking_id=booking_data["id"],
+            booking_id=r["id"],
             client_name=data.name,
             contact_type=data.contact_type,
             contact_value=data.contact_value,
-            service_names=service_names,
-            total_price=total_price,
-            total_duration=total_duration,
+            service_names=r["service_names"],
+            total_price=r["total_price"],
+            total_duration=r["total_duration"],
             preferred_datetime=data.preferred_datetime,
-            client_id=client_id,
+            client_id=r["client_id"],
         )
     except Exception as e:
         logger.error(f"Failed to notify bot: {e}")
 
     return BookingOut(
-        id=booking_data["id"],
-        status=booking_data["status"],
-        created_at=booking_data["created_at"],
+        id=r["id"],
+        status=r["status"],
+        created_at=r["created_at"],
     )
 
 
@@ -111,17 +119,18 @@ async def _notify_bot(
     """Send booking notification to the bot's internal webhook handler."""
     from app.bot.notifications import send_booking_notification
 
-    sb = get_supabase()
+    def _client_info_sync(cid: str) -> dict | None:
+        sb = get_supabase()
+        client = (
+            sb.table("clients")
+            .select("visit_count, total_spent, notes, last_visit")
+            .eq("id", cid)
+            .limit(1)
+            .execute()
+        )
+        return client.data[0] if client.data else None
 
-    # Get client history
-    client = (
-        sb.table("clients")
-        .select("visit_count, total_spent, notes, last_visit")
-        .eq("id", client_id)
-        .limit(1)
-        .execute()
-    )
-    client_info = client.data[0] if client.data else None
+    client_info = await run_sync(_client_info_sync, client_id)
 
     await send_booking_notification(
         tenant_id=tenant_id,

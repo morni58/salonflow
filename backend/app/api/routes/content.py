@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Query
+
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 
 router = APIRouter()
 
 
-@router.get("/portfolio")
-async def get_portfolio(tenant_id: str = Query(...)):
-    """Get portfolio photos grouped by category."""
+def _get_portfolio_payload_sync(tenant_id: str) -> dict:
     sb = get_supabase()
 
     photos = (
@@ -42,11 +42,14 @@ async def get_portfolio(tenant_id: str = Query(...)):
     return {"portfolio": [{"category": k, "images": v} for k, v in grouped.items()]}
 
 
-@router.get("/reviews")
-async def get_reviews(tenant_id: str = Query(...)):
-    """Get review screenshots."""
-    sb = get_supabase()
+@router.get("/portfolio")
+async def get_portfolio(tenant_id: str = Query(...)):
+    """Get portfolio photos grouped by category."""
+    return await run_sync(_get_portfolio_payload_sync, tenant_id)
 
+
+def _get_reviews_payload_sync(tenant_id: str) -> dict:
+    sb = get_supabase()
     reviews = (
         sb.table("reviews")
         .select("id, image_url, created_at")
@@ -61,3 +64,9 @@ async def get_reviews(tenant_id: str = Query(...)):
             for r in reviews.data
         ]
     }
+
+
+@router.get("/reviews")
+async def get_reviews(tenant_id: str = Query(...)):
+    """Get review screenshots."""
+    return await run_sync(_get_reviews_payload_sync, tenant_id)

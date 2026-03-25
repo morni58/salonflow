@@ -1,6 +1,7 @@
 import logging
 from datetime import date, datetime, time
 
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,7 @@ def _parse_hh_mm(val) -> tuple[int, int]:
         return 10, 0
 
 
-async def get_available_slots(tenant_id: str, target_date: date) -> list[str]:
-    """Calculate available time slots for a given date."""
+def _get_available_slots_sync(tenant_id: str, target_date: date) -> list[str]:
     try:
         sb = get_supabase()
 
@@ -127,3 +127,8 @@ async def get_available_slots(tenant_id: str, target_date: date) -> list[str]:
     except Exception:
         logger.exception("get_available_slots failed tenant_id=%s date=%s", tenant_id, target_date)
         return []
+
+
+async def get_available_slots(tenant_id: str, target_date: date) -> list[str]:
+    """Calculate available time slots for a given date."""
+    return await run_sync(_get_available_slots_sync, tenant_id, target_date)

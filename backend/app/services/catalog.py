@@ -1,9 +1,9 @@
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 from app.models.schemas import CategoryOut, ServiceOut, CatalogResponse
 
 
-async def get_catalog(tenant_id: str) -> CatalogResponse:
-    """Get full catalog (categories + services) for a tenant."""
+def _get_catalog_sync(tenant_id: str) -> CatalogResponse:
     sb = get_supabase()
 
     # Fetch active categories
@@ -50,3 +50,8 @@ async def get_catalog(tenant_id: str) -> CatalogResponse:
         ))
 
     return CatalogResponse(categories=categories)
+
+
+async def get_catalog(tenant_id: str) -> CatalogResponse:
+    """Get full catalog (categories + services) for a tenant."""
+    return await run_sync(_get_catalog_sync, tenant_id)

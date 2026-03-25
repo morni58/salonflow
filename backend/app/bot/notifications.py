@@ -1,7 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime, timedelta
+
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -10,11 +13,7 @@ logger = logging.getLogger(__name__)
 _bots: dict[str, Bot] = {}
 
 
-def _get_bot(tenant_id: str) -> Bot | None:
-    """Get or create Bot instance for a tenant."""
-    if tenant_id in _bots:
-        return _bots[tenant_id]
-
+def _fetch_bot_token_sync(tenant_id: str) -> str | None:
     sb = get_supabase()
     tenant = (
         sb.table("tenants")
@@ -25,21 +24,28 @@ def _get_bot(tenant_id: str) -> Bot | None:
     )
     if not tenant.data or not tenant.data[0].get("bot_token_encrypted"):
         return None
-
     token = tenant.data[0]["bot_token_encrypted"]
-    # Decrypt if encrypted, fallback to plaintext for dev
     try:
         from app.core.encryption import decrypt
         token = decrypt(token)
     except Exception:
-        pass  # Plaintext in dev mode
+        pass
+    return token
+
+
+async def _get_bot(tenant_id: str) -> Bot | None:
+    """Получить Bot: кэш в основном потоке, токен из БД — в thread pool."""
+    if tenant_id in _bots:
+        return _bots[tenant_id]
+    token = await run_sync(_fetch_bot_token_sync, tenant_id)
+    if not token:
+        return None
     bot = Bot(token=token)
     _bots[tenant_id] = bot
     return bot
 
 
-def _get_admin_ids(tenant_id: str) -> list[int]:
-    """Get Telegram user IDs for tenant admins/owners."""
+def _fetch_admin_ids_sync(tenant_id: str) -> list[int]:
     sb = get_supabase()
     users = (
         sb.table("users")
@@ -49,6 +55,10 @@ def _get_admin_ids(tenant_id: str) -> list[int]:
         .execute()
     )
     return [u["telegram_user_id"] for u in users.data]
+
+
+async def _get_admin_ids(tenant_id: str) -> list[int]:
+    return await run_sync(_fetch_admin_ids_sync, tenant_id)
 
 
 def _format_contact_link(contact_type: str, contact_value: str) -> str:
@@ -86,17 +96,16 @@ async def send_booking_notification(
     ai_summary: str | None = None,
 ) -> None:
     """Send new booking notification to tenant admins."""
-    bot = _get_bot(tenant_id)
+    bot = await _get_bot(tenant_id)
     if not bot:
         logger.warning(f"No bot configured for tenant {tenant_id}")
         return
 
-    admin_ids = _get_admin_ids(tenant_id)
+    admin_ids = await _get_admin_ids(tenant_id)
     if not admin_ids:
         logger.warning(f"No admins for tenant {tenant_id}")
         return
 
-    # Format message
     contact_link = _format_contact_link(contact_type, contact_value)
     services_text = "\n".join(f"  • {name}" for name in service_names)
     dt_str = preferred_datetime.strftime("%d.%m.%Y, %H:%M")
@@ -114,7 +123,6 @@ async def send_booking_notification(
         f"⏱ {duration_str}\n"
     )
 
-    # Client history
     if client_info and client_info.get("visit_count", 0) > 0:
         avg = client_info["total_spent"] // client_info["visit_count"] if client_info["visit_count"] > 0 else 0
         text += (
@@ -125,11 +133,9 @@ async def send_booking_notification(
         if client_info.get("notes"):
             text += f"  📝 {client_info['notes']}\n"
 
-    # AI summary
     if ai_summary:
         text += f"\n💬 <b>AI-выжимка:</b>\n<i>{ai_summary}</i>\n"
 
-    # Inline keyboard
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✅ Оплатил", callback_data=f"bk:confirm:{booking_id}"),
@@ -160,11 +166,11 @@ async def send_alert_notification(
     context: str,
 ) -> None:
     """Send urgent alert when trigger words detected in chat."""
-    bot = _get_bot(tenant_id)
+    bot = await _get_bot(tenant_id)
     if not bot:
         return
 
-    admin_ids = _get_admin_ids(tenant_id)
+    admin_ids = await _get_admin_ids(tenant_id)
 
     text = (
         f"🚨 <b>СРОЧНО — Негатив в чате</b>\n\n"
@@ -180,19 +186,11 @@ async def send_alert_notification(
             logger.error(f"Failed to send alert to {admin_id}: {e}")
 
 
-async def send_daily_brief(tenant_id: str) -> None:
-    """Send morning briefing to owner/admins."""
-    from datetime import date, timedelta
-
-    bot = _get_bot(tenant_id)
-    if not bot:
-        return
-
+def _build_daily_brief_text_sync(tenant_id: str) -> str:
     sb = get_supabase()
     today = date.today()
     tomorrow = today + timedelta(days=1)
 
-    # Today's bookings
     bookings = (
         sb.table("bookings")
         .select("preferred_datetime, total_price, total_duration_minutes, client_id, status, service_ids")
@@ -204,7 +202,6 @@ async def send_daily_brief(tenant_id: str) -> None:
         .execute()
     )
 
-    # Waiting bookings
     waiting = (
         sb.table("bookings")
         .select("id, waiting_expires_at, client_id")
@@ -224,21 +221,30 @@ async def send_daily_brief(tenant_id: str) -> None:
             dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00"))
             time_str = dt.strftime("%H:%M")
 
-            # Get client name
             client_name = "—"
             if b.get("client_id"):
                 cl = sb.table("clients").select("name, notes").eq("id", b["client_id"]).limit(1).execute()
                 if cl.data:
                     client_name = cl.data[0]["name"]
                     if cl.data[0].get("notes"):
-                        client_name += f" ⚠️"
+                        client_name += " ⚠️"
 
             text += f"  {time_str} — {client_name} — {_format_price(b['total_price'])}\n"
 
     if waiting.data:
         text += f"\n⏳ В ожидании оплаты: {len(waiting.data)} заявок\n"
 
-    admin_ids = _get_admin_ids(tenant_id)
+    return text
+
+
+async def send_daily_brief(tenant_id: str) -> None:
+    """Send morning briefing to owner/admins."""
+    bot = await _get_bot(tenant_id)
+    if not bot:
+        return
+
+    text = await run_sync(_build_daily_brief_text_sync, tenant_id)
+    admin_ids = await _get_admin_ids(tenant_id)
     for admin_id in admin_ids:
         try:
             await bot.send_message(chat_id=admin_id, text=text, parse_mode="HTML")
@@ -250,7 +256,7 @@ async def send_weekly_analytics(tenant_id: str) -> None:
     """Send weekly analytics report with AI advice."""
     from app.services.analytics import get_weekly_stats, generate_ai_advice
 
-    bot = _get_bot(tenant_id)
+    bot = await _get_bot(tenant_id)
     if not bot:
         return
 
@@ -281,17 +287,14 @@ async def send_weekly_analytics(tenant_id: str) -> None:
         f"📈 Средний чек: {_format_price(c['avg_check'])} {delta_str('avg_check')}\n"
     )
 
-    # Top service
     if c.get("top_service_name"):
         text += f"🏆 Топ-услуга: {c['top_service_name']} ({c['top_service_count']} записей)\n"
 
-    # Clients breakdown
     text += (
         f"👥 Клиентов: {c['unique_clients']} {delta_str('unique_clients')}\n"
         f"  🆕 Новых: {c.get('new_clients', 0)} | 🔄 Повторных: {c.get('returning_clients', 0)}\n"
     )
 
-    # AI advice
     try:
         advice = await generate_ai_advice(tenant_id, stats)
         if advice:
@@ -299,7 +302,7 @@ async def send_weekly_analytics(tenant_id: str) -> None:
     except Exception as e:
         logger.error(f"AI advice generation failed: {e}")
 
-    admin_ids = _get_admin_ids(tenant_id)
+    admin_ids = await _get_admin_ids(tenant_id)
     for uid in admin_ids:
         try:
             await bot.send_message(chat_id=uid, text=text, parse_mode="HTML")
