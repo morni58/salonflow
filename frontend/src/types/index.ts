@@ -69,13 +69,6 @@ export interface BookingOut {
   created_at: string;
 }
 
-// ── Chat ──────────────────────────────────────
-
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
 // ── Portfolio & Reviews ───────────────────────
 
 export interface PortfolioImage {

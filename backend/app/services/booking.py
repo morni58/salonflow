@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 from app.models.schemas import BookingCreate, BookingOut
-import httpx
 import logging
 
 logger = logging.getLogger(__name__)

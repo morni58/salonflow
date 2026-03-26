@@ -11,7 +11,7 @@ from app.core.config import get_settings
 from app.core.scheduler import setup_scheduler
 from app.core.rate_limit import setup_rate_limiting
 from app.bot.setup import create_dispatcher
-from app.api.routes import tenant, catalog, slots, booking, chat, analytics, content
+from app.api.routes import tenant, catalog, slots, booking, analytics, content
 
 logging.basicConfig(
     level=logging.INFO,
@@ -126,7 +126,6 @@ app.include_router(tenant.router, prefix="/api", tags=["Tenant"])
 app.include_router(catalog.router, prefix="/api", tags=["Catalog"])
 app.include_router(slots.router, prefix="/api", tags=["Slots"])
 app.include_router(booking.router, prefix="/api", tags=["Booking"])
-app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
 app.include_router(content.router, prefix="/api", tags=["Content"])
 

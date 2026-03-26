@@ -47,8 +47,8 @@ def _main_menu(role: str) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📝 Оффлайн-запись", callback_data="menu:offline")],
         [InlineKeyboardButton(text="👥 Клиенты", callback_data="menu:clients")],
     ]
-    if role == "owner":
-        buttons.append([InlineKeyboardButton(text="📊 Аналитика", callback_data="menu:analytics")])
+    if role in ("owner", "admin"):
+        buttons.append([InlineKeyboardButton(text="📊 CRM и выгрузки", callback_data="menu:crm")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 

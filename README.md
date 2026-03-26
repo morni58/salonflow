@@ -89,7 +89,7 @@ python scripts/onboard.py
 
 - **Multi-tenant**: данные разделены по `tenant_id`, Supabase RLS
 - **RBAC**: owner / admin / master
-- **AI**: Groq (Llama 3.3 70B), 3 ключа с ротацией, FAQ fallback
+- **CRM**: выгрузки CSV в Telegram (заявки, клиенты, услуги, события сайта)
 - **Cron**: утренний бриф, еженедельная аналитика, очистка expired, напоминания
 - **Темизация**: CSS-переменные, один HEX — весь сайт перекрашивается
 
@@ -102,7 +102,6 @@ python scripts/onboard.py
 | GET | `/api/catalog?tenant_id=xxx` | Каталог услуг |
 | GET | `/api/slots?tenant_id=xxx&date=YYYY-MM-DD` | Свободные слоты |
 | POST | `/api/booking` | Создать заявку |
-| POST | `/api/chat` | AI-чат (SSE) |
 | POST | `/api/analytics` | Трекинг событий |
 | GET | `/api/portfolio?tenant_id=xxx` | Портфолио |
 | GET | `/api/reviews?tenant_id=xxx` | Отзывы |

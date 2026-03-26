@@ -102,20 +102,6 @@ class BookingOut(BaseModel):
     created_at: datetime
 
 
-# ── Chat ───────────────────────────────────────────────
-
-class ChatMessage(BaseModel):
-    role: str  # "user" or "assistant"
-    content: str
-
-
-class ChatRequest(BaseModel):
-    tenant_id: str
-    session_id: str
-    message: str
-    history: list[ChatMessage] = []
-
-
 # ── Analytics ──────────────────────────────────────────
 
 class AnalyticsTrack(BaseModel):

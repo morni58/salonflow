@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from collections import Counter
 
-import httpx
 import logging
 
 from app.core.async_utils import run_sync
@@ -149,61 +148,3 @@ def _calc_deltas(current: dict, previous: dict) -> dict:
         else:
             deltas[key] = 0.0
     return deltas
-
-
-def _fetch_groq_keys_sync(tenant_id: str) -> list[str]:
-    sb = get_supabase()
-    tenant = (
-        sb.table("tenants")
-        .select("groq_api_keys, name")
-        .eq("id", tenant_id)
-        .limit(1)
-        .execute()
-    )
-    return tenant.data[0].get("groq_api_keys", []) if tenant.data else []
-
-
-async def generate_ai_advice(tenant_id: str, stats: dict) -> str:
-    """Generate AI sales advice based on weekly stats using Groq."""
-    keys = await run_sync(_fetch_groq_keys_sync, tenant_id)
-    if not keys:
-        return ""
-
-    c = stats["current"]
-    d = stats["deltas"]
-
-    prompt = f"""Ты — бизнес-аналитик для салона красоты.
-
-Вот статистика за неделю:
-- Визиты сайта: {c['visits']} ({d.get('visits', 0):+.0f}% к прошлой неделе)
-- Конверсия в заявку: {round(c['checkouts'] / c['visits'] * 100, 1) if c['visits'] > 0 else 0}%
-- Подтверждённых записей: {c['confirmed_count']}
-- Выручка: {c['total_revenue'] // 100}₸ ({d.get('total_revenue', 0):+.0f}%)
-- Средний чек: {c['avg_check'] // 100}₸
-- Топ-услуга: {c.get('top_service_name', 'нет данных')} ({c.get('top_service_count', 0)} записей)
-- Новых клиентов: {c.get('new_clients', 0)}, повторных: {c.get('returning_clients', 0)}
-
-Дай ОДИН конкретный, короткий совет по увеличению продаж (2-3 предложения, на русском).
-Не используй общие фразы. Опирайся на конкретные цифры выше."""
-
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {keys[0]}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 200,
-                    "temperature": 0.7,
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.error(f"AI advice error: {e}")
-        return ""

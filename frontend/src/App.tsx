@@ -9,7 +9,6 @@ import { AdvantagesSection } from "./components/layout/AdvantagesSection";
 import { CatalogSection } from "./components/catalog/CatalogSection";
 import { CartDrawer } from "./components/cart/CartDrawer";
 import { CheckoutForm } from "./components/checkout/CheckoutForm";
-import { ChatWidget } from "./components/chat/ChatWidget";
 import { PortfolioSection } from "./components/portfolio/PortfolioSection";
 import { ReviewsSection } from "./components/reviews/ReviewsSection";
 import { AnimateIn } from "./components/common/AnimateIn";
@@ -20,7 +19,7 @@ type View = "home" | "checkout";
 
 function AppInner() {
   const { tenant, loading, error } = useTenant();
-  const { sessionId, track } = useSession(tenant?.id);
+  const { track } = useSession(tenant?.id);
   const [view, setView] = useState<View>("home");
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -129,8 +128,6 @@ function AppInner() {
           setCartOpen(false);
         }}
       />
-
-      <ChatWidget tenantId={tenant.id} sessionId={sessionId} />
 
       <SiteFooter tenant={tenant} />
     </div>

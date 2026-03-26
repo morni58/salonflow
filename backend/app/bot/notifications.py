@@ -93,7 +93,6 @@ async def send_booking_notification(
     total_duration: int,
     preferred_datetime: datetime,
     client_info: dict | None = None,
-    ai_summary: str | None = None,
 ) -> None:
     """Send new booking notification to tenant admins."""
     bot = await _get_bot(tenant_id)
@@ -133,9 +132,6 @@ async def send_booking_notification(
         if client_info.get("notes"):
             text += f"  📝 {client_info['notes']}\n"
 
-    if ai_summary:
-        text += f"\n💬 <b>AI-выжимка:</b>\n<i>{ai_summary}</i>\n"
-
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✅ Оплатил", callback_data=f"bk:confirm:{booking_id}"),
@@ -157,33 +153,6 @@ async def send_booking_notification(
             )
         except Exception as e:
             logger.error(f"Failed to send to admin {admin_id}: {e}")
-
-
-async def send_alert_notification(
-    tenant_id: str,
-    session_id: str,
-    trigger_message: str,
-    context: str,
-) -> None:
-    """Send urgent alert when trigger words detected in chat."""
-    bot = await _get_bot(tenant_id)
-    if not bot:
-        return
-
-    admin_ids = await _get_admin_ids(tenant_id)
-
-    text = (
-        f"🚨 <b>СРОЧНО — Негатив в чате</b>\n\n"
-        f"💬 Клиент написал:\n<i>«{trigger_message[:300]}»</i>\n\n"
-        f"🤖 AI ответил:\n<i>«{context[:300]}»</i>\n\n"
-        f"🔗 Session: <code>{session_id[:8]}</code>"
-    )
-
-    for admin_id in admin_ids:
-        try:
-            await bot.send_message(chat_id=admin_id, text=text, parse_mode="HTML")
-        except Exception as e:
-            logger.error(f"Failed to send alert to {admin_id}: {e}")
 
 
 def _build_daily_brief_text_sync(tenant_id: str) -> str:
@@ -253,8 +222,8 @@ async def send_daily_brief(tenant_id: str) -> None:
 
 
 async def send_weekly_analytics(tenant_id: str) -> None:
-    """Send weekly analytics report with AI advice."""
-    from app.services.analytics import get_weekly_stats, generate_ai_advice
+    """Send weekly analytics report (CRM metrics, без ИИ)."""
+    from app.services.analytics import get_weekly_stats
 
     bot = await _get_bot(tenant_id)
     if not bot:
@@ -294,13 +263,7 @@ async def send_weekly_analytics(tenant_id: str) -> None:
         f"👥 Клиентов: {c['unique_clients']} {delta_str('unique_clients')}\n"
         f"  🆕 Новых: {c.get('new_clients', 0)} | 🔄 Повторных: {c.get('returning_clients', 0)}\n"
     )
-
-    try:
-        advice = await generate_ai_advice(tenant_id, stats)
-        if advice:
-            text += f"\n💡 <b>Совет от AI:</b>\n<i>{advice}</i>\n"
-    except Exception as e:
-        logger.error(f"AI advice generation failed: {e}")
+    text += "\n📥 <i>Полные таблицы: бот → «CRM и выгрузки».</i>"
 
     admin_ids = await _get_admin_ids(tenant_id)
     for uid in admin_ids:

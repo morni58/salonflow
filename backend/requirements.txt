@@ -8,7 +8,6 @@ pillow==11.1.0
 python-dotenv==1.0.1
 pydantic==2.9.2
 pydantic-settings==2.7.1
-sse-starlette==2.2.1
 python-multipart==0.0.20
 slowapi==0.1.9
 cryptography==44.0.0
