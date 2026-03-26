@@ -105,6 +105,8 @@ class SlotsRequest(BaseModel):
 class SlotsResponse(BaseModel):
     date: date
     slots: list[str]  # ["10:00", "11:15", "12:30", ...]
+    alternate_master_id: Optional[str] = None
+    alternate_master_name: Optional[str] = None
 
 
 # ── Booking ────────────────────────────────────────────

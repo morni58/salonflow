@@ -38,7 +38,7 @@ export function ServiceCard({ service, categoryName }: { service: Service; categ
             </span>
           </div>
         )}
-        <span className="absolute top-4 left-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold tracking-wider text-ink uppercase shadow-sm backdrop-blur">
+        <span className="absolute top-4 left-4 rounded-md bg-white/90 px-3 py-1 text-[10px] font-semibold tracking-wider text-ink uppercase shadow-sm backdrop-blur">
           {categoryName}
         </span>
       </div>
@@ -63,7 +63,7 @@ export function ServiceCard({ service, categoryName }: { service: Service; categ
             onClick={handleAdd}
             title={inCart ? "Ещё" : "Добавить в корзину"}
             aria-label={inCart ? "Добавить ещё" : "Добавить в корзину"}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-base text-ink transition-colors duration-300 hover:bg-brand-500 hover:text-white active:scale-95 md:h-12 md:w-12"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-brand-100 bg-base text-ink transition-colors duration-300 hover:bg-brand-500 hover:text-white active:scale-95 md:h-12 md:w-12"
             style={
               added
                 ? { background: "var(--tenant-primary, #c08973)", color: "#fff" }

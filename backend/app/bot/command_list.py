@@ -19,6 +19,7 @@ BOT_COMMANDS: list[BotCommand] = [
     BotCommand(command="site", description="Сайт: цвета, тексты (владелец/админ)"),
     BotCommand(command="crm", description="CRM и CSV (владелец/админ)"),
     BotCommand(command="add_staff", description="Добавить мастера по Telegram ID"),
+    BotCommand(command="add_manager", description="Менеджер CRM по Telegram ID"),
     BotCommand(command="add_admin", description="Добавить админа (только владелец)"),
     BotCommand(command="staff_list", description="Список пользователей бота"),
     BotCommand(command="my_profile", description="Карточка мастера на сайте"),
@@ -46,11 +47,13 @@ HELP_TEXT = (
     "/reviews — скриншоты отзывов на сайт\n"
     "/offline — запись клиента без сайта\n"
     "/clients — поиск и топ клиентов\n\n"
+    "<b>Владелец, админ, менеджер</b>\n"
+    "/crm — воронка заявок, отчёты 1/3/7 дней, выгрузки CSV\n\n"
     "<b>Владелец и администратор</b>\n"
-    "/site — цвета (hex/rgb), тексты сайта, контакты в футере, лого\n"
-    "/crm — сводка и выгрузки .csv в Excel\n\n"
+    "/site — цвета, тексты, контакты (кнопками и JSON), лого\n\n"
     "<b>Персонал</b>\n"
-    "/add_staff &lt;telegram_id&gt; Имя — новый мастер (бот + сайт)\n"
+    "/add_staff &lt;telegram_id&gt; Имя — мастер (сайт + график)\n"
+    "/add_manager &lt;telegram_id&gt; Имя — менеджер (CRM)\n"
     "/add_admin &lt;telegram_id&gt; Имя — администратор (только владелец)\n"
     "/staff_list — кто в боте и их ID\n\n"
     "<b>Мастер</b>\n"

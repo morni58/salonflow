@@ -9,33 +9,33 @@ router = Router()
 
 @router.callback_query(F.data.startswith("bk:confirm:"))
 async def on_confirm(callback: CallbackQuery):
-    """Handle ✅ Оплатил button."""
+    """✅ Принять заявку → запись в календаре."""
     await callback.answer()
     booking_id = callback.data.split(":")[2]
     await confirm_booking(booking_id)
 
-    # Show "complete" button for after the visit
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✔️ Визит завершён", callback_data=f"bk:complete:{booking_id}")],
+        [InlineKeyboardButton(text="✔️ Выполнено", callback_data=f"bk:complete:{booking_id}")],
     ])
 
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.reply(
-        "✅ Запись подтверждена. Оплата получена.\n\n"
-        "После визита клиента нажмите кнопку ниже:",
+        "✅ <b>Запись принята.</b> Клиент в календаре.\n\n"
+        "После визита нажмите «Выполнено» — учтём в статистике.",
+        parse_mode="HTML",
         reply_markup=keyboard,
     )
 
 
 @router.callback_query(F.data.startswith("bk:cancel:"))
 async def on_cancel(callback: CallbackQuery):
-    """Handle ❌ Не оплатил button."""
+    """❌ Отказ — в архив (отмена)."""
     await callback.answer()
     booking_id = callback.data.split(":")[2]
     await cancel_booking(booking_id)
 
     await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.reply("❌ Заявка отклонена. Слот освобождён.")
+    await callback.message.reply("❌ Заявка отклонена. Слот снова свободен.")
 
 
 @router.callback_query(F.data.startswith("bk:wait:"))
@@ -46,7 +46,9 @@ async def on_wait(callback: CallbackQuery):
     await set_booking_waiting(booking_id)
 
     await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.reply("⏳ Заявка в ожидании. Автоудаление через 48 часов если не подтверждена.")
+    await callback.message.reply(
+        "⏳ Заявка в очереди. Напомним по истечении срока ожидания, если не подтвердите."
+    )
 
 
 @router.callback_query(F.data.startswith("bk:complete:"))
@@ -57,7 +59,7 @@ async def on_complete(callback: CallbackQuery):
     await complete_booking(booking_id)
 
     await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.reply("✔️ Визит завершён. Статистика клиента обновлена.")
+    await callback.message.reply("✔️ Визит выполнен. Статистика клиента обновлена.")
 
 
 @router.callback_query(F.data.startswith("bk:reschedule:"))

@@ -12,7 +12,8 @@ from app.bot.command_list import HELP_TEXT, HELP_TEXT_NO_ACCESS
 from app.bot.handlers.catalog_mgmt import _catalog_categories_kb_sync
 from app.bot.handlers.crm_export import _crm_keyboard, _crm_summary_sync, _get_user_tenant_role_sync
 from app.bot.handlers.management import _schedule_menu_kb
-from app.bot.handlers.site_settings import _can_site, site_menu_keyboard
+from app.bot.permissions import can_crm, can_site
+from app.bot.handlers.site_settings import site_menu_keyboard
 from app.bot.handlers.start import (
     _bookings_text_and_keyboard_sync,
     _get_user_sync,
@@ -90,7 +91,12 @@ async def cmd_bookings(message: Message) -> None:
     if not user:
         await message.answer(HELP_TEXT_NO_ACCESS, parse_mode="HTML")
         return
-    text, kb = await run_sync(_bookings_text_and_keyboard_sync, user["tenant_id"])
+    text, kb = await run_sync(
+        _bookings_text_and_keyboard_sync,
+        user["tenant_id"],
+        user["id"],
+        user["role"],
+    )
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
@@ -178,7 +184,7 @@ async def cmd_clients(message: Message) -> None:
 @router.message(Command("site"))
 async def cmd_site(message: Message) -> None:
     tid, role = await run_sync(_get_user_tenant_role_sync, message.from_user.id)
-    if not tid or not _can_site(role):
+    if not tid or not can_site(role):
         await message.answer(
             "⛔ Раздел «Сайт» доступен только владельцу и администратору.\n/help — справка.",
             parse_mode="HTML",
@@ -195,9 +201,9 @@ async def cmd_site(message: Message) -> None:
 @router.message(Command("crm"))
 async def cmd_crm(message: Message) -> None:
     tid, role = await run_sync(_get_user_tenant_role_sync, message.from_user.id)
-    if not tid or role not in ("owner", "admin"):
+    if not tid or not can_crm(role):
         await message.answer(
-            "⛔ CRM доступен только владельцу и администратору.\n/help — справка.",
+            "⛔ CRM доступен владельцу, администратору и менеджеру.\n/help — справка.",
             parse_mode="HTML",
         )
         return

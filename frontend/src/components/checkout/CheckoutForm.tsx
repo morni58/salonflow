@@ -31,7 +31,7 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-3xl border border-transparent bg-white px-5 py-3.5 text-sm outline-none shadow-soft transition-colors";
+  "min-w-0 w-full max-w-full rounded-lg border border-brand-100 bg-white px-4 py-3.5 text-sm outline-none shadow-sm transition-colors focus:border-brand-300";
 const cardBorder = { borderColor: "transparent" };
 
 export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
@@ -47,6 +47,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
+  const [slotAlternate, setSlotAlternate] = useState<{ id: string; name: string } | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -88,8 +89,18 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
     setSlotsLoading(true);
     setSelectedTime("");
     fetchSlots(tenantId, selectedDate, requiresMaster ? selectedMasterId : null)
-      .then((res) => setSlots(res.slots ?? []))
-      .catch(() => setSlots([]))
+      .then((res) => {
+        setSlots(res.slots ?? []);
+        if (res.alternate_master_id && res.alternate_master_name) {
+          setSlotAlternate({ id: res.alternate_master_id, name: res.alternate_master_name });
+        } else {
+          setSlotAlternate(null);
+        }
+      })
+      .catch(() => {
+        setSlots([]);
+        setSlotAlternate(null);
+      })
       .finally(() => setSlotsLoading(false));
   }, [selectedDate, tenantId, selectedMasterId, requiresMaster]);
 
@@ -125,7 +136,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <div
-          className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl shadow-soft"
+          className="mb-6 flex h-20 w-20 items-center justify-center rounded-lg shadow-soft"
           style={{ background: "var(--color-primary-muted)" }}
         >
           <CheckCircle size={40} style={{ color: "var(--color-primary)" }} />
@@ -137,7 +148,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <button
           type="button"
           onClick={onBack}
-          className="btn-primary-soft mt-8 rounded-full px-10 py-3.5 font-semibold shadow-soft"
+          className="btn-primary-soft mt-8 rounded-lg px-10 py-3.5 font-semibold shadow-soft"
           style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
         >
           На главную
@@ -159,7 +170,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
 
       <h2 className="font-serif mb-6 text-3xl font-semibold text-ink-dark">Оформление записи</h2>
 
-      <div className="mb-6 max-w-full overflow-hidden rounded-3xl border border-transparent bg-white p-5 shadow-soft">
+      <div className="mb-6 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white p-5 shadow-soft">
         <p
           className="line-clamp-4 text-sm leading-relaxed opacity-55"
           style={{ color: "var(--color-text)", overflowWrap: "anywhere" }}
@@ -190,7 +201,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                   setSelectedTime("");
                 }}
                 className={cn(
-                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-3xl border border-transparent p-3 text-center shadow-soft transition-all sm:w-28",
+                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-lg border border-transparent p-3 text-center shadow-sm transition-all sm:w-28",
                   selectedMasterId === m.id ? "shadow-soft" : "bg-white hover:brightness-[0.995]"
                 )}
                 style={
@@ -243,7 +254,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <MessageCircle size={16} /> Как с вами связаться?
         </label>
-        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mb-3 grid grid-cols-2 gap-0 overflow-hidden rounded-lg border border-brand-200 bg-brand-50/90 p-1 sm:grid-cols-4">
           {CONTACTS.map((c) => (
             <button
               key={c.type}
@@ -253,8 +264,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 setContactValue("");
               }}
               className={cn(
-                "rounded-3xl border border-transparent py-3.5 text-center text-sm shadow-soft transition-all",
-                contactType === c.type ? "shadow-soft" : "bg-white hover:brightness-[0.99]"
+                "rounded-md border border-transparent py-3 text-center text-sm transition-all",
+                contactType === c.type ? "shadow-sm" : "hover:bg-white/90"
               )}
               style={
                 contactType === c.type
@@ -285,7 +296,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <Calendar size={16} /> Дата
         </label>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex gap-0 overflow-x-auto rounded-lg border border-brand-200 bg-brand-50/90 p-1 pb-2 scrollbar-none">
           {dates.map((d) => {
             const dt = new Date(d + "T00:00:00");
             const day = dt.getDate();
@@ -298,8 +309,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 onClick={() => setSelectedDate(d)}
                 disabled={requiresMaster && !selectedMasterId}
                 className={cn(
-                  "flex shrink-0 flex-col items-center rounded-3xl border border-transparent px-4 py-4 shadow-soft transition-all",
-                  selectedDate === d ? "shadow-soft" : "bg-white hover:brightness-[0.995]",
+                  "flex min-w-[4.25rem] shrink-0 flex-col items-center rounded-md border border-transparent px-3 py-3 text-center transition-all",
+                  selectedDate === d ? "shadow-sm" : "hover:bg-white/90",
                   requiresMaster && !selectedMasterId ? "pointer-events-none opacity-40" : ""
                 )}
                 style={
@@ -329,13 +340,28 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           {slotsLoading ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 animate-pulse rounded-3xl bg-brand-100" />
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-brand-100" />
               ))}
             </div>
           ) : slots.length === 0 ? (
-            <p className="text-sm opacity-50" style={{ color: "var(--color-text)" }}>
-              Нет доступных слотов на эту дату
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm opacity-50" style={{ color: "var(--color-text)" }}>
+                Нет свободных слотов у выбранного мастера на эту дату.
+              </p>
+              {slotAlternate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMasterId(slotAlternate.id);
+                    setSelectedTime("");
+                  }}
+                  className="w-full rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-left text-sm transition-colors hover:bg-brand-100"
+                  style={{ color: "var(--color-text)" }}
+                >
+                  Показать слоты: <b>{slotAlternate.name}</b>
+                </button>
+              )}
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {slots.map((slot) => (
@@ -344,8 +370,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-3xl border border-transparent py-3.5 text-sm font-medium shadow-soft transition-all",
-                    selectedTime === slot ? "shadow-soft" : "bg-white hover:brightness-[0.99]"
+                    "rounded-lg border border-brand-100 py-3 text-sm font-medium shadow-sm transition-all",
+                    selectedTime === slot ? "shadow-soft" : "bg-white hover:bg-brand-50"
                   )}
                   style={
                     selectedTime === slot
@@ -369,7 +395,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit || submitting}
-        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-full py-5 text-sm font-semibold shadow-soft disabled:opacity-45"
+        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-lg py-4 text-sm font-semibold shadow-soft disabled:opacity-45"
         style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
       >
         <Send size={18} />

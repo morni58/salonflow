@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -168,6 +168,46 @@ def _reminders_fetch_and_update_sync(now: datetime) -> tuple[list[dict], list[di
     return out_24, out_2h
 
 
+def _purge_completed_bookings_older_than_7d_sync() -> int:
+    """Удаляет выполненные записи старше 7 дней; суммы копятся в tenants.crm_completed_revenue_retained."""
+    sb = get_supabase()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    old = (
+        sb.table("bookings")
+        .select("id, tenant_id, total_price")
+        .eq("status", "completed")
+        .lt("completed_at", cutoff)
+        .execute()
+    )
+    n = 0
+    for b in old.data or []:
+        tid = b["tenant_id"]
+        price = int(b.get("total_price") or 0)
+        tr = (
+            sb.table("tenants")
+            .select("crm_completed_revenue_retained")
+            .eq("id", tid)
+            .limit(1)
+            .execute()
+        )
+        cur = (tr.data[0].get("crm_completed_revenue_retained") or 0) if tr.data else 0
+        sb.table("tenants").update({"crm_completed_revenue_retained": cur + price}).eq("id", tid).execute()
+        sb.table("bookings").delete().eq("id", b["id"]).execute()
+        n += 1
+    return n
+
+
+async def job_purge_completed_crm():
+    """Ежедневно: политика хранения деталей выполненных записей (7 дней)."""
+    logger.info("Running CRM completed purge job")
+    try:
+        n = await run_sync(_purge_completed_bookings_older_than_7d_sync)
+        if n:
+            logger.info("CRM purge: removed %s completed bookings (sums retained on tenant)", n)
+    except Exception as e:
+        logger.error("CRM purge failed: %s — проверьте миграцию 005 (crm_completed_revenue_retained)", e)
+
+
 async def job_send_reminders():
     """Check and send reminders for upcoming bookings."""
     from app.bot.notifications import _get_bot, _get_admin_ids
@@ -205,6 +245,7 @@ def setup_scheduler():
     scheduler.add_job(job_weekly_analytics, "cron", day_of_week="sun", hour=15, minute=0, id="weekly_analytics")
     scheduler.add_job(job_cleanup_expired_waiting, "interval", hours=6, id="cleanup_waiting")
     scheduler.add_job(job_send_reminders, "interval", hours=1, id="reminders")
+    scheduler.add_job(job_purge_completed_crm, "cron", hour=3, minute=20, id="crm_purge_completed")
 
     scheduler.start()
-    logger.info("Scheduler started with 4 jobs")
+    logger.info("Scheduler started with 5 jobs")

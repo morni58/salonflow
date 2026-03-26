@@ -30,8 +30,8 @@ export function HeroSection({ tenant }: Props) {
       <div className="relative z-10 mx-auto w-full">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
           <div className="animate-fade-up order-2 mt-4 min-w-0 text-center lg:order-1 lg:mt-0 lg:text-left">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-4 py-2 text-xs font-semibold tracking-wide text-brand-600 uppercase shadow-sm">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" aria-hidden />
+            <div className="mb-6 inline-flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50 px-4 py-2 text-xs font-semibold tracking-wide text-brand-600 uppercase shadow-sm">
+              <span className="h-2 w-2 animate-pulse rounded-sm bg-brand-500" aria-hidden />
               {badge}
             </div>
             <h1 className="font-serif mb-6 text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-ink sm:text-5xl lg:text-6xl">
@@ -46,14 +46,14 @@ export function HeroSection({ tenant }: Props) {
               <button
                 type="button"
                 onClick={() => scrollTo("catalog")}
-                className="interactive-raise inline-flex w-full min-h-[52px] items-center justify-center rounded-full bg-brand-500 px-8 py-4 text-center text-sm font-medium text-white shadow-[0_8px_20px_rgba(192,137,115,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-600 sm:w-auto"
+                className="interactive-raise inline-flex w-full min-h-[52px] items-center justify-center rounded-lg bg-brand-500 px-8 py-4 text-center text-sm font-medium text-white shadow-[0_8px_20px_rgba(192,137,115,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-600 sm:w-auto"
               >
                 {ctaPrimary}
               </button>
               <button
                 type="button"
                 onClick={() => scrollTo("masters")}
-                className="inline-flex w-full min-h-[52px] items-center justify-center rounded-full border border-brand-200 bg-white px-8 py-4 text-center text-sm font-medium text-ink transition-all duration-300 hover:border-brand-500 hover:text-brand-500 sm:w-auto"
+                className="inline-flex w-full min-h-[52px] items-center justify-center rounded-lg border border-brand-200 bg-white px-8 py-4 text-center text-sm font-medium text-ink transition-all duration-300 hover:border-brand-500 hover:text-brand-500 sm:w-auto"
               >
                 {ctaSecondary}
               </button>

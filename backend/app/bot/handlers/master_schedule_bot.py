@@ -80,6 +80,52 @@ def _apply_close_day_sync(master_id: str, d: date) -> None:
         }).execute()
 
 
+def _master_main_kb(mid: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="▫️ 1×1", callback_data=f"msched:preset:{mid}:1x1"),
+                InlineKeyboardButton(text="▪️ 2×2", callback_data=f"msched:preset:{mid}:2x2"),
+                InlineKeyboardButton(text="15м", callback_data=f"msched:preset:{mid}:dense"),
+            ],
+            [InlineKeyboardButton(text="📅 Дни недели", callback_data=f"msched:weekdays:{mid}")],
+            [InlineKeyboardButton(text="🕐 Часы работы", callback_data=f"msched:hours:{mid}")],
+            [InlineKeyboardButton(text="🔒 Закрыть день", callback_data=f"msched:close:{mid}")],
+        ]
+    )
+
+
+def _apply_master_preset_sync(master_id: str, preset: str) -> None:
+    presets = {"1x1": (60, 15), "2x2": (30, 10), "dense": (15, 5)}
+    interval, buf = presets.get(preset, (60, 15))
+    sb = get_supabase()
+    sb.table("masters").update({
+        "slot_interval_minutes": interval,
+        "buffer_minutes": buf,
+    }).eq("id", master_id).execute()
+
+
+@router.callback_query(F.data == "menu:myschedule")
+async def menu_my_schedule(callback: CallbackQuery):
+    await callback.answer()
+    actor = await run_sync(_user_row_sync, callback.from_user.id)
+    if not actor or actor.get("role") != "master":
+        await callback.message.edit_text("⛔ Только для мастеров.")
+        return
+    m = await run_sync(_get_master_for_user_sync, actor["id"], actor["tenant_id"])
+    if not m:
+        await callback.message.edit_text("❌ Нет профиля мастера.")
+        return
+    mid = str(m["id"])
+    await callback.message.edit_text(
+        "🗓 <b>Ваш график</b>\n"
+        "Пресеты задают шаг слота и буфер. Режим «каждые N дней» настраивает владелец в расписании салона.\n"
+        "Если у мастера нет слота — клиенту предложат другого мастера.",
+        parse_mode="HTML",
+        reply_markup=_master_main_kb(mid),
+    )
+
+
 @router.message(Command("my_schedule"))
 async def cmd_my_schedule(message: Message) -> None:
     actor = await run_sync(_user_row_sync, message.from_user.id)
@@ -91,19 +137,31 @@ async def cmd_my_schedule(message: Message) -> None:
         await message.answer("❌ Нет профиля мастера.")
         return
     mid = str(m["id"])
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📅 Дни недели", callback_data=f"msched:weekdays:{mid}")],
-            [InlineKeyboardButton(text="🕐 Часы работы", callback_data=f"msched:hours:{mid}")],
-            [InlineKeyboardButton(text="🔒 Закрыть день", callback_data=f"msched:close:{mid}")],
-        ]
-    )
     await message.answer(
         "🗓 <b>Ваш график</b> (на сайте слоты считаются по этим настройкам).\n"
         "Салон может иметь общие часы — здесь только ваши.",
         parse_mode="HTML",
-        reply_markup=kb,
+        reply_markup=_master_main_kb(mid),
     )
+
+
+@router.callback_query(F.data.startswith("msched:preset:"))
+async def msched_preset(callback: CallbackQuery):
+    await callback.answer()
+    parts = callback.data.split(":")
+    if len(parts) < 4:
+        return
+    mid, preset = parts[2], parts[3]
+    if preset not in ("1x1", "2x2", "dense"):
+        return
+    actor = await run_sync(_user_row_sync, callback.from_user.id)
+    if not actor or actor.get("role") != "master":
+        return
+    m = await run_sync(_get_master_for_user_sync, actor["id"], actor["tenant_id"])
+    if not m or str(m["id"]) != mid:
+        return
+    await run_sync(_apply_master_preset_sync, mid, preset)
+    await callback.message.reply("✅ Пресет сетки слотов применён к вашему графику.")
 
 
 @router.callback_query(F.data.startswith("msched:weekdays:"))
@@ -137,14 +195,7 @@ async def msched_toggle_wd(callback: CallbackQuery):
 async def msched_back(callback: CallbackQuery):
     await callback.answer()
     mid = callback.data.split(":")[2]
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📅 Дни недели", callback_data=f"msched:weekdays:{mid}")],
-            [InlineKeyboardButton(text="🕐 Часы работы", callback_data=f"msched:hours:{mid}")],
-            [InlineKeyboardButton(text="🔒 Закрыть день", callback_data=f"msched:close:{mid}")],
-        ]
-    )
-    await callback.message.edit_text("🗓 <b>Ваш график</b>", parse_mode="HTML", reply_markup=kb)
+    await callback.message.edit_text("🗓 <b>Ваш график</b>", parse_mode="HTML", reply_markup=_master_main_kb(mid))
 
 
 @router.callback_query(F.data.startswith("msched:hours:"))

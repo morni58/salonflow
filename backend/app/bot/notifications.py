@@ -52,7 +52,7 @@ def _fetch_admin_ids_sync(tenant_id: str) -> list[int]:
         sb.table("users")
         .select("telegram_user_id")
         .eq("tenant_id", tenant_id)
-        .in_("role", ["owner", "admin"])
+        .in_("role", ["owner", "admin", "manager"])
         .execute()
     )
     return [u["telegram_user_id"] for u in users.data]
@@ -60,6 +60,50 @@ def _fetch_admin_ids_sync(tenant_id: str) -> list[int]:
 
 async def _get_admin_ids(tenant_id: str) -> list[int]:
     return await run_sync(_fetch_admin_ids_sync, tenant_id)
+
+
+def _fetch_crm_notify_ids_sync(tenant_id: str, master_id: str | None) -> list[int]:
+    """Владелец, админы + мастер записи (если привязан к users)."""
+    sb = get_supabase()
+    admins = (
+        sb.table("users")
+        .select("telegram_user_id")
+        .eq("tenant_id", tenant_id)
+        .in_("role", ["owner", "admin", "manager"])
+        .execute()
+    )
+    ids: list[int] = []
+    seen: set[int] = set()
+    for u in admins.data or []:
+        tid = u["telegram_user_id"]
+        if tid not in seen:
+            seen.add(tid)
+            ids.append(tid)
+    if master_id:
+        m = (
+            sb.table("masters")
+            .select("user_id")
+            .eq("id", master_id)
+            .eq("tenant_id", tenant_id)
+            .limit(1)
+            .execute()
+        )
+        uid = m.data[0].get("user_id") if m.data else None
+        if uid:
+            urow = (
+                sb.table("users")
+                .select("telegram_user_id")
+                .eq("id", uid)
+                .eq("tenant_id", tenant_id)
+                .limit(1)
+                .execute()
+            )
+            if urow.data:
+                tg = urow.data[0]["telegram_user_id"]
+                if tg not in seen:
+                    seen.add(tg)
+                    ids.append(tg)
+    return ids
 
 
 def _format_contact_link(contact_type: str, contact_value: str) -> str:
@@ -117,9 +161,9 @@ async def send_booking_notification(
         logger.warning(f"No bot configured for tenant {tenant_id}")
         return
 
-    admin_ids = await _get_admin_ids(tenant_id)
-    if not admin_ids:
-        logger.warning(f"No admins for tenant {tenant_id}")
+    notify_ids = await run_sync(_fetch_crm_notify_ids_sync, tenant_id, master_id)
+    if not notify_ids:
+        logger.warning(f"No CRM recipients for tenant {tenant_id}")
         return
 
     contact_link = _format_contact_link(contact_type, contact_value)
@@ -136,9 +180,9 @@ async def send_booking_notification(
             master_line = f"💇 Мастер: <b>{escape(mname)}</b>\n"
 
     text = (
-        f"📋 <b>Новая заявка</b>\n\n"
+        f"📋 <b>Новая заявка</b> <i>(ожидает решения)</i>\n\n"
         f"{master_line}"
-        f"👤 {client_name}\n"
+        f"👤 {escape(client_name)}\n"
         f"📱 {contact_type.capitalize()}: {contact_link}\n"
         f"💇 Услуги:\n{services_text}\n"
         f"💰 Итого: <b>{_format_price(total_price)}</b>\n"
@@ -158,16 +202,16 @@ async def send_booking_notification(
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="✅ Оплатил", callback_data=f"bk:confirm:{booking_id}"),
-            InlineKeyboardButton(text="❌ Не оплатил", callback_data=f"bk:cancel:{booking_id}"),
+            InlineKeyboardButton(text="✅ Принять", callback_data=f"bk:confirm:{booking_id}"),
+            InlineKeyboardButton(text="❌ Отказать", callback_data=f"bk:cancel:{booking_id}"),
         ],
         [
-            InlineKeyboardButton(text="⏳ Ожидание", callback_data=f"bk:wait:{booking_id}"),
+            InlineKeyboardButton(text="⏳ В очередь", callback_data=f"bk:wait:{booking_id}"),
             InlineKeyboardButton(text="📅 Перенести", callback_data=f"bk:reschedule:{booking_id}"),
         ],
     ])
 
-    for admin_id in admin_ids:
+    for admin_id in notify_ids:
         try:
             await bot.send_message(
                 chat_id=admin_id,

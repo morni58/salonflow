@@ -167,23 +167,40 @@ async def _notify_bot(
     )
 
 
-def _confirm_booking_sync(booking_id: str) -> None:
+def _accept_booking_sync(booking_id: str) -> None:
+    """Принять заявку: запись подтверждена, оплата на усмотрение салона (часто позже)."""
     sb = get_supabase()
+    now = datetime.utcnow().isoformat()
     sb.table("bookings").update({
         "status": "confirmed",
-        "payment_status": "paid",
+        "payment_status": "unpaid",
+        "accepted_at": now,
+        "updated_at": now,
     }).eq("id", booking_id).execute()
 
 
+async def accept_booking(booking_id: str) -> None:
+    """CRM: лид → запись (подтверждено)."""
+    await run_sync(_accept_booking_sync, booking_id)
+
+
+def _confirm_booking_sync(booking_id: str) -> None:
+    """Совместимость: то же, что accept (раньше означало «оплатил»)."""
+    _accept_booking_sync(booking_id)
+
+
 async def confirm_booking(booking_id: str) -> None:
-    """Confirm a booking (payment received). CRM stats update on completion."""
+    """Подтвердить заявку (принять запись)."""
     await run_sync(_confirm_booking_sync, booking_id)
 
 
 def _complete_booking_sync(booking_id: str) -> None:
     sb = get_supabase()
+    now = datetime.utcnow().isoformat()
     sb.table("bookings").update({
         "status": "completed",
+        "completed_at": now,
+        "updated_at": now,
     }).eq("id", booking_id).execute()
 
     booking = (

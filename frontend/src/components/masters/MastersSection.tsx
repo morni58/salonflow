@@ -70,7 +70,7 @@ export function MastersSection({ tenantId }: Props) {
             <button
               type="button"
               onClick={() => scrollToCatalog(m.id)}
-              className="mt-auto w-full rounded-full border border-brand-200 px-6 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-brand-50"
+              className="mt-auto w-full rounded-lg border border-brand-200 px-6 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-brand-50"
             >
               К специалисту
             </button>

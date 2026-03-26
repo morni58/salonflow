@@ -68,25 +68,62 @@ class ScheduleStates(StatesGroup):
 def _schedule_menu_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            [
+                InlineKeyboardButton(text="▫️ 1×1 (60м)", callback_data="sched:preset:1x1"),
+                InlineKeyboardButton(text="▪️ 2×2 (30м)", callback_data="sched:preset:2x2"),
+                InlineKeyboardButton(text="▫ Плотно 15м", callback_data="sched:preset:dense"),
+            ],
             [InlineKeyboardButton(text="🔒 Закрыть день", callback_data="sched:close")],
             [InlineKeyboardButton(text="🔓 Открыть день", callback_data="sched:open")],
             [InlineKeyboardButton(text="📅 Дни недели", callback_data="sched:weekdays")],
             [InlineKeyboardButton(text="🔁 Режим: дни недели / каждые N дней", callback_data="sched:mode_menu")],
-            [InlineKeyboardButton(text="🕐 Часы работы", callback_data="sched:hours")],
-            [InlineKeyboardButton(text="⏱ Интервал слотов", callback_data="sched:interval")],
+            [InlineKeyboardButton(text="🕐 Часы работы (напр. 09:00 21:00)", callback_data="sched:hours")],
+            [InlineKeyboardButton(text="⏱ Свой интервал слотов", callback_data="sched:interval")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")],
         ]
     )
+
+
+def _apply_tenant_slot_preset_sync(tenant_id: str, preset: str) -> None:
+    """Пресеты сетки слотов салона: интервал + буфер между записями."""
+    presets = {
+        "1x1": (60, 15),
+        "2x2": (30, 10),
+        "dense": (15, 5),
+    }
+    interval, buf = presets.get(preset, (60, 15))
+    sb = get_supabase()
+    sb.table("tenants").update({
+        "slot_interval_minutes": interval,
+        "buffer_minutes": buf,
+    }).eq("id", tenant_id).execute()
 
 
 @router.callback_query(F.data == "menu:schedule")
 async def schedule_menu(callback: CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
-        "🗓 <b>Расписание</b>\nВыберите действие:",
+        "🗓 <b>Расписание салона</b>\n"
+        "Общий график, если на сайте ещё нет мастеров — слоты считаются отсюда.\n"
+        "Пресеты <b>1×1 / 2×2 / плотно</b> задают шаг слота и буфер (перерыв между записями).\n"
+        "Режим «каждые N дней» + якорь — для смен «2/2», «1/1» и т.п. (авто по календарю).",
         parse_mode="HTML",
         reply_markup=_schedule_menu_kb(),
     )
+
+
+@router.callback_query(F.data.startswith("sched:preset:"))
+async def sched_apply_preset(callback: CallbackQuery):
+    await callback.answer()
+    preset = callback.data.split(":")[2]
+    if preset not in ("1x1", "2x2", "dense"):
+        return
+    tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tenant_id:
+        return
+    await run_sync(_apply_tenant_slot_preset_sync, tenant_id, preset)
+    labels = {"1x1": "1×1 — 60 мин, буфер 15", "2x2": "2×2 — 30 мин, буфер 10", "dense": "плотно — 15 мин, буфер 5"}
+    await callback.message.reply(f"✅ Пресет: <b>{labels[preset]}</b>", parse_mode="HTML")
 
 
 @router.callback_query(F.data == "sched:close")

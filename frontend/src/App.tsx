@@ -64,7 +64,7 @@ function AppInner() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="btn-primary-soft mt-2 rounded-full bg-brand-500 px-8 py-4 text-sm font-semibold text-white shadow-soft"
+          className="btn-primary-soft mt-2 rounded-lg bg-brand-500 px-8 py-4 text-sm font-semibold text-white shadow-soft"
         >
           Обновить страницу
         </button>
@@ -76,6 +76,10 @@ function AppInner() {
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-base">
       <Header
         tenant={tenant}
+        onGoHome={() => {
+          setView("home");
+          setCartOpen(false);
+        }}
         onOpenCart={() => {
           setCartOpen(true);
           track("cart_open");

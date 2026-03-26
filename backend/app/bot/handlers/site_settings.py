@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from app.bot.async_db import run_sync
+from app.bot.permissions import can_site
 from app.core.database import get_supabase
 from app.core.tenant_fields import normalize_contact_json, normalize_site_content
 
@@ -36,16 +37,13 @@ def _get_user_tenant_sync(telegram_user_id: int) -> tuple[str | None, str | None
     return result.data[0]["tenant_id"], result.data[0].get("role")
 
 
-def _can_site(role: str | None) -> bool:
-    return role in ("owner", "admin")
-
-
 def site_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🎨 Цвета (hex / rgb)", callback_data="site:colors")],
             [InlineKeyboardButton(text="📝 Тексты главной", callback_data="site:texts")],
-            [InlineKeyboardButton(text="📞 Контакты (футер)", callback_data="site:contacts")],
+            [InlineKeyboardButton(text="📞 Контакты — быстро", callback_data="site:contacts_quick")],
+            [InlineKeyboardButton(text="📞 Контакты — JSON", callback_data="site:contacts")],
             [InlineKeyboardButton(text="🖼 Лого (ссылка)", callback_data="site:logo")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")],
         ]
@@ -65,6 +63,28 @@ def _patch_contact_sync(tenant_id: str, data: dict) -> None:
     row = sb.table("tenants").select("contact_json").eq("id", tenant_id).limit(1).execute()
     cur = normalize_contact_json(row.data[0].get("contact_json") if row.data else {})
     cur.update(data)
+    sb.table("tenants").update({"contact_json": cur}).eq("id", tenant_id).execute()
+
+
+def _patch_contact_key_sync(tenant_id: str, key: str, value: str) -> None:
+    import re
+
+    sb = get_supabase()
+    row = sb.table("tenants").select("contact_json").eq("id", tenant_id).limit(1).execute()
+    cur = normalize_contact_json(row.data[0].get("contact_json") if row.data else {})
+    if key == "phone_main":
+        digits = re.sub(r"[^\d+]", "", value)
+        href = f"tel:{digits}" if digits else value
+        phones = list(cur.get("phones") or [])
+        label = value.strip()[:80]
+        entry = {"label": label, "href": href}
+        if phones:
+            phones[0] = entry
+        else:
+            phones = [entry]
+        cur["phones"] = phones
+    else:
+        cur[key] = value.strip()
     sb.table("tenants").update({"contact_json": cur}).eq("id", tenant_id).execute()
 
 
@@ -89,7 +109,7 @@ def _validate_color(s: str) -> bool:
 async def site_menu(callback: CallbackQuery):
     await callback.answer()
     tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
-    if not tid or not _can_site(role):
+    if not tid or not can_site(role):
         await callback.message.edit_text("⛔ Доступно только владельцу и администратору.")
         return
     await callback.message.edit_text(
@@ -105,7 +125,7 @@ async def site_menu(callback: CallbackQuery):
 async def site_colors(callback: CallbackQuery):
     await callback.answer()
     tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
-    if not tid or not _can_site(role):
+    if not tid or not can_site(role):
         return
     sb = get_supabase()
     r = (
@@ -157,7 +177,7 @@ async def site_color_pick(callback: CallbackQuery, state: FSMContext):
 async def site_texts_menu(callback: CallbackQuery):
     await callback.answer()
     tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
-    if not tid or not _can_site(role):
+    if not tid or not can_site(role):
         return
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -188,7 +208,7 @@ async def site_texts_menu(callback: CallbackQuery):
 async def site_texts_more(callback: CallbackQuery):
     await callback.answer()
     tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
-    if not tid or not _can_site(role):
+    if not tid or not can_site(role):
         return
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -223,7 +243,7 @@ async def site_text_pick(callback: CallbackQuery, state: FSMContext):
 async def site_contacts(callback: CallbackQuery):
     await callback.answer()
     tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
-    if not tid or not _can_site(role):
+    if not tid or not can_site(role):
         return
     sb = get_supabase()
     r = sb.table("tenants").select("contact_json").eq("id", tid).limit(1).execute()
@@ -261,6 +281,49 @@ async def site_contact_paste(callback: CallbackQuery, state: FSMContext):
     )
 
 
+@router.callback_query(F.data == "site:contacts_quick")
+async def site_contacts_quick(callback: CallbackQuery):
+    await callback.answer()
+    tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tid or not can_site(role):
+        return
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Telegram (ссылка или @ник)", callback_data="site:cq:telegram")],
+            [InlineKeyboardButton(text="WhatsApp (ссылка wa.me/…)", callback_data="site:cq:whatsapp")],
+            [InlineKeyboardButton(text="Instagram", callback_data="site:cq:instagram")],
+            [InlineKeyboardButton(text="Адрес (текст)", callback_data="site:cq:address")],
+            [InlineKeyboardButton(text="Телефон (основной)", callback_data="site:cq:phone_main")],
+            [InlineKeyboardButton(text="◀️ К сайту", callback_data="menu:site")],
+        ]
+    )
+    await callback.message.edit_text(
+        "📞 <b>Контакты по полям</b>\n"
+        "Выберите поле — затем одним сообщением пришлите новое значение.",
+        parse_mode="HTML",
+        reply_markup=kb,
+    )
+
+
+@router.callback_query(F.data.startswith("site:cq:"))
+async def site_cq_pick(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tid or not can_site(role):
+        return
+    key = callback.data.split(":")[2]
+    labels = {
+        "telegram": "Полная ссылка https://t.me/… или ник @salon",
+        "whatsapp": "Ссылка https://wa.me/7XXXXXXXXXX",
+        "instagram": "Ссылка https://instagram.com/…",
+        "address": "Адрес одной строкой (как на сайте)",
+        "phone_main": "Телефон для отображения и звонка, например +7 707 123 4567",
+    }
+    await state.set_state(SiteStates.waiting_value)
+    await state.update_data(site_kind="contact_key", contact_key=key)
+    await callback.message.reply(f"Отправьте значение для <b>{key}</b>:\n<i>{labels.get(key, '')}</i>", parse_mode="HTML")
+
+
 @router.callback_query(F.data == "site:logo")
 async def site_logo(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -274,7 +337,7 @@ async def site_process_value(message: Message, state: FSMContext):
     data = await state.get_data()
     kind = data.get("site_kind")
     tenant_id, role = await run_sync(_get_user_tenant_sync, message.from_user.id)
-    if not tenant_id or not _can_site(role):
+    if not tenant_id or not can_site(role):
         await state.clear()
         await message.reply("⛔ Нет доступа.")
         return
@@ -348,6 +411,19 @@ async def site_process_value(message: Message, state: FSMContext):
         await run_sync(_u)
         await state.clear()
         await message.reply("✅ Лого обновлено.")
+        return
+
+    if kind == "contact_key":
+        ck = data.get("contact_key")
+        if not ck or ck not in ("telegram", "whatsapp", "instagram", "address", "phone_main"):
+            await state.clear()
+            return
+        if ck in ("telegram", "whatsapp", "instagram") and not (text.startswith("http") or text.startswith("@")):
+            await message.reply("❌ Для мессенджеров нужна ссылка https://… или @ник для Telegram.")
+            return
+        await run_sync(_patch_contact_key_sync, tenant_id, ck, text)
+        await state.clear()
+        await message.reply("✅ Контакт обновлён в футере сайта.")
         return
 
     await state.clear()

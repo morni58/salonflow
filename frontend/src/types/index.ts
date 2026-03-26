@@ -55,6 +55,8 @@ export interface CartItem {
 export interface SlotsResponse {
   date: string;
   slots: string[];
+  alternate_master_id?: string | null;
+  alternate_master_name?: string | null;
 }
 
 // ── Booking ───────────────────────────────────

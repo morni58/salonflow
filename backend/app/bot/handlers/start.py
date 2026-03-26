@@ -38,43 +38,86 @@ def _tenant_name_sync(tenant_id: str) -> str:
 
 
 def _main_menu(role: str) -> InlineKeyboardMarkup:
-    buttons = [
-        [InlineKeyboardButton(text="📋 Заявки", callback_data="menu:bookings")],
-        [InlineKeyboardButton(text="📂 Каталог", callback_data="menu:catalog")],
-        [InlineKeyboardButton(text="🗓 Расписание", callback_data="menu:schedule")],
-        [InlineKeyboardButton(text="📸 Портфолио", callback_data="menu:portfolio")],
-        [InlineKeyboardButton(text="⭐ Отзывы", callback_data="menu:reviews")],
-        [InlineKeyboardButton(text="📝 Оффлайн-запись", callback_data="menu:offline")],
-        [InlineKeyboardButton(text="👥 Клиенты", callback_data="menu:clients")],
-    ]
+    """Главное меню: CRM у владельца, админа и менеджера; мастер — свои записи и график."""
+    buttons: list[list[InlineKeyboardButton]] = []
+    if role in ("owner", "admin", "manager"):
+        buttons.append(
+            [
+                InlineKeyboardButton(text="📊 CRM", callback_data="menu:crm"),
+                InlineKeyboardButton(text="📋 Сегодня", callback_data="menu:bookings"),
+            ]
+        )
+    else:
+        buttons.append([InlineKeyboardButton(text="📋 Сегодня", callback_data="menu:bookings")])
+    buttons.append(
+        [
+            InlineKeyboardButton(text="📂 Каталог", callback_data="menu:catalog"),
+            InlineKeyboardButton(text="👥 Клиенты", callback_data="menu:clients"),
+        ]
+    )
+    buttons.append([InlineKeyboardButton(text="🗓 Расписание салона", callback_data="menu:schedule")])
+    if role == "master":
+        buttons.append([InlineKeyboardButton(text="✂️ Мой график", callback_data="menu:myschedule")])
+    buttons.extend(
+        [
+            [InlineKeyboardButton(text="📸 Портфолио", callback_data="menu:portfolio")],
+            [InlineKeyboardButton(text="⭐ Отзывы", callback_data="menu:reviews")],
+            [InlineKeyboardButton(text="📝 Оффлайн-запись", callback_data="menu:offline")],
+        ]
+    )
     if role in ("owner", "admin"):
-        buttons.append([InlineKeyboardButton(text="🎨 Сайт и оформление", callback_data="menu:site")])
-        buttons.append([InlineKeyboardButton(text="📊 CRM и выгрузки", callback_data="menu:crm")])
+        buttons.append([InlineKeyboardButton(text="🎨 Сайт и контакты", callback_data="menu:site")])
+    if role in ("owner", "admin"):
+        buttons.append([InlineKeyboardButton(text="👥 Персонал", callback_data="menu:staff")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _bookings_text_and_keyboard_sync(tenant_id: str) -> tuple[str, InlineKeyboardMarkup]:
+def _master_id_for_user_sync(tenant_id: str, user_internal_id: str) -> str | None:
+    sb = get_supabase()
+    r = (
+        sb.table("masters")
+        .select("id")
+        .eq("tenant_id", tenant_id)
+        .eq("user_id", user_internal_id)
+        .limit(1)
+        .execute()
+    )
+    return r.data[0]["id"] if r.data else None
+
+
+def _bookings_text_and_keyboard_sync(
+    tenant_id: str,
+    user_internal_id: str | None = None,
+    role: str | None = None,
+) -> tuple[str, InlineKeyboardMarkup]:
     from datetime import date, datetime, timedelta
 
     sb = get_supabase()
     today = date.today()
     tomorrow = today + timedelta(days=1)
 
-    bookings = (
+    base = (
         sb.table("bookings")
-        .select("id, preferred_datetime, total_price, status, client_id, service_ids")
+        .select("id, preferred_datetime, total_price, status, client_id, service_ids, master_id")
         .eq("tenant_id", tenant_id)
         .gte("preferred_datetime", today.isoformat())
         .lt("preferred_datetime", tomorrow.isoformat())
-        .order("preferred_datetime")
-        .execute()
     )
+    if role == "master" and user_internal_id:
+        mid = _master_id_for_user_sync(tenant_id, user_internal_id)
+        if not mid:
+            bd: list = []
+        else:
+            bd = base.eq("master_id", mid).order("preferred_datetime").execute().data or []
+    else:
+        bd = base.order("preferred_datetime").execute().data or []
 
-    if not bookings.data:
-        text = "📋 На сегодня записей нет."
+    if not bd:
+        suffix = " (только к вам)" if role == "master" else ""
+        text = f"📋 На сегодня записей нет{suffix}."
     else:
         text = f"📋 <b>Записи на {today.strftime('%d.%m.%Y')}</b>\n\n"
-        for b in bookings.data:
+        for b in bd:
             dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00"))
             status_emoji = {
                 "pending": "🟡",
@@ -118,7 +161,12 @@ async def cmd_start(message: Message):
         return
 
     tenant_name = await run_sync(_tenant_name_sync, user["tenant_id"])
-    role_label = {"owner": "👑 Владелец", "admin": "🔧 Администратор", "master": "✂️ Мастер"}
+    role_label = {
+        "owner": "👑 Владелец",
+        "admin": "🔧 Администратор",
+        "manager": "📋 Менеджер",
+        "master": "✂️ Мастер",
+    }
 
     await message.answer(
         f"Добро пожаловать в <b>{tenant_name}</b>!\n\n"
@@ -150,5 +198,10 @@ async def menu_bookings(callback: CallbackQuery):
     if not user:
         await callback.message.edit_text("⛔ Нет доступа.")
         return
-    text, keyboard = await run_sync(_bookings_text_and_keyboard_sync, user["tenant_id"])
+    text, keyboard = await run_sync(
+        _bookings_text_and_keyboard_sync,
+        user["tenant_id"],
+        user["id"],
+        user["role"],
+    )
     await _edit_callback_safe(callback, text, parse_mode="HTML", reply_markup=keyboard)

@@ -295,3 +295,39 @@ async def get_available_slots(
 ) -> list[str]:
     """Слоты: при наличии записываемых мастеров нужен master_id; иначе — общий график салона."""
     return await run_sync(_route_slots_sync, tenant_id, target_date, master_id)
+
+
+def _find_alternate_master_with_slots_sync(
+    tenant_id: str,
+    target_date: date,
+    exclude_master_id: str,
+) -> tuple[str | None, str | None]:
+    """Если у выбранного мастера нет слотов — первый другой мастер с хотя бы одним слотом."""
+    if not tenant_has_bookable_masters_sync(tenant_id):
+        return None, None
+    sb = get_supabase()
+    rows = (
+        sb.table("masters")
+        .select("id, display_name")
+        .eq("tenant_id", tenant_id)
+        .eq("is_active", True)
+        .eq("is_bookable", True)
+        .order("sort_order")
+        .execute()
+    )
+    for row in rows.data or []:
+        mid = str(row["id"])
+        if mid == exclude_master_id:
+            continue
+        slots = _get_available_slots_master_sync(tenant_id, mid, target_date)
+        if slots:
+            return mid, row.get("display_name") or "Мастер"
+    return None, None
+
+
+async def suggest_alternate_master(
+    tenant_id: str,
+    target_date: date,
+    exclude_master_id: str,
+) -> tuple[str | None, str | None]:
+    return await run_sync(_find_alternate_master_with_slots_sync, tenant_id, target_date, exclude_master_id)

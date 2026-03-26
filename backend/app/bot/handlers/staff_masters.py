@@ -15,6 +15,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from app.bot.async_db import run_sync
+from app.bot.permissions import can_add_admin, can_invite_staff
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -31,14 +32,6 @@ def _user_row_sync(tg_id: int) -> dict | None:
     sb = get_supabase()
     r = sb.table("users").select("id, tenant_id, role, name").eq("telegram_user_id", tg_id).limit(1).execute()
     return r.data[0] if r.data else None
-
-
-def _can_invite_staff(role: str) -> bool:
-    return role in ("owner", "admin")
-
-
-def _can_add_admin(actor_role: str) -> bool:
-    return actor_role == "owner"
 
 
 def _add_user_and_master_sync(
@@ -75,6 +68,40 @@ def _add_user_and_master_sync(
         .execute()
     )
     return str(uid), str(m.data[0]["id"])
+
+
+def _add_manager_user_sync(tenant_id: str, telegram_user_id: int, display_name: str) -> None:
+    sb = get_supabase()
+    sb.table("users").insert({
+        "tenant_id": tenant_id,
+        "telegram_user_id": telegram_user_id,
+        "role": "manager",
+        "name": display_name,
+    }).execute()
+
+
+@router.callback_query(F.data == "menu:staff")
+async def menu_staff(callback: CallbackQuery) -> None:
+    """Персонал: команды добавления по Telegram ID (миграция 005 — роль manager)."""
+    await callback.answer()
+    actor = await run_sync(_user_row_sync, callback.from_user.id)
+    if not actor or not can_invite_staff(actor.get("role", "")):
+        await callback.message.edit_text("⛔ Доступно владельцу и администратору.")
+        return
+    role = actor.get("role", "")
+    lines = [
+        "👥 <b>Персонал</b>\n",
+        "Добавление по числовому Telegram ID (узнать: @userinfobot или из пересланного сообщения).\n",
+        "<code>/add_staff ID Имя</code> — мастер (сайт + бот + свой график)\n",
+        "<code>/add_manager ID Имя</code> — менеджер (CRM, без настройки сайта)\n",
+    ]
+    if can_add_admin(role):
+        lines.append("<code>/add_admin ID Имя</code> — администратор\n")
+    lines.append("<code>/staff_list</code> — кто в боте\n")
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="◀️ В меню", callback_data="menu:main")]]
+    )
+    await callback.message.edit_text("".join(lines), parse_mode="HTML", reply_markup=kb)
 
 
 def _get_master_for_user_sync(user_internal_id: str, tenant_id: str) -> dict | None:
@@ -122,7 +149,7 @@ def _master_photo_upload_sync(tenant_id: str, master_id: str, raw: bytes) -> str
 async def cmd_add_staff(message: Message) -> None:
     """/add_staff <telegram_id> <имя> — мастер с профилем и доступом в бот."""
     actor = await run_sync(_user_row_sync, message.from_user.id)
-    if not actor or not _can_invite_staff(actor.get("role", "")):
+    if not actor or not can_invite_staff(actor.get("role", "")):
         await message.answer("⛔ Команда доступна владельцу и администратору.")
         return
     parts = (message.text or "").split(maxsplit=2)
@@ -166,7 +193,7 @@ async def cmd_add_staff(message: Message) -> None:
 async def cmd_add_admin(message: Message) -> None:
     """/add_admin <telegram_id> <имя> — только владелец."""
     actor = await run_sync(_user_row_sync, message.from_user.id)
-    if not actor or not _can_add_admin(actor.get("role", "")):
+    if not actor or not can_add_admin(actor.get("role", "")):
         await message.answer("⛔ Только владелец может назначать администраторов.")
         return
     parts = (message.text or "").split(maxsplit=2)
@@ -199,11 +226,49 @@ async def cmd_add_admin(message: Message) -> None:
     )
 
 
+@router.message(Command("add_manager"))
+async def cmd_add_manager(message: Message) -> None:
+    """/add_manager <telegram_id> <имя> — менеджер (CRM), без прав на сайт."""
+    actor = await run_sync(_user_row_sync, message.from_user.id)
+    if not actor or not can_invite_staff(actor.get("role", "")):
+        await message.answer("⛔ Команда доступна владельцу и администратору.")
+        return
+    parts = (message.text or "").split(maxsplit=2)
+    if len(parts) < 3:
+        await message.answer(
+            "Использование: <code>/add_manager &lt;telegram_id&gt; Имя Фамилия</code>",
+            parse_mode="HTML",
+        )
+        return
+    try:
+        tg_target = int(parts[1].strip())
+    except ValueError:
+        await message.answer("❌ telegram_id должен быть числом.")
+        return
+    name = parts[2].strip()
+    if len(name) < 2:
+        await message.answer("❌ Укажите имя (от 2 символов).")
+        return
+
+    try:
+        await run_sync(_add_manager_user_sync, actor["tenant_id"], tg_target, name)
+    except Exception as e:
+        logger.exception("add_manager failed")
+        await message.answer(f"❌ Не удалось: {e}")
+        return
+
+    await message.answer(
+        f"✅ Менеджер <b>{name}</b> добавлен.\n"
+        f"ID: <code>{tg_target}</code> — пусть откроет бота и нажмёт /start.",
+        parse_mode="HTML",
+    )
+
+
 @router.message(Command("staff_list"))
 async def cmd_staff_list(message: Message) -> None:
     """Список пользователей салона в боте."""
     actor = await run_sync(_user_row_sync, message.from_user.id)
-    if not actor or actor.get("role") not in ("owner", "admin"):
+    if not actor or actor.get("role") not in ("owner", "admin", "manager"):
         await message.answer("⛔ Нет доступа.")
         return
 
@@ -219,9 +284,16 @@ async def cmd_staff_list(message: Message) -> None:
         return r.data or []
 
     rows = await run_sync(_list)
+    role_ru = {
+        "owner": "👑 владелец",
+        "admin": "🔧 админ",
+        "manager": "📋 менеджер",
+        "master": "✂️ мастер",
+    }
     lines = ["👥 <b>Пользователи бота</b>\n"]
     for u in rows:
-        lines.append(f"• {u['name']} — {u['role']} — <code>{u['telegram_user_id']}</code>")
+        rl = role_ru.get(u["role"], u["role"])
+        lines.append(f"• {u['name']} — {rl} — <code>{u['telegram_user_id']}</code>")
     await message.answer("\n".join(lines), parse_mode="HTML")
 
 

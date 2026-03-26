@@ -26,7 +26,7 @@ function IconInstagram({ className }: { className?: string }) {
 }
 
 const socialBtn =
-  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-200 text-ink-light transition-all duration-300 ease-out hover:border-brand-500 hover:text-brand-500 hover:shadow-soft active:scale-95";
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-brand-200 text-ink-light transition-all duration-300 ease-out hover:border-brand-500 hover:text-brand-500 hover:shadow-soft active:scale-95";
 
 interface Props {
   tenant: Tenant;
@@ -45,7 +45,7 @@ export function SiteFooter({ tenant }: Props) {
         <div className="flex w-full flex-col items-center justify-between gap-6 md:flex-row md:items-start md:text-left">
           <div className="flex items-center gap-2">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 font-serif text-sm font-bold italic text-brand-600 transition-colors duration-300 ease-out"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 font-serif text-sm font-bold text-brand-600 transition-colors duration-300 ease-out"
               aria-hidden
             >
               {initial}
