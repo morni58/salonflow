@@ -1,6 +1,14 @@
 import type { Tenant } from "../types";
 import { SITE_CONTACT, type PhoneEntry } from "../constants/siteContact";
 
+/**
+ * Тексты с сайта: `tenants.site_content` (JSON), строковые ключи.
+ * Цвета: по умолчанию тема popola; свои — `"theme": "custom"` + поля `color_*` в tenants (см. `usesCustomBrandColors`).
+ *
+ * Примеры ключей: `hero_badge`, `hero_title_line1`, `hero_title_accent`, `hero_subtitle`, `hero_image_url`,
+ * `hero_cta_primary`, `hero_cta_secondary`, `nav_catalog`, `section_catalog`, `section_catalog_subtitle`,
+ * `section_portfolio`, `portfolio_subtitle`, `meta_description`, …
+ */
 export function siteText(tenant: Tenant, key: string, fallback: string): string {
   const sc = tenant.site_content;
   if (!sc || typeof sc !== "object") return fallback;

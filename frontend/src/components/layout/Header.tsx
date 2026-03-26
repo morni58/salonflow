@@ -44,56 +44,57 @@ export function Header({ tenant, onOpenCart }: Props) {
   return (
     <>
       <header
-        className="glass-nav fixed top-0 z-[100] w-full transition-all duration-300"
+        className="glass-nav fixed top-0 z-[100] w-full border-b border-ink/5 transition-all duration-300"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="relative mx-auto max-w-[var(--layout-max)] px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between md:h-20">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              className="-ml-2 p-2 text-ink-dark transition-colors duration-300 ease-out hover:text-brand-500 md:hidden"
-              aria-label="Открыть меню"
-            >
-              <Menu size={24} strokeWidth={2} />
-            </button>
+          <div className="flex h-16 items-center justify-between gap-2 md:h-20">
+            <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-6">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="-ml-2 shrink-0 p-2 text-ink transition-colors duration-300 ease-out hover:text-brand-500 md:hidden"
+                aria-label="Открыть меню"
+              >
+                <Menu size={24} strokeWidth={2} />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => scrollTo("catalog")}
-              className="group flex min-w-0 flex-1 items-center justify-center gap-2 md:flex-none md:justify-start md:gap-3"
-            >
-              {tenant.logo_url ? (
-                <img
-                  src={tenant.logo_url}
-                  alt=""
-                  className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm md:h-10 md:w-10"
-                />
-              ) : (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 font-serif text-lg italic text-brand-600 transition-colors duration-300 ease-out group-hover:bg-brand-500 group-hover:text-white md:h-10 md:w-10 md:text-xl">
-                  {initial}
-                </div>
-              )}
-              <span className="font-serif min-w-0 truncate text-xl font-semibold tracking-wide text-ink-dark md:text-2xl">
-                {tenant.name}
-              </span>
-            </button>
-
-            <nav
-              className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex"
-              aria-label="Разделы страницы"
-            >
-              {NAV_LINKS.map((link) => (
+              <div className="flex min-w-0 flex-1 items-center justify-center gap-8 md:justify-start md:gap-10">
                 <button
-                  key={link.id}
                   type="button"
-                  onClick={() => scrollTo(link.id)}
-                  className="text-xs font-medium tracking-wider text-ink-light uppercase transition-colors duration-300 ease-out hover:text-brand-500"
+                  onClick={() => scrollTo("catalog")}
+                  className="group flex min-w-0 items-center justify-center gap-2 md:justify-start md:gap-3"
                 >
-                  {link.label}
+                  {tenant.logo_url ? (
+                    <img
+                      src={tenant.logo_url}
+                      alt=""
+                      className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm md:h-10 md:w-10"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 font-serif text-lg font-bold text-brand-600 transition-colors duration-300 ease-out group-hover:bg-brand-500 group-hover:text-white md:h-10 md:w-10 md:text-xl">
+                      {initial}
+                    </div>
+                  )}
+                  <span className="font-serif min-w-0 truncate text-xl font-semibold tracking-wide text-ink md:text-2xl">
+                    {tenant.name}
+                  </span>
                 </button>
-              ))}
-            </nav>
+
+                <nav className="hidden items-center gap-8 md:flex" aria-label="Разделы страницы">
+                  {NAV_LINKS.map((link) => (
+                    <button
+                      key={link.id}
+                      type="button"
+                      onClick={() => scrollTo(link.id)}
+                      className="text-sm font-medium text-ink/70 transition-colors duration-300 ease-out hover:text-brand-500"
+                    >
+                      {link.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
 
             <button
               type="button"
@@ -101,14 +102,14 @@ export function Header({ tenant, onOpenCart }: Props) {
                 onOpenCart();
                 setDrawerOpen(false);
               }}
-              className="relative -mr-2 flex items-center gap-2 p-2 text-ink transition-colors duration-300 ease-out hover:text-brand-500 md:mr-0"
-              aria-label="Ваша запись"
+              className="relative -mr-2 flex shrink-0 items-center gap-2 rounded-full bg-brand-50 px-3 py-2 text-ink transition-colors duration-300 ease-out hover:text-brand-500 md:mr-0 md:rounded-none md:bg-transparent md:px-0"
+              aria-label="Моя запись"
             >
-              <span className="hidden text-xs font-medium tracking-wider uppercase md:block">Ваша запись</span>
+              <span className="hidden text-sm font-medium md:block">Моя запись</span>
               <div className="relative">
-                <ShoppingBag size={24} strokeWidth={1.5} />
+                <ShoppingBag size={20} strokeWidth={2} />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white shadow-sm">
                     {itemCount > 9 ? "9+" : itemCount}
                   </span>
                 )}
@@ -124,12 +125,12 @@ export function Header({ tenant, onOpenCart }: Props) {
         }`}
         aria-hidden={!drawerOpen}
       >
-        <div className="flex items-center justify-between border-b border-brand-100 bg-base px-6 py-5">
-          <span className="font-serif text-2xl font-semibold text-ink-dark">Меню</span>
+        <div className="flex items-center justify-between border-b border-brand-50 px-6 py-5">
+          <span className="font-serif text-2xl font-semibold text-ink">Меню</span>
           <button
             type="button"
             onClick={() => setDrawerOpen(false)}
-            className="rounded-full bg-brand-50 p-2 text-ink-light transition-colors hover:text-brand-500"
+            className="rounded-full bg-brand-50 p-2 text-ink-muted transition-colors hover:text-brand-500"
             aria-label="Закрыть меню"
           >
             <X size={20} />
@@ -143,7 +144,7 @@ export function Header({ tenant, onOpenCart }: Props) {
                 key={link.id}
                 type="button"
                 onClick={() => scrollTo(link.id)}
-                className="flex items-center rounded-xl p-4 text-left text-lg font-medium text-ink-dark transition-colors duration-300 ease-out hover:bg-brand-50 hover:text-brand-600"
+                className="flex items-center rounded-2xl p-4 text-left text-lg font-medium text-ink transition-colors duration-300 ease-out hover:bg-brand-50 hover:text-brand-600"
               >
                 <Icon className="mr-3 h-5 w-5 opacity-60" strokeWidth={2} aria-hidden />
                 {link.label}

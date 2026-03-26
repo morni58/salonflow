@@ -71,15 +71,15 @@ export function SegmentedTabs({
               onClick={() => onSelect(tab.key)}
               className={cn(
                 "tab-btn-poca min-h-[44px] shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 ease-out md:px-6",
-                !isActive && "border-brand-100 bg-white text-ink-light hover:border-brand-300",
+                !isActive && "border-brand-100 bg-base text-ink-muted hover:border-brand-300",
                 isActive && "border-transparent text-white shadow-md"
               )}
               style={
                 isActive
                   ? {
-                      background: "var(--tenant-primary, #c39077)",
-                      borderColor: "var(--tenant-primary, #c39077)",
-                      boxShadow: "0 4px 12px rgba(195, 144, 119, 0.3)",
+                      background: "var(--tenant-primary, #c08973)",
+                      borderColor: "var(--tenant-primary, #c08973)",
+                      boxShadow: "0 4px 12px rgba(192, 137, 115, 0.3)",
                     }
                   : undefined
               }

@@ -12,8 +12,8 @@ interface Props {
 
 export function CatalogSection({
   tenantId,
-  title = "Наши Услуги",
-  subtitle = "Выберите необходимые процедуры и забронируйте удобное для вас время онлайн.",
+  title = "Наши услуги",
+  subtitle = 'Выберите процедуры и удобное время. Цены указаны «от», точная стоимость зависит от мастера.',
 }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -34,8 +34,8 @@ export function CatalogSection({
     return (
       <section id="catalog" data-anchor-section>
         <div className="mb-12 text-center">
-          <h2 className="font-serif mb-4 text-3xl font-semibold text-ink-dark md:text-4xl lg:text-5xl">{title}</h2>
-          <p className="mx-auto max-w-2xl text-ink-light">Загрузка каталога…</p>
+          <h2 className="font-serif mb-4 text-3xl font-semibold text-ink md:text-4xl lg:text-5xl">{title}</h2>
+          <p className="mx-auto max-w-2xl text-ink-muted">Загрузка каталога…</p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -47,12 +47,12 @@ export function CatalogSection({
   }
 
   return (
-    <section id="catalog" data-anchor-section className="py-16 md:py-24 lg:py-32">
-      <div className="mb-8 text-center md:mb-12">
-        <h2 className="font-serif mb-3 text-3xl font-semibold tracking-tight text-balance text-ink-dark md:mb-4 md:text-4xl lg:text-5xl">
+    <section id="catalog" data-anchor-section className="rounded-[2rem] bg-surface px-4 py-16 shadow-sm sm:px-6 md:py-24 lg:px-8 lg:py-24">
+      <div className="mb-10 text-center md:mb-12">
+        <h2 className="font-serif mb-4 text-3xl font-semibold tracking-tight text-balance text-ink md:text-5xl">
           {title}
         </h2>
-        <p className="mx-auto max-w-2xl px-2 text-sm leading-relaxed text-ink-light md:text-base">{subtitle}</p>
+        <p className="mx-auto max-w-xl px-2 text-sm leading-relaxed text-ink-muted md:text-base">{subtitle}</p>
       </div>
 
       <div className="mb-10 md:mb-12">
@@ -66,7 +66,7 @@ export function CatalogSection({
       </div>
 
       {filteredPairs.length === 0 && (
-        <p className="mt-8 text-center text-ink-light opacity-70">Услуги не найдены</p>
+        <p className="mt-8 text-center text-ink-muted opacity-80">Услуги не найдены</p>
       )}
     </section>
   );

@@ -1,9 +1,8 @@
-import { Sparkles } from "lucide-react";
 import type { Tenant } from "../../types";
 import { siteText } from "../../utils/siteContent";
 
 const DEFAULT_HERO_IMG =
-  "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1000&q=80";
+  "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=80";
 
 interface Props {
   tenant: Tenant;
@@ -14,89 +13,62 @@ export function HeroSection({ tenant }: Props) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const badge = siteText(tenant, "hero_badge", "Онлайн-запись 24/7");
-  const line1 = siteText(tenant, "hero_title_line1", "Подчеркните свою");
-  const accentTitle = siteText(tenant, "hero_title_accent", "естественную красоту");
+  const badge = siteText(tenant, "hero_badge", "Онлайн-запись открыта");
+  const line1 = siteText(tenant, "hero_title_line1", "Создаем красоту,");
+  const accentTitle = siteText(tenant, "hero_title_accent", "вдохновляясь вами");
   const subtitle = siteText(
     tenant,
     "hero_subtitle",
-    `Премиальный сервис в ${tenant.name}: мастера и атмосфера релакса. Запишитесь онлайн в два клика.`,
+    `Ваш любимый салон в центре города. Топовые мастера, премиум-материалы и атмосфера абсолютного уюта.`,
   );
   const heroImg = siteText(tenant, "hero_image_url", DEFAULT_HERO_IMG);
   const ctaPrimary = siteText(tenant, "hero_cta_primary", "Выбрать услуги");
-  const ctaSecondary = siteText(tenant, "hero_cta_secondary", "Портфолио");
-  const ratingText = siteText(tenant, "hero_rating_text", "5.0");
-  const ratingSub = siteText(tenant, "hero_rating_sub", "Более 200 отзывов");
+  const ctaSecondary = siteText(tenant, "hero_cta_secondary", "Наши мастера");
 
   return (
-    <section className="relative overflow-hidden pt-8 pb-16 md:pt-16 md:pb-24 lg:pt-24 lg:pb-32">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_45%_at_50%_-8%,rgba(195,144,119,0.14),transparent_55%)]"
-        aria-hidden
-      />
+    <section className="relative overflow-hidden pt-10 pb-16 lg:pt-20 lg:pb-24">
       <div className="relative z-10 mx-auto w-full">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-8">
-          <div className="animate-fade-up mt-4 min-w-0 text-center md:mt-0 lg:text-left">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-[10px] font-semibold tracking-widest text-brand-700 uppercase md:text-xs">
-              <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={2} aria-hidden />
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+          <div className="animate-fade-up order-2 mt-4 min-w-0 text-center lg:order-1 lg:mt-0 lg:text-left">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-4 py-2 text-xs font-semibold tracking-wide text-brand-600 uppercase shadow-sm">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" aria-hidden />
               {badge}
             </div>
-            <h1 className="font-serif mb-4 text-4xl leading-tight font-semibold tracking-tight text-balance text-ink-dark sm:text-5xl md:mb-6 lg:text-6xl xl:text-7xl">
-              {line1}{" "}
-              <br className="hidden sm:block" />
-              <span className="text-brand-500 italic">{accentTitle}</span>
+            <h1 className="font-serif mb-6 text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-ink sm:text-5xl lg:text-6xl">
+              {line1}
+              <br />
+              <span className="text-brand-500 italic font-medium">{accentTitle}</span>
             </h1>
-            <p className="mx-auto mb-8 max-w-lg px-2 text-base leading-relaxed font-light text-ink-light sm:px-0 md:mb-10 md:text-lg lg:mx-0">
+            <p className="mx-auto mb-8 max-w-lg px-4 text-base leading-relaxed text-ink-muted sm:px-0 lg:mx-0 lg:px-0 md:text-lg">
               {subtitle}
             </p>
-            <div className="flex min-w-0 flex-col justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4 lg:justify-start">
+            <div className="flex flex-col justify-center gap-4 px-4 sm:flex-row sm:px-0 lg:justify-start">
               <button
                 type="button"
                 onClick={() => scrollTo("catalog")}
-                className="interactive-raise inline-flex w-full min-h-[52px] min-w-0 items-center justify-center rounded-full bg-brand-500 px-6 py-3.5 text-center text-sm font-medium leading-snug text-white shadow-lg shadow-brand-500/30 transition-all duration-300 hover:-translate-y-1 hover:bg-brand-600 hover:shadow-brand-500/50 sm:w-auto sm:min-w-[11rem] sm:px-10 sm:py-4"
+                className="interactive-raise inline-flex w-full min-h-[52px] items-center justify-center rounded-full bg-brand-500 px-8 py-4 text-center text-sm font-medium text-white shadow-[0_8px_20px_rgba(192,137,115,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-600 sm:w-auto"
               >
                 {ctaPrimary}
               </button>
               <button
                 type="button"
-                onClick={() => scrollTo("portfolio")}
-                className="inline-flex w-full min-h-[52px] min-w-0 items-center justify-center rounded-full border border-brand-200 bg-white px-6 py-3.5 text-center text-sm font-medium leading-snug text-ink transition-all duration-300 hover:border-brand-500 hover:text-brand-500 sm:w-auto sm:min-w-[11rem] sm:px-10 sm:py-4"
+                onClick={() => scrollTo("masters")}
+                className="inline-flex w-full min-h-[52px] items-center justify-center rounded-full border border-brand-200 bg-white px-8 py-4 text-center text-sm font-medium text-ink transition-all duration-300 hover:border-brand-500 hover:text-brand-500 sm:w-auto"
               >
                 {ctaSecondary}
               </button>
             </div>
           </div>
 
-          <div className="animate-fade-up animate-delay-200 relative mt-4 min-w-0 lg:mt-0">
-            <div className="absolute top-1/2 left-1/2 -z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-100 opacity-50 blur-3xl" />
-            <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-black/[0.04] md:rounded-[2rem]">
+          <div className="animate-fade-up animate-delay-100 relative order-1 px-4 sm:px-0 lg:order-2">
+            <div className="absolute top-1/2 left-1/2 -z-10 h-[110%] w-[110%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-100/50 blur-3xl" />
+            <div className="relative overflow-hidden rounded-[2rem] shadow-float md:rounded-[2.5rem]">
               <img
                 src={heroImg}
                 alt=""
-                className="h-[350px] w-full object-cover object-center transition-transform duration-700 ease-out sm:h-[450px] lg:h-[500px] md:hover:scale-[1.03]"
+                className="h-[350px] w-full object-cover transition-transform duration-700 sm:h-[450px] lg:h-[550px] md:hover:scale-105"
                 loading="eager"
               />
-              <div className="absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-white/60 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-md md:bottom-6 md:left-6 md:gap-4 md:px-6 md:py-4">
-                <div className="flex shrink-0 -space-x-3">
-                  {["А К", "Е С", "М В"].map((name, idx) => (
-                    <img
-                      key={name}
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${idx === 0 ? "ebdcd3" : idx === 1 ? "dfc6b9" : "d0a996"}&color=654538`}
-                      className="h-8 w-8 rounded-full border-2 border-white md:h-10 md:w-10"
-                      alt=""
-                    />
-                  ))}
-                </div>
-                <div className="min-w-0">
-                  <div className="mb-0.5 flex items-center gap-1 text-amber-400 md:mb-1">
-                    <svg className="h-3.5 w-3.5 fill-current md:h-4 md:w-4" viewBox="0 0 20 20" aria-hidden>
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-xs font-bold text-ink-dark md:text-sm">{ratingText}</span>
-                  </div>
-                  <p className="truncate text-[10px] font-medium text-ink-light md:text-xs">{ratingSub}</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

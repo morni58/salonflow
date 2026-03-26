@@ -87,27 +87,27 @@ function AppInner() {
           <>
             <HeroSection tenant={tenant} />
 
-            <AdvantagesSection tenant={tenant} />
+            <AnimateIn className="py-6 sm:py-10">
+              <ErrorBoundary>
+                <CatalogSection
+                  tenantId={tenant.id}
+                  title={siteText(tenant, "section_catalog", "Наши услуги")}
+                  subtitle={siteText(
+                    tenant,
+                    "section_catalog_subtitle",
+                    'Выберите процедуры и удобное время. Цены указаны «от», точная стоимость зависит от мастера.',
+                  )}
+                />
+              </ErrorBoundary>
+            </AnimateIn>
 
-            <AnimateIn className="py-10 sm:py-16">
+            <AnimateIn className="py-6 sm:py-10" delay={50}>
               <ErrorBoundary>
                 <MastersSection tenantId={tenant.id} />
               </ErrorBoundary>
             </AnimateIn>
 
-            <AnimateIn className="py-10 sm:py-16">
-              <ErrorBoundary>
-                <CatalogSection
-                  tenantId={tenant.id}
-                  title={siteText(tenant, "section_catalog", "Наши Услуги")}
-                  subtitle={siteText(
-                    tenant,
-                    "section_catalog_subtitle",
-                    "Выберите необходимые процедуры и забронируйте удобное для вас время онлайн.",
-                  )}
-                />
-              </ErrorBoundary>
-            </AnimateIn>
+            <AdvantagesSection tenant={tenant} />
 
             <AnimateIn className="py-10 sm:py-16" delay={100}>
               <ErrorBoundary>

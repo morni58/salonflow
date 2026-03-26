@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SalonFlow — Онлайн-запись</title>
+    
+    <!-- Шрифты: Элегантный для заголовков, чистый и читаемый для интерфейса -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fcf9f8',
+                            100: '#f7f1ee',
+                            200: '#eee0d9',
+                            300: '#e0c6ba',
+                            400: '#d0a796',
+                            500: '#c08973', // Основной мягкий терракотово-розовый
+                            600: '#b2725b',
+                            700: '#955d4b',
+                            800: '#7c4f41',
+                        },
+                        base: '#FAF9F7', // Теплый светло-серый фон сайта
+                        surface: '#FFFFFF', // Белые карточки
+                        ink: {
+                            DEFAULT: '#36312F', // Мягкий черный/коричневый
+                            muted: '#807773',
+                            light: '#B3AAA5'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Cormorant Garamond"', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 8px 30px rgba(54, 49, 47, 0.04)',
+                        'float': '0 12px 40px rgba(54, 49, 47, 0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: theme('colors.base');
+            color: theme('colors.ink.DEFAULT');
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Мягкий скроллбар */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: theme('colors.brand.200'); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.brand.300'); }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Плавные анимации */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-up.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+
+        /* Карточки услуг и мастеров */
+        .service-card, .master-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        @media (hover: hover) {
+            .service-card:hover, .master-card:hover {
+                transform: translateY(-4px);
+                box-shadow: theme('boxShadow.float');
+            }
+        }
+
+        /* Табы */
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: theme('colors.brand.500');
+            color: white;
+            box-shadow: 0 4px 12px rgba(192, 137, 115, 0.3);
+            border-color: theme('colors.brand.500');
+        }
+
+        /* Стилизация радио-кнопок для букинга */
+        .custom-radio input:checked + div {
+            border-color: theme('colors.brand.500');
+            background-color: theme('colors.brand.50');
+            box-shadow: 0 0 0 1px theme('colors.brand.500');
+        }
+
+        /* Блюр навигации */
+        .glass-nav {
+            background: rgba(250, 249, 247, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen">
+
+    <!-- Навигация -->
+    <header class="fixed top-0 w-full z-40 glass-nav transition-all duration-300 border-b border-ink/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16 md:h-20">
+                
+                <!-- Мобильное меню (Гамбургер) -->
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2 -ml-2 text-ink hover:text-brand-500 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+
+                <!-- Логотип -->
+                <a href="#" class="flex items-center gap-2 group absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
+                    <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-serif font-bold text-lg group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                        S
+                    </div>
+                    <span class="font-serif text-xl md:text-2xl font-semibold tracking-wide text-ink">SalonFlow</span>
+                </a>
+
+                <!-- Десктопное меню -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="#services" class="text-sm font-medium text-ink/70 hover:text-brand-500 transition-colors">Услуги</a>
+                    <a href="#masters" class="text-sm font-medium text-ink/70 hover:text-brand-500 transition-colors">Мастера</a>
+                    <a href="#portfolio" class="text-sm font-medium text-ink/70 hover:text-brand-500 transition-colors">Работы</a>
+                </nav>
+
+                <!-- Иконка корзины -->
+                <button onclick="toggleSidebar()" class="relative p-2 -mr-2 md:mr-0 text-ink hover:text-brand-500 transition-colors flex items-center gap-2 bg-brand-50 rounded-full md:bg-transparent md:rounded-none px-3 md:px-0">
+                    <span class="hidden md:block text-sm font-medium">Моя запись</span>
+                    <div class="relative">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                        <span id="cart-badge" class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden shadow-sm">0</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Выезжающее Мобильное меню -->
+    <div id="mobile-menu" class="fixed inset-y-0 left-0 w-4/5 max-w-sm bg-surface shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col md:hidden">
+        <div class="px-6 py-5 border-b border-brand-50 flex items-center justify-between">
+            <span class="font-serif text-2xl font-semibold text-ink">Меню</span>
+            <button onclick="toggleMobileMenu()" class="p-2 text-ink-muted hover:text-brand-500 bg-brand-50 rounded-full">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
+            <a href="#services" onclick="toggleMobileMenu()" class="p-4 rounded-2xl text-lg font-medium text-ink hover:bg-brand-50 transition-colors">Услуги и Цены</a>
+            <a href="#masters" onclick="toggleMobileMenu()" class="p-4 rounded-2xl text-lg font-medium text-ink hover:bg-brand-50 transition-colors">Наши мастера</a>
+            <a href="#portfolio" onclick="toggleMobileMenu()" class="p-4 rounded-2xl text-lg font-medium text-ink hover:bg-brand-50 transition-colors">Портфолио</a>
+        </nav>
+    </div>
+    <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-ink/30 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden"></div>
+
+    <main class="flex-grow pt-16 md:pt-20">
+        
+        <!-- Главный экран (Hero) -->
+        <section class="relative pt-10 pb-16 lg:pt-20 lg:pb-24 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+                    
+                    <!-- Текст -->
+                    <div class="text-center lg:text-left fade-up mt-4 lg:mt-0 order-2 lg:order-1">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 text-brand-600 text-xs font-semibold tracking-wide uppercase mb-6 shadow-sm border border-brand-100">
+                            <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                            Онлайн-запись открыта
+                        </div>
+                        <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl text-ink leading-[1.1] mb-6 font-semibold">
+                            Создаем красоту,<br>
+                            <span class="text-brand-500 italic font-medium">вдохновляясь вами</span>
+                        </h1>
+                        <p class="text-ink-muted text-base md:text-lg mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed px-4 lg:px-0">
+                            Ваш любимый салон в центре города. Топовые мастера, премиум-материалы и атмосфера абсолютного уюта.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start px-4 sm:px-0">
+                            <a href="#services" class="inline-flex justify-center items-center px-8 py-4 bg-brand-500 text-white rounded-full font-medium shadow-[0_8px_20px_rgba(192,137,115,0.3)] hover:bg-brand-600 hover:-translate-y-0.5 transition-all duration-300 w-full sm:w-auto">
+                                Выбрать услуги
+                            </a>
+                            <a href="#masters" class="inline-flex justify-center items-center px-8 py-4 bg-white text-ink rounded-full font-medium border border-brand-200 hover:border-brand-500 hover:text-brand-500 transition-all duration-300 w-full sm:w-auto">
+                                Наши мастера
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Изображение -->
+                    <div class="relative fade-up delay-100 order-1 lg:order-2 px-4 sm:px-0">
+                        <!-- Декоративные пятна -->
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-brand-100/50 rounded-full blur-3xl -z-10"></div>
+                        
+                        <div class="relative rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-float">
+                            <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=80" alt="Уютный интерьер салона" class="w-full h-[350px] sm:h-[450px] lg:h-[550px] object-cover hover:scale-105 transition-transform duration-700">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Каталог услуг (Продающий блок) -->
+        <section id="services" class="py-16 md:py-24 bg-surface">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <div class="text-center mb-10 fade-up">
+                    <h2 class="font-serif text-3xl md:text-5xl font-semibold text-ink mb-4">Наши услуги</h2>
+                    <p class="text-ink-muted text-sm md:text-base max-w-xl mx-auto">Выберите процедуры и удобное время. Цены указаны "от", точная стоимость зависит от мастера.</p>
+                </div>
+
+                <!-- Фильтры с горизонтальным скроллом -->
+                <div class="flex overflow-x-auto hide-scrollbar gap-2 md:gap-3 mb-10 pb-2 fade-up delay-100 justify-start sm:justify-center">
+                    <button onclick="filterServices('all')" class="tab-btn active px-6 py-2.5 rounded-full text-sm font-medium border border-transparent whitespace-nowrap shrink-0">Популярное</button>
+                    <button onclick="filterServices('hair')" class="tab-btn px-6 py-2.5 rounded-full text-sm font-medium bg-base text-ink-muted border border-brand-100 hover:border-brand-300 whitespace-nowrap shrink-0">Волосы</button>
+                    <button onclick="filterServices('nails')" class="tab-btn px-6 py-2.5 rounded-full text-sm font-medium bg-base text-ink-muted border border-brand-100 hover:border-brand-300 whitespace-nowrap shrink-0">Ногти</button>
+                    <button onclick="filterServices('face')" class="tab-btn px-6 py-2.5 rounded-full text-sm font-medium bg-base text-ink-muted border border-brand-100 hover:border-brand-300 whitespace-nowrap shrink-0">Лицо и Тело</button>
+                </div>
+
+                <!-- Сетка карточек -->
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" id="services-grid">
+                    
+                    <!-- Карточка 1 -->
+                    <div class="service-card bg-base rounded-[2rem] overflow-hidden flex flex-col fade-up group border border-brand-50" data-category="hair">
+                        <div class="relative h-48 sm:h-56 overflow-hidden bg-brand-100">
+                            <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=600&q=80" alt="Стрижка" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <span class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-semibold text-ink uppercase tracking-wider shadow-sm">Волосы</span>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col bg-white">
+                            <h3 class="font-serif text-2xl font-semibold mb-2 text-ink">Женская стрижка</h3>
+                            <p class="text-sm text-ink-muted mb-4 line-clamp-2">Мытье головы, уход по типу волос, стрижка и легкая укладка.</p>
+                            <div class="flex items-center gap-2 text-brand-500 text-xs font-medium mb-6 bg-brand-50 w-fit px-3 py-1.5 rounded-lg">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                                1 ч 30 мин
+                            </div>
+                            <div class="mt-auto flex items-center justify-between pt-4 border-t border-brand-50">
+                                <span class="text-xl font-bold text-ink">от 8 000 ₸</span>
+                                <button onclick="addToCart('Женская стрижка', 8000)" class="w-12 h-12 rounded-full bg-base text-ink hover:bg-brand-500 hover:text-white transition-colors duration-300 flex items-center justify-center shadow-sm active:scale-95" aria-label="Добавить">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 2 -->
+                    <div class="service-card bg-base rounded-[2rem] overflow-hidden flex flex-col fade-up delay-100 group border border-brand-50" data-category="hair">
+                        <div class="relative h-48 sm:h-56 overflow-hidden bg-brand-100">
+                            <img src="https://images.unsplash.com/photo-1521590832167-7bfc1748b565?auto=format&fit=crop&w=600&q=80" alt="Окрашивание" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <span class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-semibold text-ink uppercase tracking-wider shadow-sm">Хит</span>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col bg-white">
+                            <h3 class="font-serif text-2xl font-semibold mb-2 text-ink">Сложное окрашивание</h3>
+                            <p class="text-sm text-ink-muted mb-4 line-clamp-2">Airtouch, Шатуш, Балаяж. Включает премиум-уход для защиты волос.</p>
+                            <div class="flex items-center gap-2 text-brand-500 text-xs font-medium mb-6 bg-brand-50 w-fit px-3 py-1.5 rounded-lg">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                                3 - 4 ч
+                            </div>
+                            <div class="mt-auto flex items-center justify-between pt-4 border-t border-brand-50">
+                                <span class="text-xl font-bold text-ink">от 35 000 ₸</span>
+                                <button onclick="addToCart('Сложное окрашивание', 35000)" class="w-12 h-12 rounded-full bg-base text-ink hover:bg-brand-500 hover:text-white transition-colors duration-300 flex items-center justify-center shadow-sm active:scale-95">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 3 -->
+                    <div class="service-card bg-base rounded-[2rem] overflow-hidden flex flex-col fade-up delay-200 group border border-brand-50" data-category="nails">
+                        <div class="relative h-48 sm:h-56 overflow-hidden bg-brand-100">
+                            <img src="https://images.unsplash.com/photo-1519014816548-bf5fe059e98b?auto=format&fit=crop&w=600&q=80" alt="Маникюр" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <span class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-semibold text-ink uppercase tracking-wider shadow-sm">Ногти</span>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col bg-white">
+                            <h3 class="font-serif text-2xl font-semibold mb-2 text-ink">Маникюр с покрытием</h3>
+                            <p class="text-sm text-ink-muted mb-4 line-clamp-2">Аппаратный или комбинированный маникюр, выравнивание базы, гель-лак.</p>
+                            <div class="flex items-center gap-2 text-brand-500 text-xs font-medium mb-6 bg-brand-50 w-fit px-3 py-1.5 rounded-lg">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                                1.5 ч
+                            </div>
+                            <div class="mt-auto flex items-center justify-between pt-4 border-t border-brand-50">
+                                <span class="text-xl font-bold text-ink">7 000 ₸</span>
+                                <button onclick="addToCart('Маникюр + Гель-лак', 7000)" class="w-12 h-12 rounded-full bg-base text-ink hover:bg-brand-500 hover:text-white transition-colors duration-300 flex items-center justify-center shadow-sm active:scale-95">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 4 -->
+                    <div class="service-card bg-base rounded-[2rem] overflow-hidden flex flex-col fade-up group border border-brand-50" data-category="nails">
+                        <div class="relative h-48 sm:h-56 overflow-hidden bg-brand-100">
+                            <img src="https://images.unsplash.com/photo-1516975080661-46bce0d463d1?auto=format&fit=crop&w=600&q=80" alt="Педикюр" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <span class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-semibold text-ink uppercase tracking-wider shadow-sm">Релакс</span>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col bg-white">
+                            <h3 class="font-serif text-2xl font-semibold mb-2 text-ink">SPA Педикюр</h3>
+                            <p class="text-sm text-ink-muted mb-4 line-clamp-2">Обработка стоп, пальчиков, скрабирование и расслабляющий массаж.</p>
+                            <div class="flex items-center gap-2 text-brand-500 text-xs font-medium mb-6 bg-brand-50 w-fit px-3 py-1.5 rounded-lg">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                                2 ч
+                            </div>
+                            <div class="mt-auto flex items-center justify-between pt-4 border-t border-brand-50">
+                                <span class="text-xl font-bold text-ink">10 000 ₸</span>
+                                <button onclick="addToCart('SPA Педикюр', 10000)" class="w-12 h-12 rounded-full bg-base text-ink hover:bg-brand-500 hover:text-white transition-colors duration-300 flex items-center justify-center shadow-sm active:scale-95">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 5 -->
+                    <div class="service-card bg-base rounded-[2rem] overflow-hidden flex flex-col fade-up delay-100 group border border-brand-50" data-category="face">
+                        <div class="relative h-48 sm:h-56 overflow-hidden bg-brand-100">
+                            <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80" alt="Уход за лицом" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <span class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-semibold text-ink uppercase tracking-wider shadow-sm">Лицо</span>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col bg-white">
+                            <h3 class="font-serif text-2xl font-semibold mb-2 text-ink">Комбинированная чистка</h3>
+                            <p class="text-sm text-ink-muted mb-4 line-clamp-2">Ультразвуковая + мануальная чистка, успокаивающая маска, крем по типу кожи.</p>
+                            <div class="flex items-center gap-2 text-brand-500 text-xs font-medium mb-6 bg-brand-50 w-fit px-3 py-1.5 rounded-lg">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                                1.5 ч
+                            </div>
+                            <div class="mt-auto flex items-center justify-between pt-4 border-t border-brand-50">
+                                <span class="text-xl font-bold text-ink">15 000 ₸</span>
+                                <button onclick="addToCart('Комбинированная чистка', 15000)" class="w-12 h-12 rounded-full bg-base text-ink hover:bg-brand-500 hover:text-white transition-colors duration-300 flex items-center justify-center shadow-sm active:scale-95">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Блок Мастера -->
+        <section id="masters" class="py-16 md:py-24 bg-brand-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 fade-up">
+                    <h2 class="font-serif text-3xl md:text-5xl font-semibold text-ink mb-4">Наши мастера</h2>
+                    <p class="text-ink-muted text-sm md:text-base max-w-xl mx-auto">Команда профессионалов, искренне влюбленных в свое дело и вашу красоту.</p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Мастер 1 -->
+                    <div class="master-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center shadow-sm border border-brand-100 fade-up">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" alt="Кристина В." class="w-28 h-28 rounded-full object-cover mb-5 shadow-inner">
+                        <h3 class="font-serif text-2xl font-semibold text-ink mb-1">Кристина В.</h3>
+                        <p class="text-sm text-brand-500 font-medium mb-3">Топ-мастер маникюра</p>
+                        <p class="text-sm text-ink-muted mb-6">Опыт 5 лет. Идеальный френч, пилочный маникюр и сложные дизайны.</p>
+                        <button onclick="toggleSidebar()" class="mt-auto px-6 py-2.5 rounded-full border border-brand-200 text-sm font-medium text-ink hover:bg-brand-50 transition-colors w-full">К специалисту</button>
+                    </div>
+
+                    <!-- Мастер 2 -->
+                    <div class="master-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center shadow-sm border border-brand-100 fade-up delay-100">
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80" alt="Елена С." class="w-28 h-28 rounded-full object-cover mb-5 shadow-inner">
+                        <h3 class="font-serif text-2xl font-semibold text-ink mb-1">Елена С.</h3>
+                        <p class="text-sm text-brand-500 font-medium mb-3">Стилист-колорист</p>
+                        <p class="text-sm text-ink-muted mb-6">Создает идеальный блонд без вреда для волос. Обучалась в Европе.</p>
+                        <button onclick="toggleSidebar()" class="mt-auto px-6 py-2.5 rounded-full border border-brand-200 text-sm font-medium text-ink hover:bg-brand-50 transition-colors w-full">К специалисту</button>
+                    </div>
+
+                    <!-- Мастер 3 -->
+                    <div class="master-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center shadow-sm border border-brand-100 fade-up delay-200">
+                        <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=300&q=80" alt="Алина М." class="w-28 h-28 rounded-full object-cover mb-5 shadow-inner">
+                        <h3 class="font-serif text-2xl font-semibold text-ink mb-1">Алина М.</h3>
+                        <p class="text-sm text-brand-500 font-medium mb-3">Бровист & Ламимейкер</p>
+                        <p class="text-sm text-ink-muted mb-6">Делает натуральные воздушные брови и выразительный изгиб ресниц.</p>
+                        <button onclick="toggleSidebar()" class="mt-auto px-6 py-2.5 rounded-full border border-brand-200 text-sm font-medium text-ink hover:bg-brand-50 transition-colors w-full">К специалисту</button>
+                    </div>
+
+                    <!-- Мастер 4 -->
+                    <div class="master-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center shadow-sm border border-brand-100 fade-up delay-100">
+                        <img src="https://images.unsplash.com/photo-1554727242-741c14fa561c?auto=format&fit=crop&w=300&q=80" alt="Марина Д." class="w-28 h-28 rounded-full object-cover mb-5 shadow-inner">
+                        <h3 class="font-serif text-2xl font-semibold text-ink mb-1">Марина Д.</h3>
+                        <p class="text-sm text-brand-500 font-medium mb-3">Врач-косметолог</p>
+                        <p class="text-sm text-ink-muted mb-6">Специалист по уходовым программам и аппаратному омоложению.</p>
+                        <button onclick="toggleSidebar()" class="mt-auto px-6 py-2.5 rounded-full border border-brand-200 text-sm font-medium text-ink hover:bg-brand-50 transition-colors w-full">К специалисту</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Портфолио -->
+        <section id="portfolio" class="py-16 md:py-24 overflow-hidden bg-base">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-end mb-10 fade-up">
+                    <div>
+                        <h2 class="font-serif text-3xl md:text-5xl font-semibold text-ink mb-2">Наши работы</h2>
+                        <p class="text-ink-muted text-sm md:text-base">Больше фото в нашем Instagram</p>
+                    </div>
+                    <a href="#" class="hidden md:flex text-brand-500 font-medium hover:text-brand-600 transition-colors items-center gap-1">
+                        Перейти в профиль <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                
+                <div class="flex overflow-x-auto hide-scrollbar gap-4 md:grid md:grid-cols-4 md:gap-6 pb-4 fade-up delay-100">
+                    <img src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=600&q=80" alt="Работа" class="w-[70vw] md:w-full h-64 md:h-80 object-cover rounded-3xl shrink-0">
+                    <img src="https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=600&q=80" alt="Работа" class="w-[70vw] md:w-full h-64 md:h-80 object-cover rounded-3xl shrink-0">
+                    <img src="https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&w=600&q=80" alt="Работа" class="w-[70vw] md:w-full h-64 md:h-80 object-cover rounded-3xl shrink-0">
+                    <div class="w-[70vw] md:w-full h-64 md:h-80 bg-brand-50 rounded-3xl shrink-0 flex flex-col items-center justify-center text-brand-600 border border-brand-100 cursor-pointer hover:bg-brand-100 transition-colors">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="mb-2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span class="font-medium">Смотреть всё</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- СЛОЖНАЯ БОКОВАЯ ПАНЕЛЬ: ОФОРМЛЕНИЕ ЗАПИСИ (MULTI-STEP) -->
+    <div id="booking-sidebar" class="fixed inset-y-0 right-0 w-full md:w-[450px] bg-base shadow-[0_0_40px_rgba(0,0,0,0.1)] z-[60] transform translate-x-full transition-transform duration-500 ease-in-out flex flex-col">
+        
+        <!-- Шапка корзины -->
+        <div class="px-6 py-5 flex items-center justify-between border-b border-black/5 bg-white shrink-0">
+            <div class="flex items-center gap-3">
+                <button id="btn-back" onclick="prevStep()" class="hidden w-8 h-8 flex items-center justify-center rounded-full bg-base text-ink-muted hover:text-ink transition">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+                </button>
+                <div>
+                    <h2 id="step-title" class="font-serif text-2xl font-semibold text-ink">Ваша запись</h2>
+                    <p id="step-indicator" class="text-xs text-brand-500 font-medium">Шаг 1 из 4: Услуги</p>
+                </div>
+            </div>
+            <button onclick="toggleSidebar()" class="w-10 h-10 flex items-center justify-center rounded-full bg-base text-ink-muted hover:text-ink transition">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        
+        <!-- Контент корзины (Динамический) -->
+        <div id="sidebar-content" class="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-4 relative">
+            <!-- Сюда подставляются шаги из JS -->
+        </div>
+
+        <!-- Подвал корзины -->
+        <div id="sidebar-footer" class="p-6 bg-white border-t border-black/5 shrink-0 pb-safe">
+            <div class="flex justify-between items-end mb-4">
+                <span class="text-sm text-ink-muted font-medium">Сумма заказа:</span>
+                <span id="cart-total" class="font-serif text-3xl font-bold text-ink">0 ₸</span>
+            </div>
+            <button id="next-btn" onclick="nextStep()" class="w-full py-4 bg-brand-500 text-white rounded-2xl font-medium tracking-wide shadow-[0_8px_20px_rgba(192,137,115,0.3)] hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                Продолжить
+            </button>
+        </div>
+    </div>
+    
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-[55] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- Плавающая кнопка чата -->
+    <button onclick="alert('Здесь открывается виджет WhatsApp/Telegram')" class="fixed z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-float transition-transform duration-300 hover:scale-105 active:scale-95 bg-white text-brand-500" style="bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)); right: max(1.5rem, env(safe-area-inset-right, 0px));">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
+    </button>
+
+    <!-- Футер -->
+    <footer class="bg-white border-t border-black/5 py-12 pb-safe">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-serif font-bold">S</div>
+                <span class="font-serif text-xl font-semibold text-ink">SalonFlow</span>
+            </div>
+            <p class="text-sm text-ink-muted">© 2026 SalonFlow. Все права защищены.</p>
+            <div class="flex gap-4">
+                <a href="#" class="w-10 h-10 rounded-full bg-base flex items-center justify-center text-ink-muted hover:text-brand-500 hover:bg-brand-50 transition-colors">
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm3.98-10.822a1.424 1.424 0 100 2.848 1.424 1.424 0 000-2.848z"/></svg>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Логика приложения (JS) -->
+    <script>
+        // Анимация при скролле
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
+
+        // Мобильное меню
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            if (menu.classList.contains('-translate-x-full')) {
+                menu.classList.remove('-translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                document.body.style.overflow = 'hidden';
+            } else {
+                menu.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Фильтры услуг
+        function filterServices(category) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-brand-500', 'text-white');
+                btn.classList.add('bg-base', 'text-ink-muted');
+            });
+            event.target.classList.add('active', 'bg-brand-500', 'text-white');
+            event.target.classList.remove('bg-base', 'text-ink-muted');
+
+            const cards = document.querySelectorAll('.service-card');
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'flex';
+                    card.classList.remove('active');
+                    setTimeout(() => card.classList.add('active'), 50);
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // === ЛОГИКА МНОГОШАГОВОЙ КОРЗИНЫ ===
+        let cart = [];
+        let total = 0;
+        let currentStep = 1;
+        
+        let bookingData = { masterId: null, date: null, time: null, name: '', phone: '' };
+
+        // Моковые данные
+        const masters = [
+            { id: 1, name: 'Кристина В.', role: 'Топ-мастер', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+            { id: 2, name: 'Елена С.', role: 'Стилист', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80' },
+            { id: 3, name: 'Алина М.', role: 'Бровист', img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=150&q=80' }
+        ];
+        const dates = [{ day: 'ВТ', num: '15' }, { day: 'СР', num: '16' }, { day: 'ЧТ', num: '17' }];
+        const times = ['10:00', '11:30', '14:00', '16:00', '18:30'];
+
+        const sidebar = document.getElementById('booking-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const contentArea = document.getElementById('sidebar-content');
+        const stepTitle = document.getElementById('step-title');
+        const stepIndicator = document.getElementById('step-indicator');
+        const btnBack = document.getElementById('btn-back');
+        const nextBtn = document.getElementById('next-btn');
+        const totalFooter = document.getElementById('sidebar-footer');
+
+        function toggleSidebar() {
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                document.body.style.overflow = 'hidden';
+                if(currentStep === 1) renderStep1(); 
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function addToCart(name, price) {
+            cart.push({ name, price });
+            total += price;
+            
+            // Обновляем бейдж
+            const badge = document.getElementById('cart-badge');
+            badge.textContent = cart.length;
+            badge.classList.remove('hidden');
+            
+            document.getElementById('cart-total').textContent = total.toLocaleString('ru-RU') + ' ₸';
+            
+            // Визуальный отклик на кнопке услуги
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"></path></svg>`;
+            btn.classList.add('bg-green-500', 'text-white');
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('bg-green-500', 'text-white');
+            }, 1000);
+
+            // Если это первая услуга — открываем корзину, чтобы показать, куда она упала (Хороший паттерн продаж)
+            if (cart.length === 1 && sidebar.classList.contains('translate-x-full')) {
+                toggleSidebar();
+            } else if (!sidebar.classList.contains('translate-x-full') && currentStep === 1) {
+                renderStep1(); // Обновляем вид корзины, если она открыта
+            }
+        }
+
+        function removeFromCart(index) {
+            total -= cart[index].price;
+            cart.splice(index, 1);
+            document.getElementById('cart-total').textContent = total.toLocaleString('ru-RU') + ' ₸';
+            
+            const badge = document.getElementById('cart-badge');
+            if (cart.length === 0) badge.classList.add('hidden');
+            else badge.textContent = cart.length;
+            
+            renderStep1();
+        }
+
+        function updateHeader(title, stepText, showBack) {
+            stepTitle.textContent = title;
+            stepIndicator.textContent = stepText;
+            if (showBack) btnBack.classList.remove('hidden');
+            else btnBack.classList.add('hidden');
+        }
+
+        function nextStep() {
+            if(currentStep === 1 && cart.length > 0) { currentStep = 2; renderStep2(); }
+            else if(currentStep === 2 && bookingData.masterId) { currentStep = 3; renderStep3(); }
+            else if(currentStep === 3 && bookingData.date && bookingData.time) { currentStep = 4; renderStep4(); }
+            else if(currentStep === 4) submitBooking();
+        }
+
+        function prevStep() {
+            if(currentStep === 2) { currentStep = 1; renderStep1(); }
+            else if(currentStep === 3) { currentStep = 2; renderStep2(); }
+            else if(currentStep === 4) { currentStep = 3; renderStep3(); }
+        }
+
+        // --- Рендер Шагов ---
+
+        // Шаг 1: Корзина
+        function renderStep1() {
+            updateHeader('Ваша запись', 'Шаг 1 из 4: Услуги', false);
+            totalFooter.classList.remove('hidden');
+            nextBtn.textContent = 'Выбрать мастера';
+            
+            if (cart.length === 0) {
+                contentArea.innerHTML = `
+                    <div class="flex-1 flex flex-col items-center justify-center text-ink-light h-full">
+                        <div class="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mb-4">
+                            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" class="text-brand-300"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path></svg>
+                        </div>
+                        <p class="font-medium text-ink">Корзина пуста</p>
+                        <p class="text-sm mt-1">Добавьте услуги для записи</p>
+                    </div>`;
+                nextBtn.disabled = true;
+                return;
+            }
+
+            nextBtn.disabled = false;
+            let html = '';
+            cart.forEach((item, index) => {
+                html += `
+                    <div class="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-brand-50">
+                        <div>
+                            <h4 class="font-serif text-xl font-semibold text-ink mb-1">${item.name}</h4>
+                            <p class="text-sm font-bold text-brand-500">${item.price.toLocaleString('ru-RU')} ₸</p>
+                        </div>
+                        <button onclick="removeFromCart(${index})" class="w-8 h-8 flex items-center justify-center rounded-full bg-base text-ink-muted hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>`;
+            });
+            contentArea.innerHTML = html;
+        }
+
+        // Шаг 2: Мастера
+        function renderStep2() {
+            updateHeader('Специалист', 'Шаг 2 из 4: Мастер', true);
+            nextBtn.textContent = 'Выбрать время';
+            nextBtn.disabled = !bookingData.masterId;
+            
+            let html = '<div class="flex flex-col gap-3">';
+            masters.forEach(m => {
+                const isChecked = bookingData.masterId === m.id ? 'checked' : '';
+                html += `
+                    <label class="custom-radio cursor-pointer group">
+                        <input type="radio" name="master" value="${m.id}" class="hidden" onchange="selectMaster(${m.id})" ${isChecked}>
+                        <div class="flex items-center gap-4 p-4 bg-white rounded-2xl border border-brand-50 transition-all hover:border-brand-300 shadow-sm">
+                            <img src="${m.img}" class="w-14 h-14 rounded-full object-cover">
+                            <div>
+                                <h4 class="font-serif text-xl font-semibold text-ink leading-tight">${m.name}</h4>
+                                <p class="text-sm text-ink-muted">${m.role}</p>
+                            </div>
+                            <div class="ml-auto w-5 h-5 rounded-full border-2 border-brand-200 group-hover:border-brand-400 flex items-center justify-center">
+                                <div class="w-2.5 h-2.5 rounded-full bg-brand-500 scale-0 transition-transform ${isChecked ? 'scale-100' : ''}"></div>
+                            </div>
+                        </div>
+                    </label>`;
+            });
+            html += '</div>';
+            contentArea.innerHTML = html;
+        }
+
+        function selectMaster(id) {
+            bookingData.masterId = id;
+            nextBtn.disabled = false;
+            renderStep2(); // перерисовка для галочки
+        }
+
+        // Шаг 3: Дата и Время
+        function renderStep3() {
+            updateHeader('Дата и время', 'Шаг 3 из 4: Календарь', true);
+            checkDateTimeValid();
+            nextBtn.textContent = 'Оставить контакты';
+
+            let html = `
+                <div class="mb-6">
+                    <p class="text-sm font-medium text-ink mb-3">Октябрь</p>
+                    <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">`;
+            
+            dates.forEach(d => {
+                const isChecked = bookingData.date === d.num ? 'checked' : '';
+                html += `
+                    <label class="custom-radio cursor-pointer shrink-0">
+                        <input type="radio" name="date" value="${d.num}" class="hidden" onchange="selectDate('${d.num}')" ${isChecked}>
+                        <div class="w-16 h-20 rounded-2xl border border-brand-50 bg-white flex flex-col items-center justify-center transition-all shadow-sm">
+                            <span class="text-xs text-ink-muted font-medium mb-1">${d.day}</span>
+                            <span class="font-serif text-2xl font-bold text-ink">${d.num}</span>
+                        </div>
+                    </label>`;
+            });
+
+            html += `</div></div><div><p class="text-sm font-medium text-ink mb-3">Доступное время</p><div class="grid grid-cols-3 gap-2">`;
+
+            times.forEach(t => {
+                const isChecked = bookingData.time === t ? 'checked' : '';
+                html += `
+                    <label class="custom-radio cursor-pointer">
+                        <input type="radio" name="time" value="${t}" class="hidden" onchange="selectTime('${t}')" ${isChecked}>
+                        <div class="py-3 rounded-xl border border-brand-50 bg-white text-center text-sm font-medium text-ink transition-all shadow-sm">
+                            ${t}
+                        </div>
+                    </label>`;
+            });
+
+            html += `</div></div>`;
+            contentArea.innerHTML = html;
+        }
+
+        function selectDate(d) { bookingData.date = d; checkDateTimeValid(); renderStep3(); }
+        function selectTime(t) { bookingData.time = t; checkDateTimeValid(); renderStep3(); }
+        function checkDateTimeValid() { nextBtn.disabled = !(bookingData.date && bookingData.time); }
+
+        // Шаг 4: Контакты (Финал)
+        function renderStep4() {
+            updateHeader('Ваши данные', 'Шаг 4 из 4: Финал', true);
+            nextBtn.textContent = 'Подтвердить запись';
+            
+            contentArea.innerHTML = `
+                <div class="flex flex-col gap-4">
+                    <div class="p-4 bg-brand-50 rounded-2xl mb-2">
+                        <p class="text-sm text-ink-muted mb-1">Вы выбрали: <span class="font-medium text-ink">${cart.length} услуг(и)</span></p>
+                        <p class="text-sm text-ink-muted mb-1">Время: <span class="font-medium text-ink">${bookingData.date} октября, ${bookingData.time}</span></p>
+                        <p class="font-bold text-brand-600 mt-2">Итого: ${total.toLocaleString('ru-RU')} ₸</p>
+                    </div>
+
+                    <div>
+                        <input type="text" id="b-name" value="${bookingData.name}" oninput="updateForm()" class="w-full bg-white border border-brand-100 px-4 py-4 rounded-2xl text-ink focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all shadow-sm placeholder:text-ink-light" placeholder="Ваше имя">
+                    </div>
+                    <div>
+                        <input type="tel" id="b-phone" value="${bookingData.phone}" oninput="updateForm()" class="w-full bg-white border border-brand-100 px-4 py-4 rounded-2xl text-ink focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all shadow-sm placeholder:text-ink-light" placeholder="+7 (___) ___-__-__">
+                    </div>
+                    <p class="text-xs text-ink-muted mt-2 text-center">Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности.</p>
+                </div>
+            `;
+            checkFormValid();
+        }
+
+        function updateForm() {
+            bookingData.name = document.getElementById('b-name').value;
+            bookingData.phone = document.getElementById('b-phone').value;
+            checkFormValid();
+        }
+
+        function checkFormValid() {
+            nextBtn.disabled = !(bookingData.name.trim().length > 1 && bookingData.phone.trim().length > 5);
+        }
+
+        // Отправка (Успех)
+        function submitBooking() {
+            nextBtn.innerHTML = '<svg class="w-6 h-6 mx-auto animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+            
+            setTimeout(() => {
+                totalFooter.classList.add('hidden');
+                updateHeader('Готово!', 'Ждем вас', false);
+                
+                contentArea.innerHTML = `
+                    <div class="flex-1 flex flex-col items-center justify-center text-center h-full pb-10">
+                        <div class="w-20 h-20 rounded-full bg-green-100 text-green-500 flex items-center justify-center mb-6 shadow-sm">
+                            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"></path></svg>
+                        </div>
+                        <h2 class="font-serif text-3xl font-semibold text-ink mb-3">${bookingData.name}, спасибо!</h2>
+                        <p class="text-ink-muted text-sm leading-relaxed max-w-[250px] mx-auto">
+                            Ваша запись на <b>${bookingData.date} октября в ${bookingData.time}</b> успешно оформлена. Мы отправили детали в WhatsApp.
+                        </p>
+                        <button onclick="toggleSidebar(); resetBooking();" class="mt-8 px-6 py-3 bg-base text-ink font-medium rounded-full hover:bg-brand-50 transition-colors border border-brand-100">Закрыть</button>
+                    </div>
+                `;
+            }, 1200);
+        }
+
+        function resetBooking() {
+            cart = [];
+            total = 0;
+            currentStep = 1;
+            bookingData = { masterId: null, date: null, time: null, name: '', phone: '' };
+            document.getElementById('cart-badge').classList.add('hidden');
+            document.getElementById('cart-total').textContent = '0 ₸';
+        }
+    </script>
+</body>
+</html>

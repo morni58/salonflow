@@ -1,38 +1,38 @@
 @import "tailwindcss";
 
-/* Тема как в pox/pokaz.html — терракота, Montserrat + Cormorant */
+/* Тема как в pox/popola.html — терракота, Inter + Cormorant */
 @theme {
   --font-serif: "Cormorant Garamond", "Cormorant", ui-serif, Georgia, serif;
-  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --color-brand-50: #fbf8f6;
-  --color-brand-100: #f4ece7;
-  --color-brand-200: #ebdcd3;
-  --color-brand-300: #dfc6b9;
-  --color-brand-400: #d0a996;
-  --color-brand-500: var(--tenant-primary, #c39077);
-  --color-brand-600: var(--tenant-primary-dark, #b47b60);
-  --color-brand-700: #96634e;
-  --color-brand-800: #7c5342;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-50: #fcf9f8;
+  --color-brand-100: #f7f1ee;
+  --color-brand-200: #eee0d9;
+  --color-brand-300: #e0c6ba;
+  --color-brand-400: #d0a796;
+  --color-brand-500: var(--tenant-primary, #c08973);
+  --color-brand-600: var(--tenant-primary-dark, #b2725b);
+  --color-brand-700: #955d4b;
+  --color-brand-800: #7c4f41;
   --color-brand-900: #654538;
-  --color-base: var(--tenant-bg, #faf8f5);
+  --color-base: var(--tenant-bg, #faf9f7);
   --color-surface: #ffffff;
-  /* ink — как в pokaz tailwind.config */
-  --color-ink: #36312d;
-  --color-ink-light: #7a726c;
-  --color-ink-dark: #1c1917;
-  --shadow-soft: 0 4px 20px -2px rgba(54, 49, 45, 0.05);
-  --shadow-float: 0 12px 30px -4px rgba(54, 49, 45, 0.08);
+  --color-ink: #36312f;
+  --color-ink-muted: #807773;
+  --color-ink-light: #b3aaa5;
+  --color-ink-dark: #36312f;
+  --shadow-soft: 0 8px 30px rgba(54, 49, 47, 0.04);
+  --shadow-float: 0 12px 40px rgba(54, 49, 47, 0.08);
 }
 
 :root {
-  --tenant-primary: #c39077;
-  --tenant-primary-dark: #b47b60;
-  --tenant-bg: #faf8f5;
-  --tenant-text: #36312d;
-  --color-primary: #c39077;
-  --color-accent: #dfc6b9;
-  --color-bg: #faf8f5;
-  --color-text: #36312d;
+  --tenant-primary: #c08973;
+  --tenant-primary-dark: #b2725b;
+  --tenant-bg: #faf9f7;
+  --tenant-text: #36312f;
+  --color-primary: #c08973;
+  --color-accent: #e0c6ba;
+  --color-bg: #faf9f7;
+  --color-text: #36312f;
   --color-primary-foreground: #ffffff;
   --color-on-solid: #ffffff;
   --color-primary-solid: #96634e;
@@ -78,7 +78,7 @@ html {
 body {
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
   background: var(--color-bg);
   color: var(--color-text);
   min-height: 100vh;
@@ -160,12 +160,12 @@ h2.font-heading {
   }
 }
 
-/* Как в pokaz.html */
+/* Как в popola.html */
 .glass-nav {
-  background: rgba(250, 248, 245, 0.85);
+  background: rgba(250, 249, 247, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(54, 49, 45, 0.05);
+  border-bottom: 1px solid rgba(54, 49, 47, 0.05);
 }
 
 .service-card-poca {
@@ -223,7 +223,7 @@ input:focus {
 button:focus-visible,
 a:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-bg, #faf8f5), 0 0 0 4px color-mix(in srgb, var(--tenant-primary, #c39077) 55%, transparent);
+  box-shadow: 0 0 0 2px var(--color-bg, #faf9f7), 0 0 0 4px color-mix(in srgb, var(--tenant-primary, #c08973) 55%, transparent);
 }
 
 /* Как в pokaz: класс fade-up для совместимости */

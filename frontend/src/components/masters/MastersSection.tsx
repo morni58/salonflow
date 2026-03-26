@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { UserRound, Sparkles } from "lucide-react";
+import { UserRound } from "lucide-react";
 import type { MasterPublic } from "../../types";
 import { fetchMasters } from "../../api/client";
-import { cn } from "../../utils";
 
 const STORAGE_KEY = "salonflow_prefill_master";
 
@@ -35,73 +34,50 @@ export function MastersSection({ tenantId }: Props) {
   }
 
   return (
-    <section id="masters" data-anchor-section className="scroll-mt-24 py-12 md:py-16">
-      <div className="mb-10 text-center md:mb-12">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-1.5 text-[10px] font-semibold tracking-widest text-brand-600 uppercase">
-          <Sparkles className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-          Команда
-        </div>
-        <h2 className="font-serif text-3xl font-semibold tracking-tight text-balance text-ink-dark md:text-4xl">
-          Наши мастера
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-ink-light md:text-base">
-          Выберите специалиста при записи — у каждого свой график и стиль.
+    <section id="masters" data-anchor-section className="scroll-mt-24 rounded-[2rem] bg-brand-50 px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+      <div className="mb-12 text-center">
+        <h2 className="font-serif mb-4 text-3xl font-semibold text-ink md:text-5xl">Наши мастера</h2>
+        <p className="mx-auto max-w-xl text-sm text-ink-muted md:text-base">
+          Команда профессионалов, искренне влюблённых в своё дело и вашу красоту.
         </p>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-        {masters.map((m, idx) => (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {masters.map((m) => (
           <article
             key={m.id}
-            className={cn(
-              "group flex flex-col overflow-hidden rounded-[2rem] border border-transparent bg-surface shadow-soft ring-1 ring-black/[0.04] transition-all duration-500 md:rounded-[2.25rem]",
-              "hover:-translate-y-1 hover:shadow-soft-md"
-            )}
-            style={{ animationDelay: `${idx * 60}ms` }}
+            className="master-card flex flex-col items-center rounded-[2rem] border border-brand-100 bg-white p-6 text-center shadow-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-float"
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden bg-brand-50">
+            <div className="relative mb-5 h-28 w-28 shrink-0 overflow-hidden rounded-full shadow-inner ring-1 ring-brand-100">
               {m.photo_url ? (
-                <img
-                  src={m.photo_url}
-                  alt=""
-                  className="h-full w-full object-cover object-center transition-transform duration-700 md:group-hover:scale-[1.04]"
-                  loading="lazy"
-                />
+                <img src={m.photo_url} alt="" className="h-full w-full object-cover object-center" loading="lazy" />
               ) : (
                 <div
-                  className="flex h-full w-full flex-col items-center justify-center gap-2"
+                  className="flex h-full w-full items-center justify-center"
                   style={{ background: "var(--color-placeholder-surface)" }}
                 >
-                  <UserRound className="h-16 w-16 opacity-30" style={{ color: "var(--color-primary)" }} aria-hidden />
+                  <UserRound className="h-14 w-14 opacity-30" style={{ color: "var(--color-primary)" }} aria-hidden />
                 </div>
               )}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-80 md:opacity-100" />
             </div>
-            <div className="flex flex-1 flex-col p-6 md:p-7">
-              {m.title ? (
-                <p className="mb-1 text-[10px] font-semibold tracking-[0.2em] text-brand-500 uppercase">{m.title}</p>
-              ) : null}
-              <h3 className="font-serif text-xl font-semibold text-ink-dark md:text-2xl">{m.display_name}</h3>
-              {m.bio ? (
-                <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-ink-light md:line-clamp-5">{m.bio}</p>
-              ) : (
-                <p className="mt-3 text-sm italic text-ink-light/70">Описание скоро появится.</p>
-              )}
-              <button
-                type="button"
-                onClick={() => scrollToCatalog(m.id)}
-                className="interactive-raise mt-6 w-full rounded-full py-3.5 text-sm font-medium transition-colors"
-                style={{
-                  background: "var(--color-primary)",
-                  color: "var(--color-primary-foreground)",
-                }}
-              >
-                Записаться к мастеру
-              </button>
-            </div>
+            <h3 className="font-serif text-2xl font-semibold text-ink">{m.display_name}</h3>
+            {m.title ? <p className="mb-3 text-sm font-medium text-brand-500">{m.title}</p> : null}
+            {m.bio ? (
+              <p className="mb-6 line-clamp-4 text-sm leading-relaxed text-ink-muted">{m.bio}</p>
+            ) : (
+              <p className="mb-6 text-sm italic text-ink-muted/80">Описание скоро появится.</p>
+            )}
+            <button
+              type="button"
+              onClick={() => scrollToCatalog(m.id)}
+              className="mt-auto w-full rounded-full border border-brand-200 px-6 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-brand-50"
+            >
+              К специалисту
+            </button>
           </article>
         ))}
       </div>
     </section>
   );
 }
+

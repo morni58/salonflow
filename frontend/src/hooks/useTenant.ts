@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Tenant } from "../types";
 import { fetchTenant } from "../api/client";
+import { POPOLA, SITE_THEME_CUSTOM } from "../theme/popolaTheme";
 import { siteText } from "../utils/siteContent";
 
 function getSubdomain(): string {
@@ -19,13 +20,8 @@ function getSubdomain(): string {
   return "demo";
 }
 
-const POKAZ = {
-  bg: "#faf8f5",
-  text: "#36312d",
-  primary: "#c39077",
-  primaryDark: "#b47b60",
-  accent: "#dfc6b9",
-} as const;
+/** Палитра по умолчанию (popola) */
+const POKAZ = POPOLA;
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = hex.replace(/^#/, "").trim();
@@ -85,13 +81,21 @@ function pickColorCss(raw: unknown, fallback: string): string {
   return fallback;
 }
 
+/** Свои цвета из tenants.color_* — только если в site_content задано theme: "custom". Иначе всегда popola. */
+export function usesCustomBrandColors(tenant: Tenant): boolean {
+  const sc = tenant.site_content;
+  if (!sc || typeof sc !== "object") return false;
+  return (sc as Record<string, unknown>).theme === SITE_THEME_CUSTOM;
+}
+
 function applyTheme(tenant: Tenant) {
   const root = document.documentElement;
 
-  const primary = pickColorCss(tenant.color_primary, POKAZ.primary);
-  const accent = pickColorCss(tenant.color_accent, POKAZ.accent);
-  const bg = pickColorCss(tenant.color_bg, POKAZ.bg);
-  const text = pickColorCss(tenant.color_text, POKAZ.text);
+  const custom = usesCustomBrandColors(tenant);
+  const primary = custom ? pickColorCss(tenant.color_primary, POKAZ.primary) : POKAZ.primary;
+  const accent = custom ? pickColorCss(tenant.color_accent, POKAZ.accent) : POKAZ.accent;
+  const bg = custom ? pickColorCss(tenant.color_bg, POKAZ.bg) : POKAZ.bg;
+  const text = custom ? pickColorCss(tenant.color_text, POKAZ.text) : POKAZ.text;
 
   const pRgb = parseCssColor(primary) ?? hexToRgb(POKAZ.primary)!;
   const aRgb = parseCssColor(accent) ?? hexToRgb(POKAZ.accent)!;
@@ -132,8 +136,8 @@ function applyTheme(tenant: Tenant) {
   root.style.setProperty("--color-price-bg", rgbaFromRgb(aRgb, 0.15));
   root.style.setProperty("--color-price-border", rgbaFromRgb(aRgb, 0.35));
 
-  root.style.setProperty("--shadow-soft", "0 4px 20px -2px rgba(54, 49, 45, 0.05)");
-  root.style.setProperty("--shadow-soft-md", "0 12px 30px -4px rgba(54, 49, 45, 0.08)");
+  root.style.setProperty("--shadow-soft", "0 8px 30px rgba(54, 49, 47, 0.04)");
+  root.style.setProperty("--shadow-soft-md", "0 12px 40px rgba(54, 49, 47, 0.08)");
 
   document.title = `${tenant.name} — Онлайн-запись`;
 
