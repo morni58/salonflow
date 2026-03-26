@@ -52,7 +52,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const dates = Array.from({ length: 14 }, (_, i) => {
+  const dates = Array.from({ length: 60 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
     const y = d.getFullYear();
@@ -70,10 +70,14 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           const pre = sessionStorage.getItem(PREFILL_MASTER_KEY);
           if (pre && res.masters.some((x) => x.id === pre)) {
             setSelectedMasterId(pre);
+          } else if (res.requires_master && res.masters.length > 0) {
+            setSelectedMasterId(res.masters[0].id);
           }
           sessionStorage.removeItem(PREFILL_MASTER_KEY);
         } catch {
-          /* ignore */
+          if (res.requires_master && res.masters.length > 0) {
+            setSelectedMasterId(res.masters[0].id);
+          }
         }
       })
       .catch(() => {})
@@ -88,7 +92,12 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
     }
     setSlotsLoading(true);
     setSelectedTime("");
-    fetchSlots(tenantId, selectedDate, requiresMaster ? selectedMasterId : null)
+    fetchSlots(
+      tenantId,
+      selectedDate,
+      requiresMaster ? selectedMasterId : null,
+      totalDuration > 0 ? totalDuration : null
+    )
       .then((res) => {
         setSlots(res.slots ?? []);
         if (res.alternate_master_id && res.alternate_master_name) {
@@ -97,12 +106,14 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           setSlotAlternate(null);
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         setSlots([]);
         setSlotAlternate(null);
+        const msg = err instanceof Error ? err.message : "Не удалось загрузить слоты";
+        toast.error(msg);
       })
       .finally(() => setSlotsLoading(false));
-  }, [selectedDate, tenantId, selectedMasterId, requiresMaster]);
+  }, [selectedDate, tenantId, selectedMasterId, requiresMaster, totalDuration]);
 
   const masterOk = !requiresMaster || !!selectedMasterId;
   const canSubmit =
@@ -113,20 +124,22 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
     setSubmitting(true);
 
     try {
+      const preferredDatetime = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
       await createBooking({
         tenant_id: tenantId,
         name: name.trim(),
         contact_type: contactType,
         contact_value: contactValue.trim(),
         service_ids: items.map((i) => i.service.id),
-        preferred_datetime: `${selectedDate}T${selectedTime}:00`,
+        preferred_datetime: preferredDatetime,
         master_id: requiresMaster ? selectedMasterId : undefined,
       });
       onTrackCheckout();
       setSuccess(true);
       clearCart();
-    } catch {
-      toast.error("Ошибка при отправке. Попробуйте ещё раз.");
+    } catch (e: unknown) {
+      const detail = e instanceof Error ? e.message : "";
+      toast.error(detail ? `Не удалось отправить: ${detail}` : "Ошибка при отправке. Попробуйте ещё раз.");
     } finally {
       setSubmitting(false);
     }
@@ -296,6 +309,11 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <Calendar size={16} /> Дата
         </label>
+        {requiresMaster && !selectedMasterId && masters.length > 0 && (
+          <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+            Сначала выберите мастера выше — тогда откроются даты и время.
+          </p>
+        )}
         <div className="flex gap-0 overflow-x-auto rounded-lg border border-brand-200 bg-brand-50/90 p-1 pb-2 scrollbar-none">
           {dates.map((d) => {
             const dt = new Date(d + "T00:00:00");
@@ -346,7 +364,8 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           ) : slots.length === 0 ? (
             <div className="space-y-3">
               <p className="text-sm opacity-50" style={{ color: "var(--color-text)" }}>
-                Нет свободных слотов у выбранного мастера на эту дату.
+                Нет окна на эту дату: график закрыт, день нерабочий или не хватает времени под выбранные услуги (
+                {formatDuration(totalDuration)}). Попробуйте другую дату или мастера.
               </p>
               {slotAlternate && (
                 <button

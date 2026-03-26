@@ -57,10 +57,14 @@ export async function fetchMasters(tenantId: string): Promise<MastersResponse> {
 export async function fetchSlots(
   tenantId: string,
   date: string,
-  masterId?: string | null
+  masterId?: string | null,
+  durationMinutes?: number | null
 ): Promise<SlotsResponse> {
   let path = `/slots?tenant_id=${encodeURIComponent(tenantId)}&date=${encodeURIComponent(date)}`;
   if (masterId) path += `&master_id=${encodeURIComponent(masterId)}`;
+  if (durationMinutes != null && durationMinutes > 0) {
+    path += `&duration_minutes=${encodeURIComponent(String(durationMinutes))}`;
+  }
   return request<SlotsResponse>(path);
 }
 
