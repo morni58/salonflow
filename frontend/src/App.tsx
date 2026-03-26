@@ -6,6 +6,7 @@ import { Header } from "./components/layout/Header";
 import { SiteFooter } from "./components/layout/SiteFooter";
 import { HeroSection } from "./components/layout/HeroSection";
 import { AdvantagesSection } from "./components/layout/AdvantagesSection";
+import { MastersSection } from "./components/masters/MastersSection";
 import { CatalogSection } from "./components/catalog/CatalogSection";
 import { CartDrawer } from "./components/cart/CartDrawer";
 import { CheckoutForm } from "./components/checkout/CheckoutForm";
@@ -14,6 +15,7 @@ import { ReviewsSection } from "./components/reviews/ReviewsSection";
 import { AnimateIn } from "./components/common/AnimateIn";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { ToastProvider } from "./components/common/Toast";
+import { siteText } from "./utils/siteContent";
 
 type View = "home" | "checkout";
 
@@ -85,23 +87,45 @@ function AppInner() {
           <>
             <HeroSection tenant={tenant} />
 
-            <AdvantagesSection />
+            <AdvantagesSection tenant={tenant} />
 
             <AnimateIn className="py-10 sm:py-16">
               <ErrorBoundary>
-                <CatalogSection tenantId={tenant.id} />
+                <MastersSection tenantId={tenant.id} />
+              </ErrorBoundary>
+            </AnimateIn>
+
+            <AnimateIn className="py-10 sm:py-16">
+              <ErrorBoundary>
+                <CatalogSection
+                  tenantId={tenant.id}
+                  title={siteText(tenant, "section_catalog", "Наши Услуги")}
+                  subtitle={siteText(
+                    tenant,
+                    "section_catalog_subtitle",
+                    "Выберите необходимые процедуры и забронируйте удобное для вас время онлайн.",
+                  )}
+                />
               </ErrorBoundary>
             </AnimateIn>
 
             <AnimateIn className="py-10 sm:py-16" delay={100}>
               <ErrorBoundary>
-                <PortfolioSection tenantId={tenant.id} />
+                <PortfolioSection
+                  tenantId={tenant.id}
+                  title={siteText(tenant, "section_portfolio", "Портфолио")}
+                  subtitle={siteText(
+                    tenant,
+                    "portfolio_subtitle",
+                    "Вдохновляйтесь нашими работами. Идеальный результат — наша визитная карточка.",
+                  )}
+                />
               </ErrorBoundary>
             </AnimateIn>
 
             <AnimateIn className="py-16" delay={200}>
               <ErrorBoundary>
-                <ReviewsSection tenantId={tenant.id} />
+                <ReviewsSection tenantId={tenant.id} title={siteText(tenant, "section_reviews", "Отзывы")} />
               </ErrorBoundary>
             </AnimateIn>
           </>

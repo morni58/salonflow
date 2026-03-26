@@ -6,12 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from aiogram import Bot
 from aiogram.types import Update
 
+from app.bot.command_list import BOT_COMMANDS
+
 from app.core.async_utils import run_sync
 from app.core.config import get_settings
 from app.core.scheduler import setup_scheduler
 from app.core.rate_limit import setup_rate_limiting
 from app.bot.setup import create_dispatcher
-from app.api.routes import tenant, catalog, slots, booking, analytics, content
+from app.api.routes import tenant, catalog, slots, booking, analytics, content, masters
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,6 +57,10 @@ async def _register_tenant_bots():
             pass
 
         bot = Bot(token=token)
+        try:
+            await bot.set_my_commands(BOT_COMMANDS)
+        except Exception as e:
+            logger.warning("set_my_commands failed for %s: %s", t.get("subdomain"), e)
         _webhook_bots[t["id"]] = bot
         logger.info(f"Registered bot for tenant {t['subdomain']}")
 
@@ -124,6 +130,7 @@ setup_rate_limiting(app)
 
 app.include_router(tenant.router, prefix="/api", tags=["Tenant"])
 app.include_router(catalog.router, prefix="/api", tags=["Catalog"])
+app.include_router(masters.router, prefix="/api", tags=["Masters"])
 app.include_router(slots.router, prefix="/api", tags=["Slots"])
 app.include_router(booking.router, prefix="/api", tags=["Booking"])
 app.include_router(analytics.router, prefix="/api", tags=["Analytics"])

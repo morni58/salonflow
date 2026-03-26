@@ -7,6 +7,7 @@ import type {
   PortfolioCategory,
   ReviewImage,
   AnalyticsEvent,
+  MastersResponse,
 } from "../types";
 
 // В dev ходим напрямую на FastAPI — так надёжнее на Windows, чем Vite proxy.
@@ -45,10 +46,22 @@ export async function fetchCatalog(tenantId: string): Promise<CatalogResponse> {
   return request<CatalogResponse>(`/catalog?tenant_id=${tenantId}`);
 }
 
+// ── Masters ─────────────────────────────
+
+export async function fetchMasters(tenantId: string): Promise<MastersResponse> {
+  return request<MastersResponse>(`/masters?tenant_id=${encodeURIComponent(tenantId)}`);
+}
+
 // ── Slots ───────────────────────────────
 
-export async function fetchSlots(tenantId: string, date: string): Promise<SlotsResponse> {
-  return request<SlotsResponse>(`/slots?tenant_id=${tenantId}&date=${date}`);
+export async function fetchSlots(
+  tenantId: string,
+  date: string,
+  masterId?: string | null
+): Promise<SlotsResponse> {
+  let path = `/slots?tenant_id=${encodeURIComponent(tenantId)}&date=${encodeURIComponent(date)}`;
+  if (masterId) path += `&master_id=${encodeURIComponent(masterId)}`;
+  return request<SlotsResponse>(path);
 }
 
 // ── Booking ─────────────────────────────

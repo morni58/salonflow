@@ -4,7 +4,17 @@ import { fetchCatalog } from "../../api/client";
 import { CategoryFilter } from "./CategoryFilter";
 import { ServiceCard } from "./ServiceCard";
 
-export function CatalogSection({ tenantId }: { tenantId: string }) {
+interface Props {
+  tenantId: string;
+  title?: string;
+  subtitle?: string;
+}
+
+export function CatalogSection({
+  tenantId,
+  title = "Наши Услуги",
+  subtitle = "Выберите необходимые процедуры и забронируйте удобное для вас время онлайн.",
+}: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [active, setActive] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +34,7 @@ export function CatalogSection({ tenantId }: { tenantId: string }) {
     return (
       <section id="catalog" data-anchor-section>
         <div className="mb-12 text-center">
-          <h2 className="font-serif mb-4 text-3xl font-semibold text-ink-dark md:text-4xl lg:text-5xl">Наши Услуги</h2>
+          <h2 className="font-serif mb-4 text-3xl font-semibold text-ink-dark md:text-4xl lg:text-5xl">{title}</h2>
           <p className="mx-auto max-w-2xl text-ink-light">Загрузка каталога…</p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
@@ -40,11 +50,9 @@ export function CatalogSection({ tenantId }: { tenantId: string }) {
     <section id="catalog" data-anchor-section className="py-16 md:py-24 lg:py-32">
       <div className="mb-8 text-center md:mb-12">
         <h2 className="font-serif mb-3 text-3xl font-semibold tracking-tight text-balance text-ink-dark md:mb-4 md:text-4xl lg:text-5xl">
-          Наши Услуги
+          {title}
         </h2>
-        <p className="mx-auto max-w-2xl px-2 text-sm leading-relaxed text-ink-light md:text-base">
-          Выберите необходимые процедуры и забронируйте удобное для вас время онлайн.
-        </p>
+        <p className="mx-auto max-w-2xl px-2 text-sm leading-relaxed text-ink-light md:text-base">{subtitle}</p>
       </div>
 
       <div className="mb-10 md:mb-12">

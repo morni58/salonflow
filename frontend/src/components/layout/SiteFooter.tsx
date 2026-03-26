@@ -1,5 +1,5 @@
 import type { Tenant } from "../../types";
-import { SITE_CONTACT } from "../../constants/siteContact";
+import { getFooterContact } from "../../utils/siteContent";
 
 function IconTelegram({ className }: { className?: string }) {
   return (
@@ -34,6 +34,7 @@ interface Props {
 
 export function SiteFooter({ tenant }: Props) {
   const initial = tenant.name.trim().charAt(0).toUpperCase() || "•";
+  const contact = getFooterContact(tenant);
 
   return (
     <footer
@@ -55,11 +56,14 @@ export function SiteFooter({ tenant }: Props) {
           <p className="max-w-md text-sm text-ink-light">
             © {new Date().getFullYear()} {tenant.name}. Все права защищены.
             <span className="text-ink-light/60"> · SalonFlow</span>
+            {contact.address ? (
+              <span className="mt-2 block text-ink-light/80">{contact.address}</span>
+            ) : null}
           </p>
 
           <div className="flex w-full max-w-md flex-col items-center gap-4 sm:max-w-none md:items-end">
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 md:justify-end">
-              {SITE_CONTACT.phones.map((p) => (
+              {contact.phones.map((p) => (
                 <a
                   key={p.href}
                   href={p.href}
@@ -71,7 +75,7 @@ export function SiteFooter({ tenant }: Props) {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 md:justify-end">
               <a
-                href={SITE_CONTACT.telegram}
+                href={contact.telegram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={socialBtn}
@@ -80,7 +84,7 @@ export function SiteFooter({ tenant }: Props) {
                 <IconTelegram className="h-4 w-4" />
               </a>
               <a
-                href={SITE_CONTACT.whatsapp}
+                href={contact.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={socialBtn}
@@ -89,7 +93,7 @@ export function SiteFooter({ tenant }: Props) {
                 <IconWhatsApp className="h-4 w-4" />
               </a>
               <a
-                href={SITE_CONTACT.instagram}
+                href={contact.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={socialBtn}

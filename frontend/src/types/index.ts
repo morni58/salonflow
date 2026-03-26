@@ -14,6 +14,13 @@ export interface Tenant {
   working_hours_end: string;
   slot_interval_minutes: number;
   buffer_minutes: number;
+  /** С бэкенда после миграции 002; иначе undefined */
+  working_days?: number[];
+  schedule_mode?: string;
+  every_n_days?: number;
+  every_n_days_anchor?: string | null;
+  site_content?: Record<string, unknown>;
+  contact_json?: Record<string, unknown>;
 }
 
 // ── Catalog ───────────────────────────────────
@@ -54,6 +61,20 @@ export interface SlotsResponse {
 
 export type ContactType = "telegram" | "whatsapp" | "instagram" | "phone";
 
+export interface MasterPublic {
+  id: string;
+  display_name: string;
+  title: string | null;
+  bio: string | null;
+  photo_url: string | null;
+  sort_order: number;
+}
+
+export interface MastersResponse {
+  masters: MasterPublic[];
+  requires_master: boolean;
+}
+
 export interface BookingCreate {
   tenant_id: string;
   name: string;
@@ -61,6 +82,7 @@ export interface BookingCreate {
   contact_value: string;
   service_ids: string[];
   preferred_datetime: string;
+  master_id?: string | null;
 }
 
 export interface BookingOut {

@@ -7,12 +7,15 @@ import {
   ArrowLeft,
   CheckCircle,
   MessageCircle,
+  UserRound,
 } from "lucide-react";
 import { toast } from "../common/Toast";
-import type { ContactType } from "../../types";
+import type { ContactType, MasterPublic } from "../../types";
 import { useCart } from "../../store/cartStore";
-import { fetchSlots, createBooking } from "../../api/client";
+import { fetchSlots, createBooking, fetchMasters } from "../../api/client";
 import { formatPrice, formatDuration, cn } from "../../utils";
+
+const PREFILL_MASTER_KEY = "salonflow_prefill_master";
 
 interface Props {
   tenantId: string;
@@ -34,6 +37,10 @@ const cardBorder = { borderColor: "transparent" };
 export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const { items, totalPrice, totalDuration, clearCart } = useCart();
 
+  const [masters, setMasters] = useState<MasterPublic[]>([]);
+  const [requiresMaster, setRequiresMaster] = useState(false);
+  const [selectedMasterId, setSelectedMasterId] = useState<string>("");
+
   const [name, setName] = useState("");
   const [contactType, setContactType] = useState<ContactType>("telegram");
   const [contactValue, setContactValue] = useState("");
@@ -44,7 +51,6 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  /** Локальная дата YYYY-MM-DD (без UTC-сдвига). Первый день — сегодня. */
   const dates = Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -55,17 +61,41 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   });
 
   useEffect(() => {
+    fetchMasters(tenantId)
+      .then((res) => {
+        setMasters(res.masters);
+        setRequiresMaster(res.requires_master);
+        try {
+          const pre = sessionStorage.getItem(PREFILL_MASTER_KEY);
+          if (pre && res.masters.some((x) => x.id === pre)) {
+            setSelectedMasterId(pre);
+          }
+          sessionStorage.removeItem(PREFILL_MASTER_KEY);
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {})
+      .finally(() => {});
+  }, [tenantId]);
+
+  useEffect(() => {
     if (!selectedDate) return;
+    if (requiresMaster && !selectedMasterId) {
+      setSlots([]);
+      return;
+    }
     setSlotsLoading(true);
     setSelectedTime("");
-    fetchSlots(tenantId, selectedDate)
+    fetchSlots(tenantId, selectedDate, requiresMaster ? selectedMasterId : null)
       .then((res) => setSlots(res.slots ?? []))
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
-  }, [selectedDate, tenantId]);
+  }, [selectedDate, tenantId, selectedMasterId, requiresMaster]);
 
+  const masterOk = !requiresMaster || !!selectedMasterId;
   const canSubmit =
-    name.trim() && contactValue.trim() && selectedDate && selectedTime;
+    masterOk && name.trim() && contactValue.trim() && selectedDate && selectedTime;
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
@@ -79,6 +109,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         contact_value: contactValue.trim(),
         service_ids: items.map((i) => i.service.id),
         preferred_datetime: `${selectedDate}T${selectedTime}:00`,
+        master_id: requiresMaster ? selectedMasterId : undefined,
       });
       onTrackCheckout();
       setSuccess(true);
@@ -142,6 +173,57 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           </span>
         </div>
       </div>
+
+      {requiresMaster && masters.length > 0 && (
+        <div className="mb-6">
+          <label className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
+            <UserRound size={16} /> Мастер
+          </label>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+            {masters.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setSelectedMasterId(m.id);
+                  setSelectedDate("");
+                  setSelectedTime("");
+                }}
+                className={cn(
+                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-3xl border border-transparent p-3 text-center shadow-soft transition-all sm:w-28",
+                  selectedMasterId === m.id ? "shadow-soft" : "bg-white hover:brightness-[0.995]"
+                )}
+                style={
+                  selectedMasterId === m.id
+                    ? {
+                        background: "var(--color-primary)",
+                        borderColor: "transparent",
+                        color: "var(--color-primary-foreground)",
+                      }
+                    : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
+                }
+              >
+                <div
+                  className="h-14 w-14 overflow-hidden rounded-2xl ring-1 ring-black/5"
+                  style={{ background: "var(--color-placeholder-surface)" }}
+                >
+                  {m.photo_url ? (
+                    <img src={m.photo_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <UserRound className="h-7 w-7 opacity-35" />
+                    </div>
+                  )}
+                </div>
+                <span className="line-clamp-2 text-xs font-medium leading-tight">{m.display_name}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs opacity-55" style={{ color: "var(--color-text)" }}>
+            Слоты показываются по графику выбранного мастера.
+          </p>
+        </div>
+      )}
 
       <div className="mb-5">
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
@@ -214,9 +296,11 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 key={d}
                 type="button"
                 onClick={() => setSelectedDate(d)}
+                disabled={requiresMaster && !selectedMasterId}
                 className={cn(
                   "flex shrink-0 flex-col items-center rounded-3xl border border-transparent px-4 py-4 shadow-soft transition-all",
-                  selectedDate === d ? "shadow-soft" : "bg-white hover:brightness-[0.995]"
+                  selectedDate === d ? "shadow-soft" : "bg-white hover:brightness-[0.995]",
+                  requiresMaster && !selectedMasterId ? "pointer-events-none opacity-40" : ""
                 )}
                 style={
                   selectedDate === d
@@ -237,7 +321,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         </div>
       </div>
 
-      {selectedDate && (
+      {selectedDate && masterOk && (
         <div className="mb-6">
           <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
             <Clock size={16} /> Время

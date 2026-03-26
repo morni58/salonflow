@@ -3,7 +3,12 @@ import { X, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import type { ReviewImage } from "../../types";
 import { fetchReviews } from "../../api/client";
 
-export function ReviewsSection({ tenantId }: { tenantId: string }) {
+interface Props {
+  tenantId: string;
+  title?: string;
+}
+
+export function ReviewsSection({ tenantId, title = "Отзывы" }: Props) {
   const [reviews, setReviews] = useState<ReviewImage[]>([]);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,7 +23,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
   if (loading) {
     return (
       <section id="reviews" data-anchor-section className="pt-2 md:pt-4">
-        <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">Отзывы</h2>
+        <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">{title}</h2>
         <div className="flex gap-3 overflow-hidden">
           {[1, 2, 3].map((i) => (
             <div
@@ -33,7 +38,7 @@ export function ReviewsSection({ tenantId }: { tenantId: string }) {
 
   return (
     <section id="reviews" data-anchor-section className="pt-2 md:pt-4">
-      <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">Отзывы</h2>
+      <h2 className="font-serif mb-6 text-3xl font-semibold tracking-tight text-balance text-ink-dark sm:text-4xl">{title}</h2>
 
       {reviews.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-brand-100 bg-surface px-6 py-14 text-center shadow-soft">

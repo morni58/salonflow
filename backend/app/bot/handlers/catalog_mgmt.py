@@ -1,4 +1,7 @@
+import asyncio
+import io
 import logging
+import uuid
 from datetime import datetime
 
 from aiogram import Router, F
@@ -19,6 +22,7 @@ class CatalogStates(StatesGroup):
     waiting_new_service_price = State()
     waiting_new_service_duration = State()
     waiting_edit_price = State()
+    waiting_service_photo = State()
 
 
 def _get_user_tenant_sync(telegram_user_id: int) -> str | None:
@@ -108,7 +112,43 @@ async def show_services(callback: CallbackQuery):
 
 def _fetch_service_sync(svc_id: str):
     sb = get_supabase()
-    return sb.table("services").select("name, price, is_active, category_id").eq("id", svc_id).limit(1).execute()
+    return (
+        sb.table("services")
+        .select("name, price, is_active, category_id, photo_url")
+        .eq("id", svc_id)
+        .limit(1)
+        .execute()
+    )
+
+
+def _service_photo_upload_sync(tenant_id: str, svc_id: str, raw: bytes) -> str:
+    from PIL import Image
+
+    sb = get_supabase()
+    bio = io.BytesIO(raw)
+    bio.seek(0)
+    img = Image.open(bio)
+    max_dim = 1200
+    if max(img.size) > max_dim:
+        ratio = max_dim / max(img.size)
+        img = img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.LANCZOS)
+
+    output = io.BytesIO()
+    img.save(output, format="WEBP", quality=85)
+    output.seek(0)
+    body = output.getvalue()
+
+    filename = f"{tenant_id}/{svc_id}_{uuid.uuid4().hex[:10]}.webp"
+    sb.storage.from_("service-photos").upload(
+        path=filename,
+        file=body,
+        file_options={"content-type": "image/webp"},
+    )
+    public_url = sb.storage.from_("service-photos").get_public_url(filename)
+    if isinstance(public_url, dict):
+        public_url = public_url.get("publicUrl") or str(public_url)
+    sb.table("services").update({"photo_url": public_url}).eq("id", svc_id).execute()
+    return public_url
 
 
 # ── Edit service ──────────────────────────────
@@ -125,9 +165,11 @@ async def edit_service_menu(callback: CallbackQuery):
     s = svc.data[0]
     price = s["price"] // 100
     active_text = "Активна" if s["is_active"] else "Скрыта"
+    photo = s.get("photo_url") or "нет"
 
     buttons = [
         [InlineKeyboardButton(text="💰 Изменить цену", callback_data=f"svc:price:{svc_id}")],
+        [InlineKeyboardButton(text="📷 Загрузить фото услуги", callback_data=f"svc:photo:{svc_id}")],
         [InlineKeyboardButton(
             text="🚫 Скрыть" if s["is_active"] else "✅ Показать",
             callback_data=f"svc:toggle:{svc_id}",
@@ -138,11 +180,60 @@ async def edit_service_menu(callback: CallbackQuery):
 
     await callback.message.edit_text(
         f"✏️ <b>{s['name']}</b>\n"
-        f"Цена: {price:,}₸ | Статус: {active_text}\n\n"
+        f"Цена: {price:,}₸ | Статус: {active_text}\n"
+        f"Фото: {photo}\n\n"
         f"Что изменить?",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
+
+
+@router.callback_query(F.data.startswith("svc:photo:"))
+async def start_service_photo(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    svc_id = callback.data.split(":")[2]
+    await state.set_state(CatalogStates.waiting_service_photo)
+    await state.update_data(service_id=svc_id)
+    await callback.message.reply(
+        "📷 Отправьте фото услуги (как картинку, не файлом).\n"
+        "Изображение будет сжато в WebP и загружено в Storage (бакет service-photos).",
+    )
+
+
+@router.message(CatalogStates.waiting_service_photo, F.photo)
+async def receive_service_photo(message: Message, state: FSMContext):
+    data = await state.get_data()
+    svc_id = data.get("service_id")
+    tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
+    if not svc_id or not tenant_id:
+        await state.clear()
+        await message.reply("❌ Сессия сброшена. Откройте услугу снова.")
+        return
+
+    photo = message.photo[-1]
+    file = await message.bot.get_file(photo.file_id)
+    bio = io.BytesIO()
+    await message.bot.download_file(file.file_path, bio)
+    raw = bio.getvalue()
+
+    try:
+        await asyncio.to_thread(_service_photo_upload_sync, tenant_id, svc_id, raw)
+    except Exception as e:
+        logger.exception("service photo upload failed")
+        await state.clear()
+        await message.reply(
+            f"❌ Не удалось загрузить: {e}\n"
+            "Создайте публичный бакет «service-photos» в Supabase Storage.",
+        )
+        return
+
+    await state.clear()
+    await message.reply("✅ Фото услуги обновлено на сайте.")
+
+
+@router.message(CatalogStates.waiting_service_photo)
+async def service_photo_not_image(message: Message):
+    await message.reply("❌ Нужно отправить изображение (фото), не текст.")
 
 
 @router.callback_query(F.data.startswith("svc:price:"))

@@ -1,5 +1,6 @@
 import logging
 from datetime import date, datetime, timedelta
+from html import escape
 
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -76,6 +77,21 @@ def _format_contact_link(contact_type: str, contact_value: str) -> str:
         return contact_value
 
 
+def _master_display_name_sync(tenant_id: str, master_id: str) -> str | None:
+    sb = get_supabase()
+    r = (
+        sb.table("masters")
+        .select("display_name")
+        .eq("id", master_id)
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .execute()
+    )
+    if not r.data:
+        return None
+    return r.data[0].get("display_name")
+
+
 def _format_price(price_tiyn: int) -> str:
     """Format price from tiyn to tenge with separator."""
     tenge = price_tiyn // 100
@@ -93,6 +109,7 @@ async def send_booking_notification(
     total_duration: int,
     preferred_datetime: datetime,
     client_info: dict | None = None,
+    master_id: str | None = None,
 ) -> None:
     """Send new booking notification to tenant admins."""
     bot = await _get_bot(tenant_id)
@@ -112,8 +129,15 @@ async def send_booking_notification(
     mins = total_duration % 60
     duration_str = f"{hours}ч {mins}мин" if hours else f"{mins}мин"
 
+    master_line = ""
+    if master_id:
+        mname = await run_sync(_master_display_name_sync, tenant_id, master_id)
+        if mname:
+            master_line = f"💇 Мастер: <b>{escape(mname)}</b>\n"
+
     text = (
         f"📋 <b>Новая заявка</b>\n\n"
+        f"{master_line}"
         f"👤 {client_name}\n"
         f"📱 {contact_type.capitalize()}: {contact_link}\n"
         f"💇 Услуги:\n{services_text}\n"

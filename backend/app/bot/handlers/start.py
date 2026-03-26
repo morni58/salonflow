@@ -48,6 +48,7 @@ def _main_menu(role: str) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="👥 Клиенты", callback_data="menu:clients")],
     ]
     if role in ("owner", "admin"):
+        buttons.append([InlineKeyboardButton(text="🎨 Сайт и оформление", callback_data="menu:site")])
         buttons.append([InlineKeyboardButton(text="📊 CRM и выгрузки", callback_data="menu:crm")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -122,7 +123,7 @@ async def cmd_start(message: Message):
     await message.answer(
         f"Добро пожаловать в <b>{tenant_name}</b>!\n\n"
         f"Ваша роль: {role_label.get(user['role'], user['role'])}\n"
-        f"Выберите действие:",
+        f"Выберите действие или введите <code>/help</code> — список команд.",
         parse_mode="HTML",
         reply_markup=_main_menu(user["role"]),
     )
@@ -137,7 +138,7 @@ async def back_to_menu(callback: CallbackQuery):
         return
     await _edit_callback_safe(
         callback,
-        "Главное меню. Выберите действие:",
+        "Главное меню. Выберите действие или /help — команды.",
         reply_markup=_main_menu(user["role"]),
     )
 

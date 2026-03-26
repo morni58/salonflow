@@ -1,21 +1,26 @@
 import { useState, useEffect } from "react";
-import { Menu, X, ShoppingBag, ArrowRight, Info, ImageIcon, MessageCircle } from "lucide-react";
+import { Menu, X, ShoppingBag, ArrowRight, Info, ImageIcon, MessageCircle, UserRound } from "lucide-react";
 import type { Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
+import { siteText } from "../../utils/siteContent";
 
 interface Props {
   tenant: Tenant;
   onOpenCart: () => void;
 }
 
-const NAV_LINKS: { id: string; label: string; icon: typeof ArrowRight }[] = [
-  { id: "catalog", label: "Услуги", icon: ArrowRight },
-  { id: "advantages", label: "О нас", icon: Info },
-  { id: "portfolio", label: "Портфолио", icon: ImageIcon },
-  { id: "reviews", label: "Отзывы", icon: MessageCircle },
-];
+function navLinks(tenant: Tenant) {
+  return [
+    { id: "catalog", label: siteText(tenant, "nav_catalog", "Услуги"), icon: ArrowRight },
+    { id: "advantages", label: siteText(tenant, "nav_advantages", "О нас"), icon: Info },
+    { id: "masters", label: siteText(tenant, "nav_masters", "Мастера"), icon: UserRound },
+    { id: "portfolio", label: siteText(tenant, "nav_portfolio", "Портфолио"), icon: ImageIcon },
+    { id: "reviews", label: siteText(tenant, "nav_reviews", "Отзывы"), icon: MessageCircle },
+  ] as const;
+}
 
 export function Header({ tenant, onOpenCart }: Props) {
+  const NAV_LINKS = navLinks(tenant);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { itemCount } = useCart();
 

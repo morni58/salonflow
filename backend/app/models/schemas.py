@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, date, time
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 
 # ── Enums ──────────────────────────────────────────────
@@ -51,6 +51,12 @@ class TenantPublic(BaseModel):
     working_hours_end: str
     slot_interval_minutes: int
     buffer_minutes: int
+    working_days: list[int] = Field(default_factory=lambda: list(range(7)))
+    schedule_mode: str = "weekdays"
+    every_n_days: int = 1
+    every_n_days_anchor: Optional[str] = None
+    site_content: dict[str, Any] = Field(default_factory=dict)
+    contact_json: dict[str, Any] = Field(default_factory=dict)
 
 
 # ── Catalog ────────────────────────────────────────────
@@ -71,6 +77,22 @@ class CategoryOut(BaseModel):
 
 class CatalogResponse(BaseModel):
     categories: list[CategoryOut]
+
+
+# ── Masters ────────────────────────────────────────────
+
+class MasterPublic(BaseModel):
+    id: str
+    display_name: str
+    title: Optional[str] = None
+    bio: Optional[str] = None
+    photo_url: Optional[str] = None
+    sort_order: int = 0
+
+
+class MastersResponse(BaseModel):
+    masters: list[MasterPublic]
+    requires_master: bool  # True если запись только к мастеру
 
 
 # ── Slots ──────────────────────────────────────────────
@@ -94,6 +116,7 @@ class BookingCreate(BaseModel):
     contact_value: str
     service_ids: list[str]
     preferred_datetime: datetime
+    master_id: Optional[str] = None
 
 
 class BookingOut(BaseModel):

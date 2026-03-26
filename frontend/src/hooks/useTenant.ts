@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Tenant } from "../types";
 import { fetchTenant } from "../api/client";
+import { siteText } from "../utils/siteContent";
 
 function getSubdomain(): string {
   const hostname = window.location.hostname;
@@ -18,6 +19,14 @@ function getSubdomain(): string {
   return "demo";
 }
 
+const POKAZ = {
+  bg: "#faf8f5",
+  text: "#36312d",
+  primary: "#c39077",
+  primaryDark: "#b47b60",
+  accent: "#dfc6b9",
+} as const;
+
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = hex.replace(/^#/, "").trim();
   if (h.length === 6) {
@@ -34,44 +43,62 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   return null;
 }
 
-function rgbaFromHex(hex: string, alpha: number): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return `rgba(0,0,0,${alpha})`;
+/** Поддержка #hex, rgb(), rgba(), rgb с пробелами (modern syntax). */
+export function parseCssColor(input: string): { r: number; g: number; b: number } | null {
+  const s = input.trim();
+  if (!s) return null;
+  const hex = hexToRgb(s);
+  if (hex) return hex;
+  const m =
+    s.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i) ||
+    s.match(/^rgba?\(\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})/i);
+  if (m) {
+    return { r: +m[1], g: +m[2], b: +m[3] };
+  }
+  return null;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((x) => Math.max(0, Math.min(255, x)).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function rgbaFromRgb(rgb: { r: number; g: number; b: number }, alpha: number): string {
   return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
 }
 
-function mixHex(a: string, b: string, t: number): string {
-  const A = hexToRgb(a);
-  const B = hexToRgb(b);
-  if (!A || !B) return a;
-  const mix = (x: number, y: number) => Math.round(x + (y - x) * t);
-  const r = mix(A.r, B.r);
-  const g = mix(A.g, B.g);
-  const bb = mix(A.b, B.b);
-  return `#${[r, g, bb].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+function darkenRgb(rgb: { r: number; g: number; b: number }, t: number): string {
+  const mix = (x: number) => Math.round(x * (1 - t));
+  return rgbToHex(mix(rgb.r), mix(rgb.g), mix(rgb.b));
 }
 
-/**
- * Визуал как в pox/pokaz.html — фиксированная терракотовая палитра.
- * Цвета из API не подмешиваем в UI: в БД часто стоят дефолты фиолетовые/холодные,
- * из‑за этого сайт «плывёт» от референса.
- * Название, лого, описание — по-прежнему с бэкенда.
- */
-const POKAZ = {
-  bg: "#faf8f5",
-  text: "#36312d",
-  primary: "#c39077",
-  primaryDark: "#b47b60",
-  accent: "#dfc6b9",
-} as const;
+function mixRgb(
+  a: { r: number; g: number; b: number },
+  b: { r: number; g: number; b: number },
+  t: number,
+): string {
+  const mix = (x: number, y: number) => Math.round(x + (y - x) * t);
+  return rgbToHex(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b));
+}
+
+function pickColorCss(raw: unknown, fallback: string): string {
+  if (typeof raw === "string" && raw.trim() && parseCssColor(raw)) return raw.trim();
+  return fallback;
+}
 
 function applyTheme(tenant: Tenant) {
   const root = document.documentElement;
-  const primary = POKAZ.primary;
-  const primaryDark = POKAZ.primaryDark;
-  const bg = POKAZ.bg;
-  const text = POKAZ.text;
-  const accent = POKAZ.accent;
+
+  const primary = pickColorCss(tenant.color_primary, POKAZ.primary);
+  const accent = pickColorCss(tenant.color_accent, POKAZ.accent);
+  const bg = pickColorCss(tenant.color_bg, POKAZ.bg);
+  const text = pickColorCss(tenant.color_text, POKAZ.text);
+
+  const pRgb = parseCssColor(primary) ?? hexToRgb(POKAZ.primary)!;
+  const aRgb = parseCssColor(accent) ?? hexToRgb(POKAZ.accent)!;
+  const tRgb = parseCssColor(text) ?? hexToRgb(POKAZ.text)!;
+
+  const primaryDark = darkenRgb(pRgb, 0.12);
+  const primarySolid = mixRgb(pRgb, tRgb, 0.28);
 
   root.style.setProperty("--tenant-primary", primary);
   root.style.setProperty("--tenant-primary-dark", primaryDark);
@@ -85,36 +112,45 @@ function applyTheme(tenant: Tenant) {
 
   root.style.setProperty("--color-primary-foreground", "#ffffff");
   root.style.setProperty("--color-on-solid", "#ffffff");
-  root.style.setProperty("--color-primary-solid", mixHex(primary, text, 0.28));
+  root.style.setProperty("--color-primary-solid", primarySolid);
 
-  root.style.setProperty("--color-primary-20", rgbaFromHex(primary, 0.22));
-  root.style.setProperty("--color-primary-40", rgbaFromHex(primary, 0.38));
-  root.style.setProperty("--color-primary-muted", rgbaFromHex(primary, 0.18));
+  root.style.setProperty("--color-primary-20", rgbaFromRgb(pRgb, 0.22));
+  root.style.setProperty("--color-primary-40", rgbaFromRgb(pRgb, 0.38));
+  root.style.setProperty("--color-primary-muted", rgbaFromRgb(pRgb, 0.18));
 
   root.style.setProperty("--color-bg-card", "rgba(255, 255, 255, 0.95)");
   root.style.setProperty("--color-bg-elevated", "#ffffff");
   root.style.setProperty("--color-bg-glass", "rgba(255, 255, 255, 0.82)");
-  root.style.setProperty("--color-border-soft", rgbaFromHex(text, 0.06));
-  root.style.setProperty("--color-border-muted", rgbaFromHex(text, 0.1));
-  root.style.setProperty("--color-border-card", rgbaFromHex(text, 0.06));
-  root.style.setProperty("--color-border-pill", rgbaFromHex(text, 0.08));
-  root.style.setProperty("--color-placeholder-surface", mixHex(POKAZ.accent, POKAZ.bg, 0.65));
-  root.style.setProperty("--color-price-bg", rgbaFromHex(accent, 0.15));
-  root.style.setProperty("--color-price-border", rgbaFromHex(accent, 0.35));
+  root.style.setProperty("--color-border-soft", rgbaFromRgb(tRgb, 0.06));
+  root.style.setProperty("--color-border-muted", rgbaFromRgb(tRgb, 0.1));
+  root.style.setProperty("--color-border-card", rgbaFromRgb(tRgb, 0.06));
+  root.style.setProperty("--color-border-pill", rgbaFromRgb(tRgb, 0.08));
+  root.style.setProperty(
+    "--color-placeholder-surface",
+    mixRgb(aRgb, parseCssColor(bg) ?? hexToRgb(POKAZ.bg)!, 0.65),
+  );
+  root.style.setProperty("--color-price-bg", rgbaFromRgb(aRgb, 0.15));
+  root.style.setProperty("--color-price-border", rgbaFromRgb(aRgb, 0.35));
 
   root.style.setProperty("--shadow-soft", "0 4px 20px -2px rgba(54, 49, 45, 0.05)");
   root.style.setProperty("--shadow-soft-md", "0 12px 30px -4px rgba(54, 49, 45, 0.08)");
 
   document.title = `${tenant.name} — Онлайн-запись`;
 
+  const metaDesc = siteText(
+    tenant,
+    "meta_description",
+    `Запись онлайн в ${tenant.name}. Выбирайте услуги и бронируйте удобное время.`,
+  );
+
   const setMeta = (selector: string, content: string) => {
     const el = document.querySelector(selector);
     if (el) el.setAttribute("content", content);
   };
 
-  setMeta('meta[name="description"]', `Запись онлайн в ${tenant.name}. Выбирайте услуги и бронируйте удобное время.`);
+  setMeta('meta[name="description"]', metaDesc);
   setMeta('meta[property="og:title"]', `${tenant.name} — Онлайн-запись`);
-  setMeta('meta[property="og:description"]', `Запись онлайн в ${tenant.name}`);
+  setMeta('meta[property="og:description"]', metaDesc);
   setMeta('meta[name="twitter:title"]', `${tenant.name} — Онлайн-запись`);
 
   if (tenant.logo_url) {

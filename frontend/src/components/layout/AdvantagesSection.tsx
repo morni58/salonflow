@@ -1,25 +1,53 @@
-const ITEMS = [
+import type { Tenant } from "../../types";
+
+const DEFAULT_ITEMS = [
   {
-    icon: "sparkle",
+    icon: "sparkle" as const,
     title: "Премиум материалы",
     text: "Используем только сертифицированную косметику люкс сегмента от мировых брендов.",
     rotate: "rotate-3",
   },
   {
-    icon: "clock",
+    icon: "clock" as const,
     title: "Экономия времени",
     text: "Услуги в 4 руки. Маникюр, педикюр и укладка одновременно без потери качества.",
     rotate: "-rotate-3",
   },
   {
-    icon: "smile",
+    icon: "smile" as const,
     title: "Абсолютный релакс",
     text: "Свежесваренный кофе, шампанское, удобные кресла-реклайнеры и приятная музыка.",
     rotate: "rotate-3",
   },
-] as const;
+];
 
-function Icon({ name }: { name: (typeof ITEMS)[number]["icon"] }) {
+type Item = (typeof DEFAULT_ITEMS)[number];
+
+function parseAdvantages(tenant: Tenant): Item[] {
+  const raw = tenant.site_content?.advantages;
+  if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_ITEMS;
+  const out: Item[] = [];
+  raw.forEach((row, i) => {
+    if (!row || typeof row !== "object") return;
+    const o = row as Record<string, unknown>;
+    const ic = o.icon;
+    const icon: Item["icon"] =
+      ic === "clock" || ic === "smile" || ic === "sparkle" ? ic : "sparkle";
+    const title = typeof o.title === "string" ? o.title.trim() : "";
+    const text = typeof o.text === "string" ? o.text.trim() : "";
+    if (!title || !text) return;
+    const rotate =
+      typeof o.rotate === "string" && o.rotate.trim()
+        ? o.rotate.trim()
+        : i % 2 === 0
+          ? "rotate-3"
+          : "-rotate-3";
+    out.push({ icon, title, text, rotate });
+  });
+  return out.length ? out : DEFAULT_ITEMS;
+}
+
+function Icon({ name }: { name: Item["icon"] }) {
   const cls = "h-7 w-7 md:h-8 md:w-8";
   if (name === "sparkle") {
     return (
@@ -52,14 +80,20 @@ function Icon({ name }: { name: (typeof ITEMS)[number]["icon"] }) {
   );
 }
 
-export function AdvantagesSection() {
+interface Props {
+  tenant: Tenant;
+}
+
+export function AdvantagesSection({ tenant }: Props) {
+  const items = parseAdvantages(tenant);
+
   return (
     <section id="advantages" data-anchor-section className="border-y border-brand-100 bg-surface py-12 md:py-16">
       <div className="mx-auto w-full">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {ITEMS.map((item, i) => (
+          {items.map((item, i) => (
             <div
-              key={item.title}
+              key={`${item.title}-${i}`}
               className={`animate-fade-up px-4 text-center ${i === 1 ? "animate-delay-100" : i === 2 ? "animate-delay-200" : ""}`}
             >
               <div

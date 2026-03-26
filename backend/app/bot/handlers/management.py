@@ -11,8 +11,16 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from app.bot.async_db import run_sync
 from app.core.database import get_supabase
+from app.core.tenant_fields import (
+    normalize_every_n_days,
+    normalize_every_n_days_anchor,
+    normalize_schedule_mode,
+    normalize_working_days,
+)
 
 logger = logging.getLogger(__name__)
+
+WD_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 router = Router()
 
 
@@ -51,20 +59,33 @@ def _apply_close_day_sync(tenant_id: str, d: date) -> None:
 class ScheduleStates(StatesGroup):
     waiting_close_date = State()
     waiting_open_date = State()
+    waiting_hours = State()
+    waiting_interval = State()
+    waiting_anchor = State()
+    waiting_every_n = State()
+
+
+def _schedule_menu_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔒 Закрыть день", callback_data="sched:close")],
+            [InlineKeyboardButton(text="🔓 Открыть день", callback_data="sched:open")],
+            [InlineKeyboardButton(text="📅 Дни недели", callback_data="sched:weekdays")],
+            [InlineKeyboardButton(text="🔁 Режим: дни недели / каждые N дней", callback_data="sched:mode_menu")],
+            [InlineKeyboardButton(text="🕐 Часы работы", callback_data="sched:hours")],
+            [InlineKeyboardButton(text="⏱ Интервал слотов", callback_data="sched:interval")],
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")],
+        ]
+    )
 
 
 @router.callback_query(F.data == "menu:schedule")
 async def schedule_menu(callback: CallbackQuery):
     await callback.answer()
-    buttons = [
-        [InlineKeyboardButton(text="🔒 Закрыть день", callback_data="sched:close")],
-        [InlineKeyboardButton(text="🔓 Открыть день", callback_data="sched:open")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")],
-    ]
     await callback.message.edit_text(
         "🗓 <b>Расписание</b>\nВыберите действие:",
         parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        reply_markup=_schedule_menu_kb(),
     )
 
 
@@ -78,6 +99,10 @@ async def start_close_day(callback: CallbackQuery, state: FSMContext):
 @router.message(ScheduleStates.waiting_close_date)
 async def process_close_day(message: Message, state: FSMContext):
     tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
+    if not tenant_id:
+        await state.clear()
+        await message.reply("⛔ Нет доступа.")
+        return
     try:
         d = datetime.strptime(message.text.strip(), "%d.%m.%Y").date()
     except ValueError:
@@ -107,7 +132,7 @@ def _closed_days_kb_sync(tenant_id: str) -> tuple[bool, list]:
     for c in closed.data:
         d = datetime.strptime(c["date"], "%Y-%m-%d").strftime("%d.%m.%Y")
         buttons.append([InlineKeyboardButton(text=f"🔓 {d}", callback_data=f"sched:reopen:{c['id']}")])
-    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="menu:schedule")])
+    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")])
     return True, buttons
 
 
@@ -129,8 +154,308 @@ async def start_open_day(callback: CallbackQuery, state: FSMContext):
 
 
 def _reopen_exc_sync(exc_id: str) -> None:
+    """Удаляем исключение — день снова подчиняется общему графику (дни недели / каждые N дней)."""
     sb = get_supabase()
-    sb.table("schedule_exceptions").update({"is_closed": False}).eq("id", exc_id).execute()
+    sb.table("schedule_exceptions").delete().eq("id", exc_id).execute()
+
+
+@router.callback_query(F.data == "sched:back")
+async def schedule_back(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.edit_text(
+        "🗓 <b>Расписание</b>\nВыберите действие:",
+        parse_mode="HTML",
+        reply_markup=_schedule_menu_kb(),
+    )
+
+
+def _tenant_schedule_row_sync(tenant_id: str) -> dict | None:
+    sb = get_supabase()
+    r = (
+        sb.table("tenants")
+        .select(
+            "working_days, schedule_mode, every_n_days, every_n_days_anchor, "
+            "working_hours_start, working_hours_end, slot_interval_minutes",
+        )
+        .eq("id", tenant_id)
+        .limit(1)
+        .execute()
+    )
+    return r.data[0] if r.data else None
+
+
+def _working_days_kb_sync(tenant_id: str) -> InlineKeyboardMarkup:
+    row = _tenant_schedule_row_sync(tenant_id) or {}
+    days = normalize_working_days(row.get("working_days"))
+    buttons = []
+    for i in range(7):
+        mark = "✅" if i in days else "⬜"
+        buttons.append(
+            [InlineKeyboardButton(text=f"{mark} {WD_LABELS[i]}", callback_data=f"sched:wd:{i}")],
+        )
+    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def _toggle_wd_sync(tenant_id: str, weekday: int) -> None:
+    sb = get_supabase()
+    row = _tenant_schedule_row_sync(tenant_id)
+    if not row:
+        return
+    days = normalize_working_days(row.get("working_days"))
+    if weekday in days:
+        days = [d for d in days if d != weekday]
+    else:
+        days = sorted(set(days + [weekday]))
+    if not days:
+        days = [weekday]
+    sb.table("tenants").update({"working_days": days, "schedule_mode": "weekdays"}).eq("id", tenant_id).execute()
+
+
+@router.callback_query(F.data == "sched:weekdays")
+async def sched_weekdays_menu(callback: CallbackQuery):
+    await callback.answer()
+    tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tenant_id:
+        await callback.message.edit_text("⛔ Нет доступа.")
+        return
+    kb = await run_sync(_working_days_kb_sync, tenant_id)
+    await callback.message.edit_text(
+        "📅 <b>Дни недели</b>\n"
+        "Нажимайте по дню — вкл/выкл. В эти дни доступна онлайн-запись "
+        "(при режиме «дни недели»).\n"
+        "При смене дня режим автоматически переключается на «дни недели».",
+        parse_mode="HTML",
+        reply_markup=kb,
+    )
+
+
+@router.callback_query(F.data.startswith("sched:wd:"))
+async def sched_toggle_wd(callback: CallbackQuery):
+    await callback.answer()
+    tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tenant_id:
+        return
+    try:
+        wd = int(callback.data.split(":")[2])
+    except (IndexError, ValueError):
+        return
+    if wd < 0 or wd > 6:
+        return
+    await run_sync(_toggle_wd_sync, tenant_id, wd)
+    kb = await run_sync(_working_days_kb_sync, tenant_id)
+    await callback.message.edit_reply_markup(reply_markup=kb)
+
+
+@router.callback_query(F.data == "sched:mode_menu")
+async def sched_mode_menu(callback: CallbackQuery):
+    await callback.answer()
+    tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tenant_id:
+        await callback.message.edit_text("⛔ Нет доступа.")
+        return
+    row = await run_sync(_tenant_schedule_row_sync, tenant_id) or {}
+    mode = normalize_schedule_mode(row.get("schedule_mode"))
+    n = normalize_every_n_days(row.get("every_n_days"))
+    anchor = normalize_every_n_days_anchor(row.get("every_n_days_anchor")) or "не задана"
+    text = (
+        "🔁 <b>Режим графика</b>\n\n"
+        f"Сейчас: <b>{'дни недели' if mode == 'weekdays' else f'каждые {n} д. от {anchor}'}</b>\n\n"
+        "• <b>Дни недели</b> — открыты только отмеченные в «📅 Дни недели».\n"
+        "• <b>Каждые N дней</b> — открыты даты, где (день − дата отсчёта) делится на N без остатка; "
+        "сначала задайте дату отсчёта и N.\n"
+    )
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📆 Только дни недели", callback_data="sched:mode:set:weekdays")],
+            [InlineKeyboardButton(text="📌 Задать дату отсчёта (якорь)", callback_data="sched:anchor")],
+            [InlineKeyboardButton(text="🔢 Задать N (каждые N дней)", callback_data="sched:set_n")],
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")],
+        ]
+    )
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
+
+
+@router.callback_query(F.data == "sched:mode:set:weekdays")
+async def sched_mode_weekdays(callback: CallbackQuery):
+    await callback.answer("Режим: дни недели")
+    tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tenant_id:
+        return
+
+    def _u():
+        sb = get_supabase()
+        sb.table("tenants").update({"schedule_mode": "weekdays"}).eq("id", tenant_id).execute()
+
+    await run_sync(_u)
+    await callback.message.edit_text(
+        "✅ Режим: <b>дни недели</b>. Настройте дни в «📅 Дни недели».",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ К расписанию", callback_data="sched:back")]]
+        ),
+    )
+
+
+@router.callback_query(F.data == "sched:anchor")
+async def sched_ask_anchor(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(ScheduleStates.waiting_anchor)
+    await callback.message.reply(
+        "📌 Введите <b>дату отсчёта</b> для режима «каждые N дней» (ДД.ММ.ГГГГ).\n"
+        "В этот день салон считается открытым; дальше — каждые N календарных дней.",
+        parse_mode="HTML",
+    )
+
+
+@router.message(ScheduleStates.waiting_anchor)
+async def sched_process_anchor(message: Message, state: FSMContext):
+    try:
+        d = datetime.strptime(message.text.strip(), "%d.%m.%Y").date()
+    except ValueError:
+        await message.reply("❌ Формат: ДД.ММ.ГГГГ")
+        return
+    tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
+    if not tenant_id:
+        await state.clear()
+        await message.reply("⛔ Нет доступа.")
+        return
+
+    def _u():
+        sb = get_supabase()
+        sb.table("tenants").update({
+            "schedule_mode": "every_n_days",
+            "every_n_days_anchor": d.isoformat(),
+        }).eq("id", tenant_id).execute()
+
+    await run_sync(_u)
+    await state.clear()
+    await message.reply(
+        f"✅ Якорь: {d.strftime('%d.%m.%Y')}. Режим переключён на «каждые N дней». "
+        "Задайте N в меню расписания, если ещё не задали."
+    )
+
+
+@router.callback_query(F.data == "sched:set_n")
+async def sched_ask_n(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(ScheduleStates.waiting_every_n)
+    await callback.message.reply(
+        "🔢 Введите число <b>N</b> (1 = каждый день, 2 = через день, 3 = раз в три дня …), от 1 до 30.",
+        parse_mode="HTML",
+    )
+
+
+@router.message(ScheduleStates.waiting_every_n)
+async def sched_process_n(message: Message, state: FSMContext):
+    try:
+        n = int(message.text.strip())
+    except ValueError:
+        await message.reply("❌ Введите целое число.")
+        return
+    n = max(1, min(n, 30))
+    tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
+    if not tenant_id:
+        await state.clear()
+        await message.reply("⛔ Нет доступа.")
+        return
+
+    def _u():
+        sb = get_supabase()
+        sb.table("tenants").update({
+            "schedule_mode": "every_n_days",
+            "every_n_days": n,
+        }).eq("id", tenant_id).execute()
+
+    await run_sync(_u)
+    await state.clear()
+    await message.reply(
+        f"✅ N = {n}. Не забудьте задать дату отсчёта (якорь), если ещё не задавали."
+    )
+
+
+@router.callback_query(F.data == "sched:hours")
+async def sched_ask_hours(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(ScheduleStates.waiting_hours)
+    await callback.message.reply(
+        "🕐 Введите часы работы в одном из форматов:\n"
+        "<code>10:00 20:00</code> или <code>10:00-20:00</code>",
+        parse_mode="HTML",
+    )
+
+
+@router.message(ScheduleStates.waiting_hours)
+async def sched_process_hours(message: Message, state: FSMContext):
+    raw = message.text.strip().replace("–", "-")
+    parts = raw.replace("-", " ").split()
+    if len(parts) >= 2:
+        a, b = parts[0], parts[1]
+    else:
+        await message.reply("❌ Нужно два времени, например: 10:00 20:00")
+        return
+
+    def _parse_one(s: str) -> tuple[int, int] | None:
+        s = s.strip()
+        if len(s) < 4 or ":" not in s:
+            return None
+        h, m = s.split(":", 1)[:2]
+        try:
+            return int(h) % 24, int(m) % 60
+        except ValueError:
+            return None
+
+    pa = _parse_one(a)
+    pb = _parse_one(b)
+    if not pa or not pb:
+        await message.reply("❌ Неверный формат времени.")
+        return
+    tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
+    if not tenant_id:
+        await state.clear()
+        await message.reply("⛔ Нет доступа.")
+        return
+
+    def _u():
+        sb = get_supabase()
+        sb.table("tenants").update({
+            "working_hours_start": f"{pa[0]:02d}:{pa[1]:02d}:00",
+            "working_hours_end": f"{pb[0]:02d}:{pb[1]:02d}:00",
+        }).eq("id", tenant_id).execute()
+
+    await run_sync(_u)
+    await state.clear()
+    await message.reply(f"✅ Часы: {a} — {b}")
+
+
+@router.callback_query(F.data == "sched:interval")
+async def sched_ask_interval(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(ScheduleStates.waiting_interval)
+    await callback.message.reply("⏱ Введите интервал слотов в минутах (например 15, 30, 60):")
+
+
+@router.message(ScheduleStates.waiting_interval)
+async def sched_process_interval(message: Message, state: FSMContext):
+    try:
+        n = int(message.text.strip())
+    except ValueError:
+        await message.reply("❌ Введите число минут.")
+        return
+    n = max(5, min(n, 240))
+    tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
+    if not tenant_id:
+        await state.clear()
+        await message.reply("⛔ Нет доступа.")
+        return
+
+    def _u():
+        sb = get_supabase()
+        sb.table("tenants").update({"slot_interval_minutes": n}).eq("id", tenant_id).execute()
+
+    await run_sync(_u)
+    await state.clear()
+    await message.reply(f"✅ Интервал слотов: {n} мин.")
 
 
 @router.callback_query(F.data.startswith("sched:reopen:"))

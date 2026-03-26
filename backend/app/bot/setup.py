@@ -8,8 +8,12 @@ from aiogram.types import Message
 from app.bot.handlers.booking_actions import router as booking_router
 from app.bot.handlers.catalog_mgmt import router as catalog_router
 from app.bot.handlers.clients import router as clients_router
+from app.bot.handlers.commands import router as commands_router
 from app.bot.handlers.crm_export import router as crm_router
 from app.bot.handlers.management import router as management_router
+from app.bot.handlers.master_schedule_bot import router as master_schedule_router
+from app.bot.handlers.staff_masters import router as staff_masters_router
+from app.bot.handlers.site_settings import router as site_settings_router
 from app.bot.handlers.start import router as start_router
 from app.core.config import get_settings
 
@@ -37,8 +41,8 @@ async def fallback_text(message: Message):
     if not message.text:
         return
     await message.reply(
-        "Используйте кнопки меню (/start) или разделы: заявки, каталог, клиенты, CRM.\n"
-        "Оффлайн-запись: «Оффлайн-запись» в меню."
+        "Используйте кнопки меню (/start) или команды: /help — список.\n"
+        "Примеры: /bookings, /catalog, /schedule, /site (для админа)."
     )
 
 
@@ -47,8 +51,12 @@ def create_dispatcher() -> Dispatcher:
     dp = Dispatcher(storage=_fsm_storage())
 
     dp.include_router(start_router)
+    dp.include_router(commands_router)
+    dp.include_router(staff_masters_router)
+    dp.include_router(master_schedule_router)
     dp.include_router(booking_router)
     dp.include_router(catalog_router)
+    dp.include_router(site_settings_router)
     dp.include_router(management_router)
     dp.include_router(clients_router)
     dp.include_router(crm_router)

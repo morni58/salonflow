@@ -3,6 +3,11 @@ from datetime import datetime, timedelta
 from app.core.async_utils import run_sync
 from app.core.database import get_supabase
 from app.models.schemas import BookingCreate, BookingOut
+from app.services.masters_query import (
+    master_belongs_to_tenant_sync,
+    services_allowed_for_master_sync,
+    tenant_has_bookable_masters_sync,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,6 +16,19 @@ logger = logging.getLogger(__name__)
 def _create_booking_sync(data: BookingCreate) -> dict:
     """Вся работа с Supabase в одном sync-вызове (не блокируем event loop)."""
     sb = get_supabase()
+
+    needs_master = tenant_has_bookable_masters_sync(data.tenant_id)
+    master_id: str | None = data.master_id
+    if needs_master:
+        if not master_id:
+            raise ValueError("Выберите мастера для записи")
+        if not master_belongs_to_tenant_sync(master_id, data.tenant_id):
+            raise ValueError("Выбранный мастер недоступен")
+        ok, err = services_allowed_for_master_sync(data.tenant_id, master_id, data.service_ids)
+        if not ok:
+            raise ValueError(err or "Этот мастер не выполняет выбранные услуги")
+    else:
+        master_id = None
 
     services = (
         sb.table("services")
@@ -48,21 +66,21 @@ def _create_booking_sync(data: BookingCreate) -> dict:
         )
         client_id = new_client.data[0]["id"]
 
-    booking = (
-        sb.table("bookings")
-        .insert({
-            "tenant_id": data.tenant_id,
-            "client_id": client_id,
-            "service_ids": data.service_ids,
-            "total_price": total_price,
-            "total_duration_minutes": total_duration,
-            "preferred_datetime": data.preferred_datetime.isoformat(),
-            "status": "pending",
-            "payment_status": "unpaid",
-            "source": "online",
-        })
-        .execute()
-    )
+    insert_row = {
+        "tenant_id": data.tenant_id,
+        "client_id": client_id,
+        "service_ids": data.service_ids,
+        "total_price": total_price,
+        "total_duration_minutes": total_duration,
+        "preferred_datetime": data.preferred_datetime.isoformat(),
+        "status": "pending",
+        "payment_status": "unpaid",
+        "source": "online",
+    }
+    if master_id:
+        insert_row["master_id"] = master_id
+
+    booking = sb.table("bookings").insert(insert_row).execute()
 
     booking_data = booking.data[0]
     return {
@@ -73,6 +91,7 @@ def _create_booking_sync(data: BookingCreate) -> dict:
         "service_names": service_names,
         "total_price": total_price,
         "total_duration": total_duration,
+        "master_id": master_id,
     }
 
 
@@ -92,6 +111,7 @@ async def create_booking(data: BookingCreate) -> BookingOut:
             total_duration=r["total_duration"],
             preferred_datetime=data.preferred_datetime,
             client_id=r["client_id"],
+            master_id=r.get("master_id"),
         )
     except Exception as e:
         logger.error(f"Failed to notify bot: {e}")
@@ -114,6 +134,7 @@ async def _notify_bot(
     total_duration: int,
     preferred_datetime: datetime,
     client_id: str,
+    master_id: str | None = None,
 ):
     """Send booking notification to the bot's internal webhook handler."""
     from app.bot.notifications import send_booking_notification
@@ -142,6 +163,7 @@ async def _notify_bot(
         total_duration=total_duration,
         preferred_datetime=preferred_datetime,
         client_info=client_info,
+        master_id=master_id,
     )
 
 
