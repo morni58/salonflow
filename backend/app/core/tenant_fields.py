@@ -24,7 +24,8 @@ def normalize_working_days(raw: Any) -> list[int]:
                 out.append(d)
         except (TypeError, ValueError):
             continue
-    return sorted(set(out)) if out else [0]
+    # Пустой список = «не задано» → все дни открыты (по умолчанию не режем запись)
+    return sorted(set(out)) if out else list(range(7))
 
 
 def normalize_site_content(raw: Any) -> dict[str, Any]:

@@ -39,6 +39,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
 
   const [masters, setMasters] = useState<MasterPublic[]>([]);
   const [requiresMaster, setRequiresMaster] = useState(false);
+  const [mastersLoading, setMastersLoading] = useState(true);
   const [selectedMasterId, setSelectedMasterId] = useState<string>("");
 
   const [name, setName] = useState("");
@@ -62,6 +63,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   });
 
   useEffect(() => {
+    setMastersLoading(true);
     fetchMasters(tenantId)
       .then((res) => {
         setMasters(res.masters);
@@ -81,11 +83,12 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         }
       })
       .catch(() => {})
-      .finally(() => {});
+      .finally(() => setMastersLoading(false));
   }, [tenantId]);
 
   useEffect(() => {
     if (!selectedDate) return;
+    if (mastersLoading) return;
     if (requiresMaster && !selectedMasterId) {
       setSlots([]);
       return;
@@ -113,7 +116,14 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         toast.error(msg);
       })
       .finally(() => setSlotsLoading(false));
-  }, [selectedDate, tenantId, selectedMasterId, requiresMaster, totalDuration]);
+  }, [
+    selectedDate,
+    tenantId,
+    selectedMasterId,
+    requiresMaster,
+    totalDuration,
+    mastersLoading,
+  ]);
 
   const masterOk = !requiresMaster || !!selectedMasterId;
   const canSubmit =

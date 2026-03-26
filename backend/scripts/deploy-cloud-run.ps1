@@ -48,4 +48,4 @@ gcloud run deploy $SERVICE_NAME `
     --project $PROJECT_ID
 
 Write-Host ""
-Write-Host "Готово. Проверь ревизию в Cloud Run и напиши боту /start" -ForegroundColor Green
+Write-Host "Done. Check Cloud Run revision; bot /start to reload." -ForegroundColor Green

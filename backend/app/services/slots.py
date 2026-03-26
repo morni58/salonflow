@@ -29,6 +29,36 @@ def _parse_hh_mm(val) -> tuple[int, int]:
         return 10, 0
 
 
+def _resolve_master_slot_window(tenant: dict, master: dict) -> tuple[int, int, int, int]:
+    """Пересечение часов салона и мастера; если пусто — окно салона (настройки «Общий график» в боте)."""
+    mhs, mm = _parse_hh_mm(master.get("working_hours_start"))
+    mhe, mme = _parse_hh_mm(master.get("working_hours_end"))
+    ms0 = mhs * 60 + mm
+    me0 = mhe * 60 + mme
+
+    if not tenant:
+        return (mhs, mm, mhe, mme)
+
+    ths, tm = _parse_hh_mm(tenant.get("working_hours_start"))
+    the, tme = _parse_hh_mm(tenant.get("working_hours_end"))
+    ts0 = ths * 60 + tm
+    te0 = the * 60 + tme
+    if te0 <= ts0:
+        return (mhs, mm, mhe, mme)
+
+    if me0 > ms0:
+        sm = max(ts0, ms0)
+        em = min(te0, me0)
+        if em > sm:
+            return (sm // 60, sm % 60, em // 60, em % 60)
+    return (ths, tm, the, tme)
+
+
+def _master_weekday_open(m: dict, target_date: date) -> bool:
+    """Мастер на сайте: только дни недели из «Мой график». Режим «каждые N дней» задаёт владелец у салона — строку мастера не используем, чтобы не дублировать и не блокировать зря."""
+    return target_date.weekday() in normalize_working_days(m.get("working_days"))
+
+
 def _date_open_for_schedule(t: dict, target_date: date) -> bool:
     mode = normalize_schedule_mode(t.get("schedule_mode"))
     if mode == "every_n_days":
@@ -40,7 +70,10 @@ def _date_open_for_schedule(t: dict, target_date: date) -> bool:
         anchor = date.fromisoformat(anchor_s)
         delta = (target_date - anchor).days
         if delta < 0:
-            return False
+            # До даты якоря не блокируем салон полностью — используем дни недели,
+            # иначе при якоре «в будущем» запись на ближайшие месяцы невозможна.
+            days = normalize_working_days(t.get("working_days"))
+            return target_date.weekday() in days
         return delta % n == 0
     days = normalize_working_days(t.get("working_days"))
     return target_date.weekday() in days
@@ -224,7 +257,10 @@ def _get_available_slots_master_sync(
 
         tenant = (
             sb.table("tenants")
-            .select("slot_interval_minutes, buffer_minutes")
+            .select(
+                "working_hours_start, working_hours_end, slot_interval_minutes, buffer_minutes, "
+                "working_days, schedule_mode, every_n_days, every_n_days_anchor"
+            )
             .eq("id", tenant_id)
             .limit(1)
             .execute()
@@ -232,10 +268,13 @@ def _get_available_slots_master_sync(
         t0 = tenant.data[0] if tenant.data else {}
 
         m = mrow.data[0]
-        start_h, start_m = _parse_hh_mm(m.get("working_hours_start"))
-        end_h, end_m = _parse_hh_mm(m.get("working_hours_end"))
-        interval = int(m.get("slot_interval_minutes") or t0.get("slot_interval_minutes") or 60)
-        buffer = int(m.get("buffer_minutes") or t0.get("buffer_minutes") or 15)
+        start_h, start_m, end_h, end_m = _resolve_master_slot_window(t0, m)
+        ti = t0.get("slot_interval_minutes")
+        mi = m.get("slot_interval_minutes")
+        interval = int((ti if ti is not None else None) or mi or 60)
+        tb = t0.get("buffer_minutes")
+        mb = m.get("buffer_minutes")
+        buffer = int((tb if tb is not None else None) or mb or 15)
         if interval <= 0:
             interval = 60
         if buffer < 0:
@@ -255,7 +294,10 @@ def _get_available_slots_master_sync(
         if has_exc and exc and exc.get("is_closed"):
             return []
 
-        if not has_exc and not _date_open_for_schedule(m, target_date):
+        # Салон — общий график (в т.ч. «каждые N дней»); мастер — только вкл. дни недели
+        if not _date_open_for_schedule(t0, target_date):
+            return []
+        if not _master_weekday_open(m, target_date):
             return []
 
         if has_exc and exc:
