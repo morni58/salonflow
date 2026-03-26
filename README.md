@@ -28,8 +28,8 @@ salonflow/
 │   │   ├── hooks/              # useTenant, useSession
 │   │   ├── store/              # Cart context
 │   │   └── types/              # TypeScript типы
-│   ├── netlify.toml
 │   └── package.json
+├── netlify.toml                # деплой: base = frontend
 └── README.md
 ```
 
