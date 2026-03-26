@@ -40,6 +40,30 @@ def _fetch_tenant_bot_rows_sync():
     return tenants.data or []
 
 
+def _fetch_one_tenant_bot_sync(tenant_id: str) -> dict | None:
+    """Один tenant для ленивой регистрации бота (другой инстанс Cloud Run без памяти)."""
+    from app.core.database import get_supabase
+    sb = get_supabase()
+    r = (
+        sb.table("tenants")
+        .select("id, bot_token_encrypted, subdomain")
+        .eq("id", tenant_id)
+        .eq("is_active", True)
+        .limit(1)
+        .execute()
+    )
+    return r.data[0] if r.data else None
+
+
+def _decrypt_bot_token(raw: str) -> str:
+    try:
+        from app.core.encryption import decrypt
+
+        return decrypt(raw)
+    except Exception:
+        return raw
+
+
 async def _register_tenant_bots():
     """Load all tenant bots and register webhooks."""
     tenants_data = await run_sync(_fetch_tenant_bot_rows_sync)
@@ -49,12 +73,7 @@ async def _register_tenant_bots():
         if not token:
             continue
 
-        # Decrypt token, fallback to plaintext for dev
-        try:
-            from app.core.encryption import decrypt
-            token = decrypt(token)
-        except Exception:
-            pass
+        token = _decrypt_bot_token(token)
 
         bot = Bot(token=token)
         try:
@@ -91,14 +110,33 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown
+    # Shutdown — НЕ вызывать delete_webhook(): на Cloud Run контейнеры постоянно
+    # останавливаются (scale-to-zero). Снятие webhook ломает доставку апдейтов в Telegram
+    # до следующего старта, из-за чего бот «молчит», хотя API в порядке.
     logger.info("Shutting down...")
     for bot in _webhook_bots.values():
         try:
-            await bot.delete_webhook()
             await bot.session.close()
         except Exception:
             pass
+
+
+async def _ensure_webhook_bot(tenant_id: str) -> Bot | None:
+    """Бот для webhook: кэш в памяти или подгрузка (второй инстанс / после cold start)."""
+    if tenant_id in _webhook_bots:
+        return _webhook_bots[tenant_id]
+
+    row = await run_sync(_fetch_one_tenant_bot_sync, tenant_id)
+    if not row:
+        return None
+    token = row.get("bot_token_encrypted")
+    if not token:
+        return None
+    token = _decrypt_bot_token(token)
+    bot = Bot(token=token)
+    _webhook_bots[tenant_id] = bot
+    logger.info("Lazy-registered bot for tenant_id=%s", tenant_id)
+    return bot
 
 
 # ── FastAPI App ──────────────────────────────────
@@ -155,7 +193,7 @@ async def _process_telegram_update(bot: Bot, update: Update) -> None:
 @app.post("/api/webhook/tg/{tenant_id}")
 async def telegram_webhook(tenant_id: str, request: Request):
     """Handle Telegram webhook updates for a specific tenant."""
-    bot = _webhook_bots.get(tenant_id)
+    bot = await _ensure_webhook_bot(tenant_id)
     if not bot:
         return {"error": "Bot not found"}
 
