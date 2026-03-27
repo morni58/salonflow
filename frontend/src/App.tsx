@@ -28,6 +28,17 @@ function AppInner() {
     window.location.pathname.startsWith("/checkout") ? "checkout" : "home"
   );
   const [cartOpen, setCartOpen] = useState(false);
+  const [floatVisible, setFloatVisible] = useState(false);
+
+  // Floating CTA on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      const show = window.scrollY > 500;
+      setFloatVisible(show);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Слушаем popstate — нажатие кнопки "назад" в браузере
   useEffect(() => {
@@ -222,7 +233,25 @@ function AppInner() {
         }}
       />
 
-      <SiteFooter tenant={tenant} />
+      <SiteFooter tenant={tenant} onNavClick={handleNavClick} />
+
+      {/* Floating mobile CTA */}
+      {view === "home" && (
+        <div
+          className="pointer-events-none fixed bottom-0 left-0 right-0 z-[150] flex justify-center px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] transition-all duration-500 sm:hidden"
+          style={{ opacity: floatVisible && !cartOpen ? 1 : 0, transform: floatVisible && !cartOpen ? "translateY(0)" : "translateY(120%)" }}
+        >
+          <button
+            type="button"
+            className="pointer-events-auto inline-flex items-center gap-2.5 rounded-2xl px-10 py-4 text-sm font-semibold text-white shadow-2xl transition-all duration-300 active:scale-[0.97]"
+            style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 75%, #7a3520) 100%)", boxShadow: "0 12px 36px rgba(192,137,115,0.55)" }}
+            onClick={() => { document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+          >
+            Записаться
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

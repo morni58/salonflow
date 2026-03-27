@@ -25,84 +25,145 @@ function IconInstagram({ className }: { className?: string }) {
   );
 }
 
-const socialBtn =
-  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-brand-200 text-ink-light transition-all duration-300 ease-out hover:border-brand-500 hover:text-brand-500 hover:shadow-soft active:scale-95";
+const NAV_LINKS = [
+  { label: "Услуги", id: "catalog" },
+  { label: "Мастера", id: "masters" },
+  { label: "Портфолио", id: "portfolio" },
+  { label: "Отзывы", id: "reviews" },
+];
 
 interface Props {
   tenant: Tenant;
+  onNavClick?: (sectionId: string) => void;
 }
 
-export function SiteFooter({ tenant }: Props) {
+export function SiteFooter({ tenant, onNavClick }: Props) {
   const initial = tenant.name.trim().charAt(0).toUpperCase() || "•";
   const contact = getFooterContact(tenant);
+  const year = new Date().getFullYear();
+
+  const scrollTo = (id: string) => {
+    if (onNavClick) {
+      onNavClick(id);
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
-    <footer
-      className="border-t border-brand-100 bg-surface py-10 md:py-12"
-      style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
-    >
-      <div className="mx-auto flex max-w-[var(--layout-max)] flex-col items-center gap-8 px-4 text-center sm:px-6 lg:px-8 md:gap-6">
-        <div className="flex w-full flex-col items-center justify-between gap-6 md:flex-row md:items-start md:text-left">
-          <div className="flex items-center gap-2">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 font-serif text-sm font-bold text-brand-600 transition-colors duration-300 ease-out"
-              aria-hidden
-            >
-              {initial}
+    <footer className="mt-4 overflow-hidden" style={{ background: "#1a1714" }}>
+      {/* Top CTA strip */}
+      <div
+        className="px-4 py-10 text-center sm:px-6 lg:px-8"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <p className="font-serif text-2xl font-semibold text-white md:text-3xl">
+          Готовы к преображению?
+        </p>
+        <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Запишитесь онлайн — свободные окна обновляются в реальном времени
+        </p>
+        <button
+          type="button"
+          onClick={() => scrollTo("catalog")}
+          className="mt-6 inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
+          style={{ background: "var(--color-primary, #c08973)", boxShadow: "0 8px 28px rgba(192,137,115,0.4)" }}
+        >
+          Записаться сейчас
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Main columns */}
+      <div className="mx-auto max-w-[var(--layout-max)] px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-3 lg:grid-cols-4">
+          {/* Brand */}
+          <div className="lg:col-span-2">
+            <div className="mb-5 flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-serif text-base font-bold"
+                style={{ background: "var(--color-primary, #c08973)", color: "#fff" }}
+                aria-hidden
+              >
+                {initial}
+              </div>
+              <span className="font-serif text-xl font-semibold text-white">{tenant.name}</span>
             </div>
-            <span className="font-serif text-lg font-semibold tracking-wide text-ink-dark md:text-xl">{tenant.name}</span>
+            <p className="mb-6 max-w-sm text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Ваш beauty-салон с заботой о каждом клиенте. Профессиональные мастера, премиум материалы и атмосфера уюта.
+            </p>
+            <div className="flex items-center gap-2">
+              {[
+                { href: contact.telegram, Icon: IconTelegram, label: "Telegram" },
+                { href: contact.whatsapp, Icon: IconWhatsApp, label: "WhatsApp" },
+                { href: contact.instagram, Icon: IconInstagram, label: "Instagram" },
+              ].map(({ href, Icon, label }) =>
+                href && href !== "#" ? (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="group flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:-translate-y-0.5"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ) : null
+              )}
+            </div>
           </div>
 
-          <p className="max-w-md text-sm text-ink-light">
-            © {new Date().getFullYear()} {tenant.name}. Все права защищены.
-            <span className="text-ink-light/60"> · SalonFlow</span>
-            {contact.address ? (
-              <span className="mt-2 block text-ink-light/80">{contact.address}</span>
-            ) : null}
-          </p>
+          {/* Nav */}
+          <div>
+            <h3 className="mb-5 text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Навигация
+            </h3>
+            <ul className="flex flex-col gap-3">
+              {NAV_LINKS.map((link) => (
+                <li key={link.id}>
+                  <button
+                    type="button"
+                    onClick={() => scrollTo(link.id)}
+                    className="text-sm transition-all duration-200 hover:translate-x-1"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <div className="flex w-full max-w-md flex-col items-center gap-4 sm:max-w-none md:items-end">
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 md:justify-end">
+          {/* Contacts */}
+          <div>
+            <h3 className="mb-5 text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Контакты
+            </h3>
+            <div className="flex flex-col gap-3">
               {contact.phones.map((p) => (
-                <a
-                  key={p.href}
-                  href={p.href}
-                  className="text-sm font-medium tabular-nums text-ink transition-colors duration-300 ease-out hover:text-brand-500"
-                >
+                <a key={p.href} href={p.href} className="text-sm font-medium tabular-nums transition-colors duration-200 hover:text-white" style={{ color: "rgba(255,255,255,0.7)" }}>
                   {p.label}
                 </a>
               ))}
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-3 md:justify-end">
-              <a
-                href={contact.telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={socialBtn}
-                aria-label="Telegram"
-              >
-                <IconTelegram className="h-4 w-4" />
-              </a>
-              <a
-                href={contact.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={socialBtn}
-                aria-label="WhatsApp"
-              >
-                <IconWhatsApp className="h-4 w-4" />
-              </a>
-              <a
-                href={contact.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={socialBtn}
-                aria-label="Instagram"
-              >
-                <IconInstagram className="h-4 w-4" />
-              </a>
+              {contact.address && (
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>{contact.address}</p>
+              )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="px-4 py-5 sm:px-6 lg:px-8" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="mx-auto flex max-w-[var(--layout-max)] flex-col items-center justify-between gap-3 text-center text-xs sm:flex-row sm:text-left">
+          <p style={{ color: "rgba(255,255,255,0.25)" }}>
+            © {year} {tenant.name}. Все права защищены.
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.18)" }}>Работает на SalonFlow</p>
         </div>
       </div>
     </footer>
