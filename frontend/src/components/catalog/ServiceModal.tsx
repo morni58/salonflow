@@ -41,15 +41,27 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
         aria-hidden
       />
 
-      {/* Sheet — bottom on mobile, centered on desktop */}
+      {/*
+        Mobile: bottom sheet slides up from bottom, max-height 92dvh
+        Desktop (sm+): centered dialog, max-width lg, max-height 88vh
+      */}
       <div
-        className="fixed inset-x-0 bottom-0 z-[301] flex flex-col rounded-t-3xl bg-surface shadow-2xl animate-scale-in
-          sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl"
         role="dialog"
         aria-modal
         aria-label={service.name}
+        className="
+          fixed inset-x-0 bottom-0 z-[301]
+          flex max-h-[92dvh] flex-col
+          rounded-t-3xl bg-surface shadow-2xl
+          animate-modal
+          sm:inset-auto sm:bottom-auto
+          sm:left-1/2 sm:top-1/2
+          sm:-translate-x-1/2 sm:-translate-y-1/2
+          sm:max-h-[88vh] sm:w-full sm:max-w-lg
+          sm:rounded-3xl
+        "
       >
-        {/* Close button */}
+        {/* Close button — always visible */}
         <button
           type="button"
           onClick={onClose}
@@ -59,28 +71,43 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
           <X size={18} />
         </button>
 
-        {/* Image */}
-        <div className="relative h-56 w-full shrink-0 overflow-hidden rounded-t-3xl bg-brand-100 sm:h-64 sm:rounded-t-3xl">
-          {service.photo_url ? (
+        {/* Drag handle (mobile only) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+          <div className="h-1 w-10 rounded-full bg-brand-200" aria-hidden />
+        </div>
+
+        {/* Image — object-contain so full photo is visible, no cropping */}
+        {service.photo_url ? (
+          <div
+            className="relative shrink-0 overflow-hidden rounded-t-2xl sm:rounded-t-3xl"
+            style={{ background: "var(--color-placeholder-surface)" }}
+          >
             <img
               src={service.photo_url}
               alt={service.name}
-              className="h-full w-full object-cover"
+              className="w-full object-contain"
+              style={{ maxHeight: "clamp(180px, 40vh, 320px)", display: "block" }}
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center" style={{ background: "var(--color-placeholder-surface)" }}>
-              <ImageIcon size={48} className="opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
-            </div>
-          )}
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
-          <span className="absolute top-4 left-4 rounded-md bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
-            {categoryName}
-          </span>
-        </div>
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
+            <span className="absolute top-3 left-3 rounded-md bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+              {categoryName}
+            </span>
+          </div>
+        ) : (
+          <div
+            className="flex h-32 shrink-0 items-center justify-center rounded-t-2xl sm:h-40 sm:rounded-t-3xl"
+            style={{ background: "var(--color-placeholder-surface)" }}
+          >
+            <ImageIcon size={44} className="opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
+            <span className="absolute top-3 left-3 rounded-md bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+              {categoryName}
+            </span>
+          </div>
+        )}
 
-        {/* Content */}
-        <div className="flex flex-col gap-4 overflow-y-auto p-6">
-          <div className="flex items-start justify-between gap-4">
+        {/* Scrollable content */}
+        <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain p-5 sm:p-6">
+          <div>
             <h2 className="font-serif text-2xl font-semibold leading-snug text-ink sm:text-3xl">
               {service.name}
             </h2>
@@ -104,7 +131,7 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
           <button
             type="button"
             onClick={handleAdd}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 active:scale-[0.98] btn-primary-soft"
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 active:scale-[0.98] btn-primary-soft"
             style={{ background: "var(--color-primary)", boxShadow: "0 8px 24px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}
           >
             {inCart ? (
@@ -121,8 +148,8 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
           </button>
         </div>
 
-        {/* Safe area bottom */}
-        <div className="shrink-0" style={{ height: "env(safe-area-inset-bottom, 0px)" }} />
+        {/* Safe area bottom padding (iOS) */}
+        <div className="shrink-0 sm:hidden" style={{ height: "env(safe-area-inset-bottom, 12px)" }} />
       </div>
     </>
   );

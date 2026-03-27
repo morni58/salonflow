@@ -39,7 +39,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
       aria-label={onView ? `Подробнее: ${service.name}` : undefined}
     >
       {/* Image */}
-      <div className="relative h-36 w-full shrink-0 overflow-hidden bg-brand-100 sm:h-52 md:h-60">
+      <div className="relative w-full shrink-0 overflow-hidden bg-brand-100" style={{ aspectRatio: "4/3" }}>
         {service.photo_url ? (
           <img
             src={service.photo_url}

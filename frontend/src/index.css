@@ -286,6 +286,20 @@ a:focus-visible {
   animation: scaleIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Модальное окно: снизу вверх на мобайле, масштаб на десктопе */
+@keyframes slideUpModal {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-modal {
+  animation: slideUpModal 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@media (min-width: 640px) {
+  .animate-modal {
+    animation: scaleIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
 /* Masonry-сетка для портфолио */
 .portfolio-thumb img {
   display: block;

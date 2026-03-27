@@ -46,8 +46,7 @@ def site_menu_keyboard(tenant_id: str | None = None) -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text="🎨 Цвета (hex / rgb)", callback_data="site:colors")],
         [InlineKeyboardButton(text="📝 Тексты главной", callback_data="site:texts")],
-        [InlineKeyboardButton(text="📞 Контакты — быстро", callback_data="site:contacts_quick")],
-        [InlineKeyboardButton(text="📞 Контакты — JSON", callback_data="site:contacts")],
+        [InlineKeyboardButton(text="📞 Контакты и адрес", callback_data="site:contacts_quick")],
         [InlineKeyboardButton(text="🖼 Лого (ссылка)", callback_data="site:logo")],
     ]
     if tenant_id and has_undo(tenant_id):
@@ -73,6 +72,38 @@ def _patch_contact_sync(tenant_id: str, data: dict) -> None:
     sb.table("tenants").update({"contact_json": cur}).eq("id", tenant_id).execute()
 
 
+def _normalize_contact_value(key: str, value: str) -> str:
+    """Normalize contact value to proper URL format."""
+    import re as _re
+    v = value.strip()
+    if key == "telegram":
+        # @username or username → https://t.me/username
+        # already a URL → keep
+        if v.startswith("https://t.me/") or v.startswith("http://t.me/"):
+            return v
+        handle = v.lstrip("@").strip()
+        if handle:
+            return f"https://t.me/{handle}"
+        return v
+    elif key == "whatsapp":
+        # +7 707 123 4567 or just digits → https://wa.me/77071234567
+        if v.startswith("https://wa.me/") or v.startswith("http://wa.me/"):
+            return v
+        digits = _re.sub(r"[^\d]", "", v)
+        if digits:
+            return f"https://wa.me/{digits}"
+        return v
+    elif key == "instagram":
+        # @username or username → https://instagram.com/username
+        if v.startswith("https://instagram.com/") or v.startswith("https://www.instagram.com/"):
+            return v
+        handle = v.lstrip("@").strip()
+        if handle:
+            return f"https://instagram.com/{handle}"
+        return v
+    return v
+
+
 def _patch_contact_key_sync(tenant_id: str, key: str, value: str) -> None:
     import re
 
@@ -90,6 +121,8 @@ def _patch_contact_key_sync(tenant_id: str, key: str, value: str) -> None:
         else:
             phones = [entry]
         cur["phones"] = phones
+    elif key in ("telegram", "whatsapp", "instagram"):
+        cur[key] = _normalize_contact_value(key, value)
     else:
         cur[key] = value.strip()
     sb.table("tenants").update({"contact_json": cur}).eq("id", tenant_id).execute()
@@ -289,19 +322,32 @@ async def site_contacts_quick(callback: CallbackQuery):
     tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
     if not tid or not can_site(role):
         return
+    tid2, _ = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    sb2 = get_supabase()
+    cr = sb2.table("tenants").select("contact_json").eq("id", tid2).limit(1).execute() if tid2 else None
+    cj = normalize_contact_json(cr.data[0].get("contact_json") if cr and cr.data else {})
+    tg_now = cj.get("telegram", "—")
+    wa_now = cj.get("whatsapp", "—")
+    ig_now = cj.get("instagram", "—")
+    addr_now = cj.get("address", "—")
+    phones = cj.get("phones") or []
+    phone_now = phones[0].get("label", "—") if phones else "—"
+
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Telegram (ссылка или @ник)", callback_data="site:cq:telegram")],
-            [InlineKeyboardButton(text="WhatsApp (ссылка wa.me/…)", callback_data="site:cq:whatsapp")],
-            [InlineKeyboardButton(text="Instagram", callback_data="site:cq:instagram")],
-            [InlineKeyboardButton(text="Адрес (текст)", callback_data="site:cq:address")],
-            [InlineKeyboardButton(text="Телефон (основной)", callback_data="site:cq:phone_main")],
-            [InlineKeyboardButton(text="◀️ К сайту", callback_data="menu:site")],
+            [InlineKeyboardButton(text=f"✈️ Telegram: {tg_now[:30]}", callback_data="site:cq:telegram")],
+            [InlineKeyboardButton(text=f"💬 WhatsApp: {wa_now[:30]}", callback_data="site:cq:whatsapp")],
+            [InlineKeyboardButton(text=f"📸 Instagram: {ig_now[:30]}", callback_data="site:cq:instagram")],
+            [InlineKeyboardButton(text=f"📞 Телефон: {phone_now[:30]}", callback_data="site:cq:phone_main")],
+            [InlineKeyboardButton(text=f"📍 Адрес: {addr_now[:30]}", callback_data="site:cq:address")],
+            [InlineKeyboardButton(text="◀️ К настройкам сайта", callback_data="menu:site")],
         ]
     )
     await callback.message.edit_text(
-        "📞 <b>Контакты по полям</b>\n"
-        "Выберите поле — затем одним сообщением пришлите новое значение.",
+        "📞 <b>Контакты и адрес</b>\n\n"
+        "Нажмите на поле — пришлите новое значение.\n"
+        "<i>Telegram/Instagram: можно прислать @username или просто ник.\n"
+        "WhatsApp: пришлите номер телефона.</i>",
         parse_mode="HTML",
         reply_markup=kb,
     )
@@ -315,11 +361,11 @@ async def site_cq_pick(callback: CallbackQuery, state: FSMContext):
         return
     key = callback.data.split(":")[2]
     labels = {
-        "telegram": "Полная ссылка https://t.me/… или ник @salon",
-        "whatsapp": "Ссылка https://wa.me/7XXXXXXXXXX",
-        "instagram": "Ссылка https://instagram.com/…",
-        "address": "Адрес одной строкой (как на сайте)",
-        "phone_main": "Телефон для отображения и звонка, например +7 707 123 4567",
+        "telegram": "Пришлите @username или просто username (например: <code>@mysalon</code>)\nМожно и полную ссылку https://t.me/…",
+        "whatsapp": "Пришлите номер телефона (например: <code>+7 707 123 4567</code>)\nСсылка wa.me/… тоже подойдёт",
+        "instagram": "Пришлите @username или просто username (например: <code>@mysalon</code>)\nМожно и полную ссылку https://instagram.com/…",
+        "address": "Адрес одной строкой, как он будет показан на сайте",
+        "phone_main": "Телефон для кнопки «позвонить» (например: <code>+7 707 123 4567</code>)",
     }
     await state.set_state(SiteStates.waiting_value)
     await state.update_data(site_kind="contact_key", contact_key=key)
@@ -608,9 +654,7 @@ async def site_process_value(message: Message, state: FSMContext):
         if not ck or ck not in ("telegram", "whatsapp", "instagram", "address", "phone_main"):
             await state.clear()
             return
-        if ck in ("telegram", "whatsapp", "instagram") and not (text.startswith("http") or text.startswith("@")):
-            await message.reply("❌ Для мессенджеров нужна ссылка https://… или @ник для Telegram.")
-            return
+        # No strict validation — normalization handles formatting
 
         def _save_cq():
             sb = get_supabase()
