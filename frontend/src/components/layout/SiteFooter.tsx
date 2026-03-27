@@ -38,7 +38,6 @@ interface Props {
 }
 
 export function SiteFooter({ tenant, onNavClick }: Props) {
-  const initial = tenant.name.trim().charAt(0).toUpperCase() || "•";
   const contact = getFooterContact(tenant);
   const year = new Date().getFullYear();
 
@@ -51,50 +50,20 @@ export function SiteFooter({ tenant, onNavClick }: Props) {
   };
 
   return (
-    <footer className="mt-4 overflow-hidden" style={{ background: "#1a1714" }}>
-      {/* Top CTA strip */}
-      <div
-        className="px-4 py-10 text-center sm:px-6 lg:px-8"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <p className="font-serif text-2xl font-semibold text-white md:text-3xl">
-          Готовы к преображению?
-        </p>
-        <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-          Запишитесь онлайн — свободные окна обновляются в реальном времени
-        </p>
-        <button
-          type="button"
-          onClick={() => scrollTo("catalog")}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
-          style={{ background: "var(--color-primary, #c08973)", boxShadow: "0 8px 28px rgba(192,137,115,0.4)" }}
-        >
-          Записаться сейчас
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Main columns */}
-      <div className="mx-auto max-w-[var(--layout-max)] px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-3 lg:grid-cols-4">
+    <footer className="mt-4 overflow-hidden" style={{ background: "#1c1917" }}>
+      <div className="mx-auto max-w-6xl py-14 md:py-16 px-6">
+        {/* Main row */}
+        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
           {/* Brand */}
-          <div className="lg:col-span-2">
-            <div className="mb-5 flex items-center gap-3">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-serif text-base font-bold"
-                style={{ background: "var(--color-primary, #c08973)", color: "#fff" }}
-                aria-hidden
-              >
-                {initial}
-              </div>
-              <span className="font-serif text-xl font-semibold text-white">{tenant.name}</span>
-            </div>
-            <p className="mb-6 max-w-sm text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Ваш beauty-салон с заботой о каждом клиенте. Профессиональные мастера, премиум материалы и атмосфера уюта.
+          <div className="flex-shrink-0">
+            <span className="font-serif italic text-2xl md:text-3xl text-white tracking-tight block mb-4">
+              {tenant.name}
+            </span>
+            <p className="max-w-[240px] text-sm leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Ваш beauty-салон с заботой о каждом клиенте.
             </p>
-            <div className="flex items-center gap-2">
+            {/* Social links */}
+            <div className="flex items-center gap-4">
               {[
                 { href: contact.telegram, Icon: IconTelegram, label: "Telegram" },
                 { href: contact.whatsapp, Icon: IconWhatsApp, label: "WhatsApp" },
@@ -107,8 +76,8 @@ export function SiteFooter({ tenant, onNavClick }: Props) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="group flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:-translate-y-0.5"
-                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}
+                    className="transition-opacity duration-200 hover:opacity-70"
+                    style={{ color: "rgba(255,255,255,0.35)" }}
                   >
                     <Icon className="h-4 w-4" />
                   </a>
@@ -119,7 +88,7 @@ export function SiteFooter({ tenant, onNavClick }: Props) {
 
           {/* Nav */}
           <div>
-            <h3 className="mb-5 text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>
+            <h3 className="mb-4 text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.25)" }}>
               Навигация
             </h3>
             <ul className="flex flex-col gap-3">
@@ -128,8 +97,10 @@ export function SiteFooter({ tenant, onNavClick }: Props) {
                   <button
                     type="button"
                     onClick={() => scrollTo(link.id)}
-                    className="text-sm transition-all duration-200 hover:translate-x-1"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="text-[9px] font-bold uppercase tracking-widest transition-colors duration-200"
+                    style={{ color: "rgba(255,255,255,0.35)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.35)"; }}
                   >
                     {link.label}
                   </button>
@@ -140,30 +111,38 @@ export function SiteFooter({ tenant, onNavClick }: Props) {
 
           {/* Contacts */}
           <div>
-            <h3 className="mb-5 text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>
+            <h3 className="mb-4 text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.25)" }}>
               Контакты
             </h3>
             <div className="flex flex-col gap-3">
               {contact.phones.map((p) => (
-                <a key={p.href} href={p.href} className="text-sm font-medium tabular-nums transition-colors duration-200 hover:text-white" style={{ color: "rgba(255,255,255,0.7)" }}>
+                <a
+                  key={p.href}
+                  href={p.href}
+                  className="text-sm font-medium tabular-nums transition-colors duration-200"
+                  style={{ color: "rgba(255,255,255,0.55)" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.9)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)"; }}
+                >
                   {p.label}
                 </a>
               ))}
               {contact.address && (
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>{contact.address}</p>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>{contact.address}</p>
               )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom bar */}
-      <div className="px-4 py-5 sm:px-6 lg:px-8" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="mx-auto flex max-w-[var(--layout-max)] flex-col items-center justify-between gap-3 text-center text-xs sm:flex-row sm:text-left">
-          <p style={{ color: "rgba(255,255,255,0.25)" }}>
+        {/* Bottom bar */}
+        <div
+          className="mt-12 pt-6 flex flex-col items-center justify-between gap-2 sm:flex-row"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.2)" }}>
             © {year} {tenant.name}. Все права защищены.
           </p>
-          <p style={{ color: "rgba(255,255,255,0.18)" }}>Работает на SalonFlow</p>
+          <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.15)" }}>Работает на SalonFlow</p>
         </div>
       </div>
     </footer>

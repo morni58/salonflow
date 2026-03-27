@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserRound, Sparkles } from "lucide-react";
+import { UserRound } from "lucide-react";
 import type { MasterPublic } from "../../types";
 import { fetchMasters } from "../../api/client";
 
@@ -36,19 +36,14 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
     <section
       id="masters"
       data-anchor-section
-      className="scroll-mt-24 rounded-2xl py-16 md:py-24"
-      style={{ background: "var(--color-primary-muted)" }}
+      className="scroll-mt-24 py-16 md:py-24"
     >
       {/* Header */}
       <div className="mb-10 text-center md:mb-14">
-        <span
-          className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
-          style={{ borderColor: "var(--color-primary-20)", background: "white", color: "var(--color-primary)" }}
-        >
-          <Sparkles size={11} aria-hidden />
+        <p className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-40 mb-4">
           Наша команда
-        </span>
-        <h2 className="font-serif text-3xl font-semibold text-ink md:text-5xl">Мастера</h2>
+        </p>
+        <h2 className="font-serif italic text-3xl md:text-5xl text-ink">Мастера</h2>
         <p className="mt-3 mx-auto max-w-lg text-sm text-ink-muted md:text-base">
           Каждый мастер — специалист с опытом и страстью к своему делу
         </p>
@@ -66,10 +61,16 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
         {masters.map((m) => (
           <article
             key={m.id}
-            className="group flex flex-col items-center rounded-2xl bg-white p-6 text-center shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-float"
+            className="group flex flex-col overflow-hidden rounded-[28px] bg-white p-2 border border-black/5 transition-all duration-300 hover:-translate-y-1"
+            style={{ boxShadow: "none" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(54,49,47,0.08)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
           >
-            {/* Avatar */}
-            <div className="relative mb-5 h-28 w-28 overflow-hidden rounded-full ring-4 ring-white shadow-soft">
+            {/* Portrait image area */}
+            <div
+              className="rounded-[22px] overflow-hidden w-full"
+              style={{ aspectRatio: "3/4", background: "var(--color-placeholder-surface)" }}
+            >
               {m.photo_url ? (
                 <img
                   src={m.photo_url}
@@ -78,45 +79,34 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
                   loading="lazy"
                 />
               ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center"
-                  style={{ background: "var(--color-placeholder-surface)" }}
-                >
-                  <UserRound className="h-14 w-14 opacity-25" style={{ color: "var(--color-primary)" }} aria-hidden />
+                <div className="flex h-full w-full items-center justify-center">
+                  <UserRound className="h-16 w-16 opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
                 </div>
               )}
             </div>
 
-            <h3 className="font-serif text-xl font-semibold text-ink">{m.display_name}</h3>
-            {m.title && (
-              <p className="mt-1 mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
-                {m.title}
-              </p>
-            )}
-            {m.bio ? (
-              <p className="mb-5 line-clamp-3 text-sm leading-relaxed text-ink-muted">{m.bio}</p>
-            ) : (
-              <p className="mb-5 text-sm italic text-ink-muted/60">Описание скоро появится.</p>
-            )}
+            {/* Name / title / bio below image */}
+            <div className="px-3 py-3 flex flex-col flex-1">
+              <h3 className="font-serif text-xl font-bold text-ink">{m.display_name}</h3>
+              {m.title && (
+                <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest opacity-40">
+                  {m.title}
+                </p>
+              )}
+              {m.bio ? (
+                <p className="mt-2 mb-4 line-clamp-3 text-sm leading-relaxed text-ink-muted">{m.bio}</p>
+              ) : (
+                <p className="mt-2 mb-4 text-sm italic text-ink-muted/60">Описание скоро появится.</p>
+              )}
 
-            <button
-              type="button"
-              onClick={() => scrollToCatalog(m.id)}
-              className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.97] hover:text-white"
-              style={{ borderColor: "var(--color-primary)", color: "var(--color-primary)" }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = "var(--color-primary)";
-                el.style.color = "#fff";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = "";
-                el.style.color = "var(--color-primary)";
-              }}
-            >
-              Записаться
-            </button>
+              <button
+                type="button"
+                onClick={() => scrollToCatalog(m.id)}
+                className="mt-auto w-full rounded-2xl py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95 bg-black/5 text-ink/60 hover:bg-ink hover:text-white"
+              >
+                Записаться
+              </button>
+            </div>
           </article>
         ))}
       </div>

@@ -24,10 +24,10 @@ export function SegmentedTabs({ tabs, activeKey, onSelect, className, ariaLabel 
               key={id} type="button" role="tab" aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.97]",
+                "whitespace-nowrap rounded-full border px-5 py-2 text-[9px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
                 isActive
-                  ? "border-white bg-white text-ink shadow-sm"
-                  : "border-white/20 text-white/75 hover:border-white/40 hover:text-white"
+                  ? "bg-white text-ink border-transparent"
+                  : "border-white/20 text-white/60 hover:border-white/40 hover:text-white"
               )}
             >
               {tab.key === null ? allLabel : tab.label}
@@ -39,7 +39,7 @@ export function SegmentedTabs({ tabs, activeKey, onSelect, className, ariaLabel 
   }
 
   return (
-    <div className={cn("-mx-4 overflow-x-auto pb-1 hide-scrollbar sm:mx-0 sm:overflow-visible", className)}>
+    <div className={cn("-mx-4 overflow-x-auto pb-2 hide-scrollbar sm:mx-0", className)}>
       <div className="flex min-w-min gap-2 px-4 sm:flex-wrap sm:px-0" role="tablist" aria-label={ariaLabel}>
         {tabs.map((tab) => {
           const isActive = activeKey === tab.key;
@@ -49,12 +49,11 @@ export function SegmentedTabs({ tabs, activeKey, onSelect, className, ariaLabel 
               key={id} type="button" role="tab" aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.97] whitespace-nowrap",
+                "shrink-0 whitespace-nowrap rounded-full border px-5 py-2 text-[9px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
                 isActive
-                  ? "border-transparent text-white shadow-sm"
-                  : "border-brand-200 bg-white text-ink-muted hover:border-brand-400 hover:text-ink"
+                  ? "bg-ink text-white border-transparent"
+                  : "bg-white text-ink/50 border-ink/10 hover:text-ink hover:border-ink/20"
               )}
-              style={isActive ? { background: "var(--color-primary)" } : undefined}
             >
               {tab.key === null ? allLabel : tab.label}
             </button>

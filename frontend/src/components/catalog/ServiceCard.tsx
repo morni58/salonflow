@@ -1,4 +1,4 @@
-import { Clock, Plus, Check, ImageIcon } from "lucide-react";
+import { Clock, Check, ImageIcon } from "lucide-react";
 import type { Service } from "../../types";
 import { formatPrice, formatDuration } from "../../utils";
 import { useCart } from "../../store/cartStore";
@@ -27,64 +27,67 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
 
   return (
     <div
-      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-float cursor-pointer"
+      className="group flex flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white p-2 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+      style={{ boxShadow: "none", transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(54,49,47,0.08)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
       onClick={() => onView?.(service)}
       role={onView ? "button" : undefined}
       tabIndex={onView ? 0 : undefined}
       onKeyDown={onView ? (e) => { if (e.key === "Enter" || e.key === " ") onView(service); } : undefined}
       aria-label={onView ? `Подробнее: ${service.name}` : undefined}
     >
-      {/* Image */}
-      <div className="relative w-full shrink-0 overflow-hidden bg-brand-50" style={{ aspectRatio: "4/3" }}>
+      {/* Image container */}
+      <div
+        className="relative w-full shrink-0 overflow-hidden rounded-[22px]"
+        style={{ aspectRatio: "4/3", background: "var(--color-placeholder-surface)" }}
+      >
         {service.photo_url ? (
           <img
             src={service.photo_url}
             alt={service.name}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center" style={{ background: "var(--color-placeholder-surface)" }}>
+          <div className="flex h-full w-full items-center justify-center">
             <ImageIcon className="opacity-20" size={32} style={{ color: "var(--color-primary)" }} aria-hidden />
           </div>
         )}
         {/* In-cart indicator */}
         {inCart && (
-          <span
-            className="absolute right-2 top-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold text-white"
-            style={{ background: "var(--color-primary)" }}
-          >
-            <Check size={9} strokeWidth={3} />
-            {cartItem && cartItem.quantity > 1 ? `×${cartItem.quantity}` : "Добавлено"}
+          <span className="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-ink text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1">
+            <Check size={8} strokeWidth={3} />
+            {cartItem && cartItem.quantity > 1 ? `×${cartItem.quantity}` : "В записи"}
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
+      <div className="flex min-w-0 flex-1 flex-col px-4 pb-4 pt-3">
         <h3
-          className="font-serif line-clamp-2 text-base font-semibold leading-snug text-ink sm:text-lg"
+          className="font-serif text-lg font-bold leading-snug text-ink line-clamp-2"
           style={{ overflowWrap: "anywhere" }}
         >
           {service.name}
         </h3>
 
+        {/* Duration */}
+        <div className="mt-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest opacity-35">
+          <Clock size={10} strokeWidth={2} className="shrink-0" aria-hidden />
+          {formatDuration(service.duration_minutes)}
+        </div>
+
         {service.description && (
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-muted">
+          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-muted">
             {service.description}
           </p>
         )}
 
-        {/* Duration */}
-        <div className="mt-2 flex items-center gap-1 text-xs text-ink-muted">
-          <Clock size={11} strokeWidth={2} className="shrink-0" style={{ color: "var(--color-primary)" }} />
-          {formatDuration(service.duration_minutes)}
-        </div>
-
         {/* Price + CTA */}
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-brand-50 pt-3">
+        <div className="mt-auto pt-4 flex items-center justify-between gap-2">
           <span
-            className="text-lg font-bold tabular-nums leading-none sm:text-xl"
+            className="font-serif italic text-xl"
             style={{ color: "var(--color-primary)" }}
           >
             {formatPrice(service.price)}
@@ -95,23 +98,13 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
             onClick={handleAdd}
             aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
             className={[
-              "flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.97] sm:px-4 sm:text-sm",
+              "shrink-0 rounded-2xl px-4 py-2.5 text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
               added || inCart
-                ? "text-white"
-                : "hover:opacity-90",
+                ? "bg-ink text-white"
+                : "bg-black/5 text-ink/60 hover:bg-ink hover:text-white",
             ].join(" ")}
-            style={
-              added || inCart
-                ? { background: "var(--color-primary)", color: "#fff" }
-                : { background: "var(--color-primary-muted)", color: "var(--color-primary)" }
-            }
           >
-            {added ? (
-              <Check size={14} strokeWidth={2.5} />
-            ) : (
-              <Plus size={14} strokeWidth={2.5} />
-            )}
-            <span className="hidden sm:inline">{added ? "Добавлено" : inCart ? "Ещё раз" : "Добавить"}</span>
+            {added ? "Добавлено" : inCart ? "Ещё раз" : "Добавить"}
           </button>
         </div>
       </div>

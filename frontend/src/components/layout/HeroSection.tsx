@@ -28,87 +28,71 @@ export function HeroSection({ tenant }: Props) {
   const ratingLabel = siteText(tenant, "hero_rating_sub", "Средняя оценка");
 
   return (
-    <section className="relative overflow-hidden pb-16 pt-10 lg:pb-28 lg:pt-20">
-      {/* Ambient blobs */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
-        <div className="absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-brand-100/70 blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 h-[360px] w-[360px] rounded-full bg-brand-200/40 blur-3xl" />
-      </div>
-
+    <section className="relative overflow-hidden pt-32 md:pt-44 pb-16 md:pb-24">
       <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         {/* ── Text ─────────────────────────────── */}
         <div className="order-2 min-w-0 text-center lg:order-1 lg:text-left">
-          {/* Badge */}
-          <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-brand-200 bg-white px-5 py-2 text-xs font-semibold uppercase tracking-widest text-brand-600 shadow-sm">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" aria-hidden />
-            {badge}
+          {/* Badge — small label above title */}
+          <div className="mb-6 flex justify-center lg:justify-start">
+            <span className="inline-flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest opacity-40">
+              <span className="h-1 w-1 rounded-full bg-current animate-pulse" aria-hidden />
+              {badge}
+            </span>
           </div>
 
           {/* Headline */}
-          <h1
-            className="font-serif mb-6 text-balance text-4xl font-semibold leading-[1.07] tracking-tight text-ink sm:text-5xl lg:text-6xl xl:text-[5rem]"
-          >
+          <h1 className="font-serif italic mb-7 text-balance text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] leading-[1.05] text-ink">
             {line1}
             <br />
-            <span className="italic" style={{ color: "var(--color-primary)" }}>
+            <span style={{ color: "var(--color-primary)" }}>
               {accentTitle}
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mx-auto mb-10 max-w-md text-base leading-relaxed text-ink-muted lg:mx-0 md:text-lg">
+          <p className="mx-auto mb-10 max-w-md text-base leading-relaxed text-ink-muted lg:mx-0">
             {subtitle}
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+          <div className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start items-center">
             <button
               type="button"
               onClick={() => scrollTo("catalog")}
-              className="group relative inline-flex min-h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-xl px-8 text-sm font-semibold text-white shadow-[0_8px_28px_rgba(192,137,115,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(192,137,115,0.50)] active:scale-[0.98] sm:w-auto"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 75%, #7a3520) 100%)",
-              }}
+              className="btn-ink w-full sm:w-auto"
             >
               {ctaPrimary}
-              <svg
-                className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </button>
 
             <button
               type="button"
               onClick={() => scrollTo("masters")}
-              className="inline-flex min-h-[54px] w-full items-center justify-center rounded-xl border border-brand-200 bg-white/80 px-8 text-sm font-medium text-ink backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-400 hover:bg-white hover:text-brand-600 sm:w-auto"
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-ink/50 hover:text-ink transition-colors"
             >
               {ctaSecondary}
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
 
           {/* Stats row */}
-          <div className="mt-12 flex flex-wrap justify-center gap-8 border-t border-brand-100 pt-8 lg:justify-start">
+          <div className="mt-14 flex flex-wrap justify-center gap-8 border-t border-black/5 pt-8 lg:justify-start">
             {[
               { value: "1 000+", label: "Клиентов" },
               { value: ratingNum, label: ratingLabel },
               { value: "5+", label: "Лет опыта" },
             ].map((stat, i) => (
               <div key={stat.label} className="flex items-center gap-8">
-                {i > 0 && <div className="hidden h-8 w-px bg-brand-200 sm:block" />}
+                {i > 0 && <div className="hidden h-7 w-px bg-black/8 sm:block" />}
                 <div className="text-center lg:text-left">
-                  <div
-                    className="font-serif text-3xl font-bold text-ink"
-                    style={{ letterSpacing: "-0.02em" }}
-                  >
+                  <div className="font-serif italic text-3xl font-bold text-ink" style={{ letterSpacing: "-0.02em" }}>
                     {stat.value}
                   </div>
-                  <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-widest text-ink-muted">
+                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-widest opacity-40">
                     {stat.label}
                   </div>
                 </div>
@@ -119,46 +103,49 @@ export function HeroSection({ tenant }: Props) {
 
         {/* ── Image ─────────────────────────────── */}
         <div className="order-1 relative lg:order-2">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[130%] w-[130%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-100/50 blur-3xl" aria-hidden />
-
-          {/* Main image */}
-          <div className="relative overflow-hidden rounded-[2.5rem] shadow-float md:rounded-[3rem]">
+          {/* Asymmetric clip-path image */}
+          <div className="hero-img-clip overflow-hidden">
             <img
               src={heroImg}
               alt=""
-              className="h-[320px] w-full object-cover sm:h-[420px] lg:h-[520px]"
+              className="h-[300px] w-full object-cover sm:h-[420px] lg:h-[540px]"
               loading="eager"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/15" />
           </div>
 
-          {/* Floating: today's clients */}
-          <div className="animate-fade-up animate-delay-200 absolute -bottom-6 -left-4 z-10 hidden sm:-left-8 sm:block">
-            <div className="rounded-2xl border border-brand-100 bg-white/96 px-5 py-4 shadow-float backdrop-blur-md">
+          {/* Floating card: today's clients */}
+          <div className="animate-fade-up animate-delay-200 absolute -bottom-4 -left-4 z-10 hidden sm:-left-6 sm:block">
+            <div
+              className="rounded-2xl px-5 py-4 backdrop-blur-md"
+              style={{ background: "rgba(255,255,255,0.95)", border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 12px 40px rgba(54,49,47,0.08)" }}
+            >
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
                   {["#d4a895", "#c08973", "#a06b57"].map((c) => (
                     <div
                       key={c}
-                      className="h-8 w-8 rounded-full border-2 border-white"
+                      className="h-7 w-7 rounded-full border-2 border-white"
                       style={{ background: c }}
                     />
                   ))}
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium text-ink-muted">Записались сегодня</p>
-                  <p className="font-serif text-lg font-bold leading-tight text-ink">12 клиентов</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest opacity-40">Записались сегодня</p>
+                  <p className="font-serif text-base font-bold leading-tight text-ink">12 клиентов</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Floating: rating */}
-          <div className="animate-fade-up animate-delay-300 absolute -right-4 -top-4 z-10 hidden sm:-right-6 sm:block">
-            <div className="rounded-2xl border border-brand-100 bg-white/96 px-5 py-3.5 shadow-float backdrop-blur-md">
-              <div className="flex items-center gap-1.5">
+          {/* Floating card: rating */}
+          <div className="animate-fade-up animate-delay-300 absolute -right-3 top-6 z-10 hidden sm:-right-5 sm:block">
+            <div
+              className="rounded-2xl px-4 py-3 backdrop-blur-md"
+              style={{ background: "rgba(255,255,255,0.95)", border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 12px 40px rgba(54,49,47,0.08)" }}
+            >
+              <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} size={14} className="fill-amber-400 text-amber-400" aria-hidden />
+                  <Star key={s} size={13} className="fill-amber-400 text-amber-400" aria-hidden />
                 ))}
               </div>
               <p className="mt-1 font-serif text-sm font-bold text-ink">Сертифицированные мастера</p>

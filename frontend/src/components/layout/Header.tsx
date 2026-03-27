@@ -27,7 +27,6 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const lastYRef = useRef(0);
   const { itemCount } = useCart();
 
@@ -35,7 +34,6 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
-      setScrolled(y > 10);
       if (y > lastYRef.current + 8 && y > 80) {
         setHidden(true);
       } else if (y < lastYRef.current - 8) {
@@ -47,7 +45,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Подсветка активного раздела при скролле
+  // Active section detection via IntersectionObserver
   useEffect(() => {
     const ids = NAV_LINKS.map((l) => l.id);
     const observers: IntersectionObserver[] = [];
@@ -70,7 +68,6 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   const handleNav = (id: string) => {
     const wasOpen = drawerOpen;
     setDrawerOpen(false);
-    // Wait for mobile drawer close animation + body overflow restore
     const delay = wasOpen ? 350 : 0;
     setTimeout(() => {
       if (onNavClick) {
@@ -100,166 +97,178 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
 
   return (
     <>
+      {/* Floating glass nav */}
       <header
-        className={`glass-nav fixed top-0 z-[100] w-full border-b border-ink/5 transition-all duration-300 ${
+        className={`fixed top-0 w-full z-[100] px-3 pt-3 pb-0 transition-all duration-300 ${
           hidden && !drawerOpen ? "-translate-y-full" : "translate-y-0"
-        } ${scrolled ? "shadow-md" : ""}`}
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        }`}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
       >
-        <div className="relative mx-auto max-w-[var(--layout-max)] px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-2 md:h-20">
-            <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-6">
+        <div className="mx-auto max-w-6xl">
+          <div
+            className="glass-nav-float rounded-xl md:rounded-2xl flex h-14 md:h-16 items-center justify-between px-4 md:px-6"
+          >
+            {/* Logo / Brand */}
+            <button
+              type="button"
+              onClick={goHome}
+              className="group flex min-w-0 items-center gap-2.5 text-left shrink-0"
+              title="На главную"
+            >
+              {tenant.logo_url ? (
+                <img
+                  src={tenant.logo_url}
+                  alt=""
+                  className="h-7 w-7 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg font-serif text-sm font-bold text-white transition-colors"
+                  style={{ background: "var(--color-primary)" }}
+                >
+                  {initial}
+                </div>
+              )}
+              <span className="font-serif text-lg font-bold tracking-tight text-ink min-w-0 truncate max-w-[160px]">
+                {tenant.name}
+              </span>
+            </button>
+
+            {/* Desktop nav links — centered */}
+            <nav className="hidden md:flex items-center gap-7 absolute left-1/2 -translate-x-1/2" aria-label="Разделы страницы">
+              {NAV_LINKS.map((link) => {
+                const isActive = activeSection === link.id;
+                return (
+                  <button
+                    key={link.id}
+                    type="button"
+                    onClick={() => handleNav(link.id)}
+                    className={`text-[10px] font-bold uppercase tracking-[0.18em] transition-colors duration-200 ${
+                      isActive ? "text-ink" : "text-ink/50 hover:text-ink"
+                    }`}
+                    aria-current={isActive ? "true" : undefined}
+                  >
+                    {link.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Right side: cart + mobile hamburger */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Cart button */}
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenCart();
+                  setDrawerOpen(false);
+                }}
+                className="relative inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white transition-all duration-200 active:scale-[0.96]"
+                style={{
+                  background: "#1c1917",
+                  boxShadow: itemCount > 0 ? "0 4px 14px rgba(0,0,0,0.18)" : "0 2px 8px rgba(0,0,0,0.1)",
+                }}
+                aria-label="Моя запись"
+              >
+                <div className="relative">
+                  <ShoppingBag size={15} strokeWidth={2} />
+                  {itemCount > 0 && (
+                    <span
+                      className="absolute -top-2 -right-2 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      {itemCount > 9 ? "9+" : itemCount}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden sm:inline whitespace-nowrap">Запись</span>
+              </button>
+
+              {/* Mobile hamburger */}
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
-                className="-ml-2 shrink-0 p-2 text-ink transition-colors duration-300 ease-out hover:text-brand-500 md:hidden"
+                className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-ink/60 hover:text-ink transition-colors"
                 aria-label="Открыть меню"
               >
-                <Menu size={24} strokeWidth={2} />
+                <Menu size={20} strokeWidth={2} />
               </button>
-
-              <div className="flex min-w-0 flex-1 items-center justify-center gap-8 md:justify-start md:gap-10">
-                <button
-                  type="button"
-                  onClick={goHome}
-                  className="group flex min-w-0 items-center justify-center gap-2 text-left md:justify-start md:gap-3"
-                  title="На главную"
-                >
-                  {tenant.logo_url ? (
-                    <img
-                      src={tenant.logo_url}
-                      alt=""
-                      className="h-8 w-8 shrink-0 rounded-lg object-cover shadow-sm md:h-10 md:w-10"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-100 font-serif text-lg font-bold text-brand-600 transition-colors duration-300 ease-out group-hover:bg-brand-500 group-hover:text-white md:h-10 md:w-10 md:text-xl">
-                      {initial}
-                    </div>
-                  )}
-                  <span className="font-serif min-w-0 truncate text-xl font-semibold tracking-wide text-ink md:text-2xl">
-                    {tenant.name}
-                  </span>
-                </button>
-
-                <nav className="hidden items-center gap-8 md:flex" aria-label="Разделы страницы">
-                  {NAV_LINKS.map((link) => {
-                    const isActive = activeSection === link.id;
-                    return (
-                      <button
-                        key={link.id}
-                        type="button"
-                        onClick={() => handleNav(link.id)}
-                        className="relative text-sm font-medium transition-colors duration-300 ease-out"
-                        style={{ color: isActive ? "var(--color-primary)" : undefined }}
-                        aria-current={isActive ? "true" : undefined}
-                      >
-                        <span className={isActive ? "" : "text-ink/70 hover:text-brand-500"}>
-                          {link.label}
-                        </span>
-                        {isActive && (
-                          <span
-                            className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full"
-                            style={{ background: "var(--color-primary)" }}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                onOpenCart();
-                setDrawerOpen(false);
-              }}
-              className="relative inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-px active:scale-[0.97]"
-              style={{ background: "var(--color-primary)", boxShadow: itemCount > 0 ? "0 4px 14px rgba(192,137,115,0.4)" : "0 2px 8px rgba(192,137,115,0.25)" }}
-              aria-label="Моя запись"
-            >
-              <div className="relative">
-                <ShoppingBag size={18} strokeWidth={2} />
-                {itemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex min-w-[1.1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold shadow-sm" style={{ color: "var(--color-primary)" }}>
-                    {itemCount > 9 ? "9+" : itemCount}
-                  </span>
-                )}
-              </div>
-              <span className="whitespace-nowrap">Моя запись</span>
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Мобильное меню */}
+      {/* Full-screen glass mobile menu */}
       <div
-        className={`fixed inset-y-0 left-0 z-[200] flex w-4/5 max-w-sm flex-col bg-surface shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
-          drawerOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-0 z-[200] flex flex-col items-center justify-center md:hidden transition-all duration-300 ${
+          drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
+        style={{
+          background: "rgba(250,249,247,0.96)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
         aria-hidden={!drawerOpen}
       >
-        <div className="flex items-center justify-between border-b border-brand-50 px-6 py-5">
-          <span className="font-serif text-2xl font-semibold text-ink">Меню</span>
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(false)}
-            className="rounded-lg bg-brand-50 p-2 text-ink-muted transition-colors hover:text-brand-500"
-            aria-label="Закрыть меню"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6" aria-label="Мобильное меню">
+        {/* Close button top-right */}
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(false)}
+          className="absolute top-5 right-5 flex items-center justify-center w-10 h-10 rounded-xl border border-black/8 bg-white/80 text-ink/60 hover:text-ink transition-colors"
+          aria-label="Закрыть меню"
+        >
+          <X size={20} strokeWidth={2} />
+        </button>
+
+        {/* Brand in top-left */}
+        <button
+          type="button"
+          onClick={goHome}
+          className="absolute top-5 left-5 font-serif text-lg font-bold tracking-tight text-ink"
+        >
+          {tenant.name}
+        </button>
+
+        {/* Centered nav links */}
+        <nav className="flex flex-col items-center gap-7" aria-label="Мобильное меню">
           {NAV_LINKS.map((link) => {
-            const Icon = link.icon;
             const isActive = activeSection === link.id;
             return (
               <button
                 key={link.id}
                 type="button"
                 onClick={() => handleNav(link.id)}
-                className="flex items-center rounded-xl p-4 text-left text-lg font-medium transition-colors duration-200 ease-out"
-                style={isActive
-                  ? { background: "var(--color-primary-muted)", color: "var(--color-primary)" }
-                  : undefined}
+                className={`font-serif italic text-2xl transition-colors duration-200 ${
+                  isActive ? "text-ink" : "text-ink/50 hover:text-ink"
+                }`}
                 aria-current={isActive ? "true" : undefined}
               >
-                <Icon
-                  className="mr-3 h-5 w-5"
-                  strokeWidth={isActive ? 2.5 : 2}
-                  style={{ opacity: isActive ? 1 : 0.55 }}
-                  aria-hidden
-                />
                 {link.label}
               </button>
             );
           })}
         </nav>
-        <div className="border-t border-brand-100 bg-base p-6">
+
+        {/* CTA at bottom */}
+        <div className="absolute bottom-10 left-0 right-0 flex justify-center px-8">
           <button
             type="button"
             onClick={() => {
               setDrawerOpen(false);
               onOpenCart();
             }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px active:scale-[0.97] min-h-[44px]"
-            style={{ background: "var(--color-primary)", boxShadow: "0 4px 16px rgba(192,137,115,0.35)" }}
+            className="btn-ink w-full max-w-xs justify-center"
           >
-            <ShoppingBag size={18} strokeWidth={2} />
+            <ShoppingBag size={15} strokeWidth={2} />
             Открыть корзину
+            {itemCount > 0 && (
+              <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[9px]">
+                {itemCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
-
-      <div
-        className={`fixed inset-0 z-[199] bg-ink-dark/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
-          drawerOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={() => setDrawerOpen(false)}
-        aria-hidden={!drawerOpen}
-      />
     </>
   );
 }

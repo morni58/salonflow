@@ -24,25 +24,31 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
       />
 
       <div
-        className="fixed top-0 right-0 z-[200] flex h-[100dvh] max-h-[100dvh] w-full max-w-md flex-col bg-surface shadow-2xl transition-transform duration-500 ease-in-out"
+        className="fixed top-0 right-0 z-[200] flex h-[100dvh] max-h-[100dvh] w-full max-w-md flex-col bg-white shadow-2xl transition-transform duration-500 ease-in-out"
         style={{
           transform: open ? "translateX(0)" : "translateX(100%)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
         aria-hidden={!open}
       >
-        <div className="flex items-center justify-between border-b border-brand-100 bg-base px-5 py-4 md:px-6 md:py-5">
-          <h2 className="font-serif flex items-center gap-2 text-xl font-semibold text-ink md:text-2xl">
-            <ShoppingBag className="h-5 w-5 text-brand-500 md:h-6 md:w-6" strokeWidth={2} />
-            Ваша запись
-          </h2>
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-4 md:px-6 md:py-5"
+          style={{ borderBottom: "1px solid rgba(0,0,0,0.06)", background: "var(--color-bg, #faf9f7)" }}
+        >
+          <div>
+            <h2 className="font-serif text-xl font-bold text-ink">Ваша запись</h2>
+            <p className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-0.5">
+              {items.length === 0 ? "Корзина пуста" : `${items.length} услуг`}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="-mr-2 rounded-lg p-2 text-ink-muted transition-colors hover:bg-brand-50 hover:text-brand-500 active:scale-95"
+            className="flex items-center justify-center w-9 h-9 rounded-xl border border-black/8 bg-white text-ink/50 hover:text-ink transition-colors"
             aria-label="Закрыть"
           >
-            <X size={22} strokeWidth={2} />
+            <X size={18} strokeWidth={2} />
           </button>
         </div>
 
@@ -50,12 +56,12 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
           {items.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <div
-                className="flex h-20 w-20 items-center justify-center rounded-2xl"
+                className="flex h-20 w-20 items-center justify-center rounded-[28px]"
                 style={{ background: "var(--color-primary-muted)" }}
               >
                 <ShoppingBag className="h-9 w-9" strokeWidth={1.5} style={{ color: "var(--color-primary)" }} aria-hidden />
               </div>
-              <p className="font-serif text-lg font-semibold text-ink">Список пуст</p>
+              <p className="font-serif text-lg font-bold text-ink">Список пуст</p>
               <p className="max-w-[200px] text-sm text-ink-muted opacity-70">Добавьте услуги из каталога, чтобы записаться</p>
             </div>
           ) : (
@@ -63,48 +69,51 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
               {items.map((item) => (
                 <div
                   key={item.service.id}
-                  className="flex flex-col gap-3 rounded-xl border border-brand-50 bg-white p-3"
+                  className="flex flex-col gap-3 rounded-2xl p-4"
+                  style={{ background: "#f8f7f5", border: "1px solid rgba(0,0,0,0.05)" }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 pr-1">
                       <h3
-                        className="font-serif text-sm font-semibold leading-snug text-ink md:text-base"
+                        className="font-serif text-sm font-bold leading-snug text-ink md:text-base"
                         style={{ overflowWrap: "anywhere" }}
                       >
                         {item.service.name}
                       </h3>
-                      <p className="mt-1 text-xs text-ink-muted">{formatDuration(item.service.duration_minutes)}</p>
+                      <p className="mt-1 text-[9px] font-bold uppercase tracking-widest opacity-35">
+                        {formatDuration(item.service.duration_minutes)}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeItem(item.service.id)}
-                      className="shrink-0 rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-50 hover:text-red-500"
+                      className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-ink/30 transition-colors hover:bg-red-50 hover:text-red-400"
                       aria-label="Удалить"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 rounded-lg border border-brand-100 bg-brand-50/50 p-0.5">
+                    <div className="flex items-center gap-1 rounded-xl border border-black/8 bg-white p-0.5">
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity - 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-white hover:text-ink"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/50 transition-colors hover:bg-black/5 hover:text-ink"
                       >
-                        <Minus size={13} />
+                        <Minus size={12} />
                       </button>
-                      <span className="min-w-[1.75rem] text-center text-sm font-semibold text-ink">{item.quantity}</span>
+                      <span className="min-w-[1.75rem] text-center text-sm font-bold text-ink">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity + 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-white hover:text-ink"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/50 transition-colors hover:bg-black/5 hover:text-ink"
                       >
-                        <Plus size={13} />
+                        <Plus size={12} />
                       </button>
                     </div>
                     <span
-                      className="font-bold tabular-nums"
+                      className="font-serif italic text-lg font-bold tabular-nums"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {formatPrice(item.service.price * item.quantity)}
@@ -117,33 +126,47 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
         </div>
 
         {items.length > 0 && (
-          <div className="border-t border-brand-100 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6">
-            <div className="mb-4 flex items-center justify-between md:mb-6">
-              <span className="text-sm font-medium text-ink-light md:text-base">Итого:</span>
-              <span className="font-serif text-xl font-bold text-brand-600 md:text-2xl">{formatPrice(totalPrice)}</span>
+          <div
+            className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6"
+            style={{ borderTop: "1px solid rgba(0,0,0,0.06)", background: "var(--color-bg, #faf9f7)" }}
+          >
+            <div className="mb-4 flex items-center justify-between md:mb-5">
+              <div>
+                <span className="text-[9px] font-bold uppercase tracking-widest opacity-35 block">Итого</span>
+                <span
+                  className="font-serif italic text-2xl font-bold"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  {formatPrice(totalPrice)}
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted opacity-60">{formatDuration(totalDuration)}</p>
             </div>
-            <p className="mb-4 text-center text-xs text-ink-light opacity-70">{formatDuration(totalDuration)}</p>
+
             <div className="mb-3 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
                   if (window.confirm("Очистить всю корзину?")) clearCart();
                 }}
-                className="text-sm text-red-400/90 transition-colors hover:text-red-500"
+                className="text-[10px] font-bold uppercase tracking-widest text-red-400/70 transition-colors hover:text-red-500"
               >
                 Очистить
               </button>
             </div>
+
             <button
               type="button"
               onClick={() => {
                 onClose();
                 onCheckout();
               }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px active:scale-[0.97] min-h-[44px]"
-              style={{ background: "var(--color-primary)", boxShadow: "0 4px 16px rgba(192,137,115,0.35)" }}
+              className="btn-ink w-full justify-center"
             >
               Оформить запись
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
         )}

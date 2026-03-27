@@ -335,3 +335,43 @@ html::-webkit-scrollbar-thumb:hover,
 body::-webkit-scrollbar-thumb:hover {
   background: var(--color-brand-300, #dfc6b9);
 }
+
+/* Floating glass nav */
+.glass-nav-float {
+  background: rgba(250, 249, 247, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+/* Black CTA button */
+.btn-ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #1c1917;
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 32px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  white-space: nowrap;
+}
+.btn-ink:hover { background: var(--color-primary); box-shadow: 0 8px 24px rgba(192,137,115,0.35); }
+.btn-ink:active { transform: scale(0.96); }
+
+/* Hero image asymmetric clip */
+.hero-img-clip {
+  clip-path: inset(0 0 0 0 round 50px 50px 0 50px);
+}
+@media (min-width: 768px) {
+  .hero-img-clip {
+    clip-path: inset(0 0 0 0 round 80px 80px 0 80px);
+  }
+}

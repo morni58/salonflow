@@ -39,7 +39,7 @@ function parseAdvantages(tenant: Tenant): Item[] {
 }
 
 function Icon({ name }: { name: Item["icon"] }) {
-  const cls = "h-7 w-7";
+  const cls = "h-6 w-6";
   if (name === "sparkle") {
     return (
       <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -76,53 +76,47 @@ export function AdvantagesSection({ tenant }: Props) {
       id="advantages"
       data-anchor-section
       className="my-12 overflow-hidden rounded-[2rem] md:my-20"
-      style={{ background: "#1e1a17" }}
+      style={{ background: "#1c1917" }}
     >
       <div className="px-6 py-14 md:px-12 md:py-20">
         {/* Header */}
         <div className="mb-12 text-center md:mb-16">
-          <div
-            className="mb-5 inline-flex items-center gap-2.5 rounded-full border px-5 py-2 text-xs font-semibold uppercase tracking-widest"
-            style={{ borderColor: "rgba(255,255,255,0.12)", color: "var(--color-accent, #e0c6ba)", background: "rgba(255,255,255,0.06)" }}
-          >
-            <span className="h-px w-5 rounded-full" style={{ background: "var(--color-accent, #e0c6ba)" }} aria-hidden />
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4">
             Наши преимущества
-          </div>
-          <h2 className="font-serif text-3xl font-semibold text-white md:text-5xl">
+          </p>
+          <h2 className="font-serif italic text-3xl md:text-5xl text-white">
             Почему нас{" "}
-            <span className="italic" style={{ color: "var(--color-accent, #e0c6ba)" }}>
+            <span style={{ color: "var(--color-accent, #e0c6ba)" }}>
               выбирают
             </span>
           </h2>
         </div>
 
         {/* Cards */}
-        <div className="grid gap-4 sm:grid-cols-3 md:gap-6">
+        <div className="grid gap-4 sm:grid-cols-3 md:gap-5">
           {items.map((item, i) => (
             <div
               key={`${item.title}-${i}`}
-              className="flex flex-col gap-4 rounded-2xl p-6 md:p-8 transition-colors duration-300"
+              className="flex flex-col rounded-[28px] p-6 md:p-8 transition-colors duration-300"
               style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.06)",
               }}
             >
               {/* Icon */}
               <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl shrink-0"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl shrink-0"
                 style={{ background: "rgba(192,137,115,0.18)", color: "var(--color-accent, #e0c6ba)" }}
               >
                 <Icon name={item.icon} />
               </div>
 
-              <div>
-                <h3 className="font-serif mb-2 text-xl font-semibold text-white md:text-2xl">
-                  {item.title}
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.50)" }}>
-                  {item.text}
-                </p>
-              </div>
+              <h3 className="font-serif text-xl font-bold text-white mt-3 mb-2">
+                {item.title}
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+                {item.text}
+              </p>
             </div>
           ))}
         </div>
@@ -132,16 +126,26 @@ export function AdvantagesSection({ tenant }: Props) {
           <button
             type="button"
             onClick={() => document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.96]"
             style={{
-              background: "var(--color-primary)",
-              color: "#fff",
-              boxShadow: "0 8px 28px rgba(192,137,115,0.35)",
+              background: "#ffffff",
+              color: "#1c1917",
+              boxShadow: "0 4px 16px rgba(255,255,255,0.12)",
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "var(--color-primary)";
+              el.style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "#ffffff";
+              el.style.color = "#1c1917";
             }}
           >
             Записаться сейчас
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
