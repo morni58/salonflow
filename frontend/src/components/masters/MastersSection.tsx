@@ -61,10 +61,7 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
         {masters.map((m) => (
           <article
             key={m.id}
-            className="group flex flex-col overflow-hidden rounded-[28px] bg-white p-2 border border-black/5 transition-all duration-300 hover:-translate-y-1"
-            style={{ boxShadow: "none" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(54,49,47,0.08)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
+            className="hover-lift group flex flex-col overflow-hidden rounded-[28px] bg-white p-2 border border-black/5"
           >
             {/* Portrait image area */}
             <div

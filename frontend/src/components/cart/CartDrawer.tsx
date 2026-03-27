@@ -54,7 +54,7 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
 
         <div className="flex flex-1 flex-col overflow-y-auto p-4 md:p-6">
           {items.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <div className="step-slide-up flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <div
                 className="flex h-20 w-20 items-center justify-center rounded-[28px]"
                 style={{ background: "var(--color-primary-muted)" }}
@@ -65,7 +65,7 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
               <p className="max-w-[200px] text-sm text-ink-muted opacity-70">Добавьте услуги из каталога, чтобы записаться</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="step-slide-up flex flex-col gap-2">
               {items.map((item) => (
                 <div
                   key={item.service.id}

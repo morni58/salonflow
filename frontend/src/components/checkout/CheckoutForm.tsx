@@ -220,7 +220,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
     });
     const contactLabel = CONTACTS.find((c) => c.type === successInfo.contactType)?.label ?? successInfo.contactType;
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
+      <div className="step-slide-up flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
         <div
           className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl shadow-soft animate-scale-in"
           style={{ background: "var(--color-primary-muted)" }}
@@ -331,7 +331,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
           <label className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
             <UserRound size={16} /> Мастер
           </label>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+          <div className="step-slide-up flex gap-3 overflow-x-auto pb-2 scrollbar-none">
             {masters.map((m) => (
               <button
                 key={m.id}
@@ -393,7 +393,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <MessageCircle size={16} /> Как с вами связаться?
         </label>
-        <div className="mb-3 grid grid-cols-2 gap-0 overflow-hidden rounded-xl border border-brand-200 bg-brand-50/90 p-1 sm:grid-cols-4">
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {CONTACTS.map((c) => (
             <button
               key={c.type}
@@ -403,14 +403,10 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 setContactValue("");
               }}
               className={cn(
-                "rounded-lg border border-transparent py-3 text-center text-sm transition-all",
-                contactType === c.type ? "shadow-sm" : "hover:bg-white/90"
+                "rounded-2xl border border-black/5 py-3 text-center text-sm transition-all",
+                contactType === c.type ? "bg-ink text-white border-transparent shadow-sm" : "bg-white hover:bg-black/5"
               )}
-              style={
-                contactType === c.type
-                  ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
-                  : { color: "var(--color-text)" }
-              }
+              style={contactType !== c.type ? { color: "var(--color-text)" } : undefined}
             >
               <span className="text-lg">{c.icon}</span>
               <p className="mt-0.5 text-xs opacity-80">{c.label}</p>
@@ -515,20 +511,20 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div key={selectedDate} className="step-slide-up grid grid-cols-3 gap-2 sm:grid-cols-4">
               {slots.map((slot) => (
                 <button
                   key={slot}
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-xl border py-3 text-sm font-medium shadow-sm transition-all",
-                    selectedTime === slot ? "shadow-soft scale-[1.03]" : "bg-white hover:bg-brand-50"
+                    "rounded-2xl border border-black/5 py-3 text-sm font-bold transition-all",
+                    selectedTime === slot ? "shadow-soft scale-[1.03]" : "bg-white hover:bg-ink hover:text-white hover:border-transparent"
                   )}
                   style={
                     selectedTime === slot
                       ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
-                      : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
+                      : { color: "var(--color-text)" }
                   }
                 >
                   {slot}

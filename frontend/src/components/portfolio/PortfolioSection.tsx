@@ -132,7 +132,7 @@ export function PortfolioSection({
                   <button
                     type="button"
                     onClick={() => setLightboxIndex(idx)}
-                    className="portfolio-thumb group relative w-full overflow-hidden rounded-2xl focus-visible:outline-none"
+                    className="hover-lift portfolio-thumb group relative w-full overflow-hidden rounded-2xl focus-visible:outline-none"
                     aria-label={`Открыть фото ${idx + 1}`}
                   >
                     <img

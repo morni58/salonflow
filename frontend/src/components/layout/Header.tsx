@@ -29,6 +29,8 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   const [hidden, setHidden] = useState(false);
   const lastYRef = useRef(0);
   const { itemCount } = useCart();
+  const [prevCount, setPrevCount] = useState(itemCount);
+  const [popping, setPopping] = useState(false);
 
   // Auto-hide header on scroll down, show on scroll up
   useEffect(() => {
@@ -92,6 +94,15 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
       };
     }
   }, [drawerOpen]);
+
+  useEffect(() => {
+    if (itemCount > prevCount) {
+      setPopping(true);
+      setTimeout(() => setPopping(false), 300);
+    }
+    setPrevCount(itemCount);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemCount]);
 
   const initial = tenant.name.trim().charAt(0).toUpperCase() || "•";
 
@@ -174,7 +185,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
                   <ShoppingBag size={15} strokeWidth={2} />
                   {itemCount > 0 && (
                     <span
-                      className="absolute -top-2 -right-2 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold"
+                      className={`absolute -top-2 -right-2 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold${popping ? " cart-pop" : ""}`}
                       style={{ color: "var(--color-primary)" }}
                     >
                       {itemCount > 9 ? "9+" : itemCount}

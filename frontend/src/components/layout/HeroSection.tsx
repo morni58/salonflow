@@ -114,7 +114,7 @@ export function HeroSection({ tenant }: Props) {
           </div>
 
           {/* Floating card: today's clients */}
-          <div className="animate-fade-up animate-delay-200 absolute -bottom-4 -left-4 z-10 hidden sm:-left-6 sm:block">
+          <div className="animate-fade-up animate-delay-200 animate-bounce-slow absolute -bottom-4 -left-4 z-10 hidden sm:-left-6 sm:block">
             <div
               className="rounded-2xl px-5 py-4 backdrop-blur-md"
               style={{ background: "rgba(255,255,255,0.95)", border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 12px 40px rgba(54,49,47,0.08)" }}
@@ -138,7 +138,7 @@ export function HeroSection({ tenant }: Props) {
           </div>
 
           {/* Floating card: rating */}
-          <div className="animate-fade-up animate-delay-300 absolute -right-3 top-6 z-10 hidden sm:-right-5 sm:block">
+          <div className="animate-fade-up animate-delay-300 animate-bounce-slow absolute -right-3 top-6 z-10 hidden sm:-right-5 sm:block" style={{ animationDelay: "0.8s" }}>
             <div
               className="rounded-2xl px-4 py-3 backdrop-blur-md"
               style={{ background: "rgba(255,255,255,0.95)", border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 12px 40px rgba(54,49,47,0.08)" }}

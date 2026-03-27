@@ -27,10 +27,8 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
 
   return (
     <div
-      className="group flex flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white p-2 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-      style={{ boxShadow: "none", transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(54,49,47,0.08)"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
+      className="hover-lift group flex flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white p-2 cursor-pointer"
+      style={{ boxShadow: "none" }}
       onClick={() => onView?.(service)}
       role={onView ? "button" : undefined}
       tabIndex={onView ? 0 : undefined}
@@ -39,8 +37,8 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
     >
       {/* Image container */}
       <div
-        className="relative w-full shrink-0 overflow-hidden rounded-[22px]"
-        style={{ aspectRatio: "4/3", background: "var(--color-placeholder-surface)" }}
+        className="relative w-full shrink-0 overflow-hidden rounded-[22px] aspect-square"
+        style={{ background: "var(--color-placeholder-surface)" }}
       >
         {service.photo_url ? (
           <img
@@ -85,7 +83,7 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
         )}
 
         {/* Price + CTA */}
-        <div className="mt-auto pt-4 flex items-center justify-between gap-2">
+        <div className="mt-auto pt-4 flex flex-col gap-2">
           <span
             className="font-serif italic text-xl"
             style={{ color: "var(--color-primary)" }}
@@ -98,10 +96,10 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
             onClick={handleAdd}
             aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
             className={[
-              "shrink-0 rounded-2xl px-4 py-2.5 text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
+              "w-full py-3.5 rounded-2xl text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
               added || inCart
                 ? "bg-ink text-white"
-                : "bg-black/5 text-ink/60 hover:bg-ink hover:text-white",
+                : "bg-black/5 text-ink/60 hover:bg-black hover:text-white",
             ].join(" ")}
           >
             {added ? "Добавлено" : inCart ? "Ещё раз" : "Добавить"}

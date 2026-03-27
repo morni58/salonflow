@@ -156,7 +156,7 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
                   key={rev.id}
                   type="button"
                   onClick={() => setLightbox(i)}
-                  className="group relative w-56 shrink-0 overflow-hidden rounded-[24px] bg-white transition-all duration-300 hover:-translate-y-1"
+                  className="hover-lift group relative w-56 shrink-0 overflow-hidden rounded-[24px] bg-white"
                   style={{
                     scrollSnapAlign: "start",
                     minHeight: "13rem",
