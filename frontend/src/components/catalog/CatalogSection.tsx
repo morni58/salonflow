@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import type { Category } from "../../types";
+import { SearchX } from "lucide-react";
+import type { Category, Service } from "../../types";
 import { fetchCatalog } from "../../api/client";
 import { CategoryFilter } from "./CategoryFilter";
 import { ServiceCard } from "./ServiceCard";
+import { ServiceModal } from "./ServiceModal";
+import { toast } from "../common/Toast";
 
 interface Props {
   tenantId: string;
@@ -18,11 +21,12 @@ export function CatalogSection({
   const [categories, setCategories] = useState<Category[]>([]);
   const [active, setActive] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewingService, setViewingService] = useState<{ service: Service; category: string } | null>(null);
 
   useEffect(() => {
     fetchCatalog(tenantId)
       .then((res) => setCategories(res.categories))
-      .catch(() => {})
+      .catch(() => toast.error("Не удалось загрузить каталог. Проверьте соединение и обновите страницу."))
       .finally(() => setLoading(false));
   }, [tenantId]);
 
@@ -37,9 +41,9 @@ export function CatalogSection({
           <h2 className="font-serif mb-4 text-3xl font-semibold text-ink md:text-4xl lg:text-5xl">{title}</h2>
           <p className="mx-auto max-w-2xl text-ink-muted">Загрузка каталога…</p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-96 rounded-[2rem] border border-transparent shadow-soft" />
+        <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton h-64 rounded-2xl border border-transparent shadow-soft sm:h-96 sm:rounded-[2rem]" />
           ))}
         </div>
       </section>
@@ -55,18 +59,41 @@ export function CatalogSection({
         <p className="mx-auto max-w-xl px-2 text-sm leading-relaxed text-ink-muted md:text-base">{subtitle}</p>
       </div>
 
-      <div className="mb-10 md:mb-12">
+      <div className="mb-8 md:mb-12">
         <CategoryFilter categories={categories.map((c) => c.name)} active={active} onSelect={setActive} />
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-8 lg:grid-cols-3">
         {filteredPairs.map(({ service, category }) => (
-          <ServiceCard key={service.id} service={service} categoryName={category} />
+          <ServiceCard
+            key={service.id}
+            service={service}
+            categoryName={category}
+            onView={(s) => setViewingService({ service: s, category })}
+          />
         ))}
       </div>
 
-      {filteredPairs.length === 0 && (
-        <p className="mt-8 text-center text-ink-muted opacity-80">Услуги не найдены</p>
+      {filteredPairs.length === 0 && active && (
+        <div className="mt-8 flex flex-col items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50/50 py-12 text-center">
+          <SearchX size={36} className="text-brand-300" aria-hidden />
+          <p className="text-sm text-ink-muted">В категории «{active}» нет услуг</p>
+          <button
+            type="button"
+            onClick={() => setActive(null)}
+            className="mt-1 rounded-lg border border-brand-200 bg-white px-5 py-2 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50"
+          >
+            Показать все услуги
+          </button>
+        </div>
+      )}
+
+      {viewingService && (
+        <ServiceModal
+          service={viewingService.service}
+          categoryName={viewingService.category}
+          onClose={() => setViewingService(null)}
+        />
       )}
     </section>
   );

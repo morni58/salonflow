@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTenant } from "./hooks/useTenant";
 import { useSession } from "./hooks/useSession";
 import { CartProvider } from "./store/cartStore";
@@ -22,8 +22,74 @@ type View = "home" | "checkout";
 function AppInner() {
   const { tenant, loading, error } = useTenant();
   const { track } = useSession(tenant?.id);
-  const [view, setView] = useState<View>("home");
+
+  // Инициализация вида из URL (для поддержки кнопки "назад" браузера)
+  const [view, setView] = useState<View>(() =>
+    window.location.pathname.startsWith("/checkout") ? "checkout" : "home"
+  );
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Слушаем popstate — нажатие кнопки "назад" в браузере
+  useEffect(() => {
+    const handler = (e: PopStateEvent) => {
+      const state = e.state as { view?: View } | null;
+      setView(state?.view === "checkout" ? "checkout" : "home");
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+
+  /** Навигация с обновлением URL */
+  const navigate = (to: View) => {
+    setView(to);
+    history.pushState({ view: to }, "", to === "checkout" ? "/checkout" : "/");
+    if (to === "home") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Обновляем мета-теги под тенанта
+  useEffect(() => {
+    if (!tenant) return;
+    const siteName = tenant.name;
+    document.title = `${siteName} — Онлайн-запись`;
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const desc = (tenant.site_content?.meta_description as string | undefined)
+      || `Онлайн-запись в ${siteName}. Выбирайте услуги и бронируйте удобное время.`;
+    if (metaDesc) metaDesc.setAttribute("content", desc);
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute("content", `${siteName} — Онлайн-запись`);
+
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute("content", desc);
+
+    const ogSite = document.querySelector('meta[property="og:site_name"]');
+    if (ogSite) ogSite.setAttribute("content", siteName);
+
+    if (tenant.logo_url) {
+      const ogImg = document.querySelector('meta[property="og:image"]');
+      if (ogImg) ogImg.setAttribute("content", tenant.logo_url);
+    }
+
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twTitle) twTitle.setAttribute("content", `${siteName} — Онлайн-запись`);
+
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute("content", tenant.color_bg || "#faf9f7");
+  }, [tenant]);
+
+  /** Клик по навигации хедера: если не на главной — сначала переключаем вид, потом скроллим */
+  const handleNavClick = (sectionId: string) => {
+    if (view !== "home") {
+      navigate("home");
+      // Небольшая задержка, чтобы React успел отрендерить секции
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    } else {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   if (loading) {
     return (
@@ -76,14 +142,12 @@ function AppInner() {
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-base">
       <Header
         tenant={tenant}
-        onGoHome={() => {
-          setView("home");
-          setCartOpen(false);
-        }}
+        onGoHome={() => navigate("home")}
         onOpenCart={() => {
           setCartOpen(true);
           track("cart_open");
         }}
+        onNavClick={handleNavClick}
       />
 
       <main className="mx-auto w-full min-w-0 max-w-[var(--layout-max)] overflow-x-hidden px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 md:pt-20 lg:px-8">
@@ -107,7 +171,7 @@ function AppInner() {
 
             <AnimateIn className="py-6 sm:py-10" delay={50}>
               <ErrorBoundary>
-                <MastersSection tenantId={tenant.id} />
+                <MastersSection tenantId={tenant.id} onNavClick={handleNavClick} />
               </ErrorBoundary>
             </AnimateIn>
 
@@ -140,7 +204,8 @@ function AppInner() {
             <ErrorBoundary>
               <CheckoutForm
                 tenantId={tenant.id}
-                onBack={() => setView("home")}
+                tenant={tenant}
+                onBack={() => navigate("home")}
                 onTrackCheckout={() => track("checkout")}
               />
             </ErrorBoundary>
@@ -152,7 +217,7 @@ function AppInner() {
         open={cartOpen}
         onClose={() => setCartOpen(false)}
         onCheckout={() => {
-          setView("checkout");
+          navigate("checkout");
           setCartOpen(false);
         }}
       />

@@ -21,6 +21,10 @@ router = Router()
 
 class SiteStates(StatesGroup):
     waiting_value = State()
+    # Step-by-step advantages builder
+    waiting_adv_title = State()
+    waiting_adv_text = State()
+    waiting_adv_icon = State()
 
 
 def _get_user_tenant_sync(telegram_user_id: int) -> tuple[str | None, str | None]:
@@ -188,12 +192,7 @@ async def site_texts_menu(callback: CallbackQuery):
             [InlineKeyboardButton(text="URL картинки hero", callback_data="site:tx:hero_image_url")],
             [InlineKeyboardButton(text="Кнопка «Услуги»", callback_data="site:tx:hero_cta_primary")],
             [InlineKeyboardButton(text="Кнопка «Портфолио»", callback_data="site:tx:hero_cta_secondary")],
-            [
-                InlineKeyboardButton(
-                    text="Преимущества (JSON-массив)",
-                    callback_data="site:tx:advantages",
-                )
-            ],
+            [InlineKeyboardButton(text="⭐ Преимущества", callback_data="site:adv_menu")],
             [InlineKeyboardButton(text="➕ Ещё: заголовки секций и меню", callback_data="site:texts_more")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:site")],
         ]
@@ -322,6 +321,162 @@ async def site_cq_pick(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SiteStates.waiting_value)
     await state.update_data(site_kind="contact_key", contact_key=key)
     await callback.message.reply(f"Отправьте значение для <b>{key}</b>:\n<i>{labels.get(key, '')}</i>", parse_mode="HTML")
+
+
+_ADV_ICONS = {
+    "✨ Искра (sparkle)": "sparkle",
+    "🕐 Часы (clock)": "clock",
+    "😊 Улыбка (smile)": "smile",
+}
+
+
+def _adv_icon_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=label, callback_data=f"site:adv_icon:{val}")]
+            for label, val in _ADV_ICONS.items()
+        ]
+    )
+
+
+def _adv_more_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="➕ Добавить ещё", callback_data="site:adv_add")],
+            [InlineKeyboardButton(text="✅ Готово — сохранить", callback_data="site:adv_save")],
+        ]
+    )
+
+
+@router.callback_query(F.data == "site:adv_menu")
+async def site_adv_menu(callback: CallbackQuery):
+    await callback.answer()
+    tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tid or not can_site(role):
+        return
+    sb = get_supabase()
+    row = sb.table("tenants").select("site_content").eq("id", tid).limit(1).execute()
+    sc = normalize_site_content(row.data[0].get("site_content") if row.data else {})
+    adv = sc.get("advantages") or []
+    lines = "\n".join(
+        f"  {i+1}. {a.get('title','?')} — {a.get('text','')[:40]}…"
+        if len(a.get("text","")) > 40 else f"  {i+1}. {a.get('title','?')} — {a.get('text','')}"
+        for i, a in enumerate(adv)
+    ) if adv else "  (нет, будут показаны стандартные)"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Добавить / заменить список", callback_data="site:adv_start")],
+        [InlineKeyboardButton(text="🗑 Сбросить к стандартным", callback_data="site:adv_reset")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="site:texts")],
+    ])
+    await callback.message.edit_text(
+        f"⭐ <b>Преимущества</b>\n\nТекущие:\n{lines}\n\n"
+        "Вы можете добавить новые (они заменят текущие) или сбросить к стандартным.",
+        parse_mode="HTML",
+        reply_markup=kb,
+    )
+
+
+@router.callback_query(F.data == "site:adv_start")
+async def site_adv_start(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(SiteStates.waiting_adv_title)
+    await state.update_data(adv_items=[], adv_current={})
+    await callback.message.reply(
+        "⭐ Начнём создавать преимущества!\n\n"
+        "<b>Преимущество 1</b>\n"
+        "Введите заголовок (например: «Опытные мастера»):",
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data == "site:adv_reset")
+async def site_adv_reset(callback: CallbackQuery):
+    await callback.answer()
+    tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tid or not can_site(role):
+        return
+    await run_sync(_patch_site_content_sync, tid, {"advantages": []})
+    await callback.message.edit_text(
+        "✅ Преимущества сброшены — на сайте будут показаны стандартные.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ К текстам", callback_data="site:texts")]
+        ]),
+    )
+
+
+@router.message(SiteStates.waiting_adv_title)
+async def adv_got_title(message: Message, state: FSMContext):
+    title = message.text.strip()
+    if not title:
+        await message.reply("❌ Заголовок не может быть пустым, попробуйте снова:")
+        return
+    await state.update_data(adv_current={"title": title})
+    await state.set_state(SiteStates.waiting_adv_text)
+    await message.reply(f"Отлично! Теперь введите описание для «{title}»:")
+
+
+@router.message(SiteStates.waiting_adv_text)
+async def adv_got_text(message: Message, state: FSMContext):
+    text = message.text.strip()
+    if not text:
+        await message.reply("❌ Описание не может быть пустым, попробуйте снова:")
+        return
+    data = await state.get_data()
+    cur = data.get("adv_current", {})
+    cur["text"] = text
+    await state.update_data(adv_current=cur)
+    await state.set_state(SiteStates.waiting_adv_icon)
+    await message.reply("Выберите иконку:", reply_markup=_adv_icon_kb())
+
+
+@router.callback_query(SiteStates.waiting_adv_icon, F.data.startswith("site:adv_icon:"))
+async def adv_got_icon(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    icon = callback.data.split(":", 3)[2]
+    data = await state.get_data()
+    cur = data.get("adv_current", {})
+    cur["icon"] = icon
+    items: list = list(data.get("adv_items", []))
+    items.append(cur)
+    await state.update_data(adv_items=items, adv_current={})
+    n = len(items)
+    await callback.message.edit_text(
+        f"✅ Преимущество {n} добавлено: «{cur.get('title')}»\n\n"
+        "Добавить ещё или сохранить список?",
+        reply_markup=_adv_more_kb(),
+    )
+
+
+@router.callback_query(F.data == "site:adv_add")
+async def adv_add_more(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    n = len(data.get("adv_items", [])) + 1
+    await state.set_state(SiteStates.waiting_adv_title)
+    await callback.message.reply(
+        f"<b>Преимущество {n}</b>\nВведите заголовок:",
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data == "site:adv_save")
+async def adv_save(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tid or not can_site(role):
+        await state.clear()
+        return
+    data = await state.get_data()
+    items = data.get("adv_items", [])
+    await run_sync(_patch_site_content_sync, tid, {"advantages": items})
+    await state.clear()
+    lines = "\n".join(f"  {i+1}. {a['title']}" for i, a in enumerate(items))
+    await callback.message.edit_text(
+        f"✅ {len(items)} преимуществ сохранено:\n{lines}\n\nОни уже отображаются на сайте.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ К текстам", callback_data="site:texts")]
+        ]),
+    )
 
 
 @router.callback_query(F.data == "site:logo")

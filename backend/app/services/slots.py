@@ -1,5 +1,6 @@
 import logging
 from datetime import date, datetime, time
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.async_utils import run_sync
 from app.core.database import get_supabase
@@ -10,6 +11,16 @@ from app.core.tenant_fields import (
     normalize_working_days,
 )
 from app.services.masters_query import tenant_has_bookable_masters_sync
+
+
+def _get_tz(tz_str: str | None) -> ZoneInfo:
+    """Безопасно получить ZoneInfo по строке, fallback — UTC."""
+    if not tz_str:
+        return ZoneInfo("UTC")
+    try:
+        return ZoneInfo(tz_str)
+    except (ZoneInfoNotFoundError, Exception):
+        return ZoneInfo("UTC")
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +160,7 @@ def _get_available_slots_sync(
             return []
 
         t = tenant.data[0]
+        tz = _get_tz(t.get("timezone"))
         start_h, start_m = _parse_hh_mm(t.get("working_hours_start"))
         end_h, end_m = _parse_hh_mm(t.get("working_hours_end"))
         interval = int(t.get("slot_interval_minutes") or 60)
@@ -205,7 +217,7 @@ def _get_available_slots_sync(
             raw = b.get("preferred_datetime")
             if not raw:
                 continue
-            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00")).astimezone(tz)
             bk_start = dt.hour * 60 + dt.minute
             dur = int(b.get("total_duration_minutes") or 0)
             bk_end = bk_start + dur + buffer
@@ -259,7 +271,7 @@ def _get_available_slots_master_sync(
             sb.table("tenants")
             .select(
                 "working_hours_start, working_hours_end, slot_interval_minutes, buffer_minutes, "
-                "working_days, schedule_mode, every_n_days, every_n_days_anchor"
+                "working_days, schedule_mode, every_n_days, every_n_days_anchor, timezone"
             )
             .eq("id", tenant_id)
             .limit(1)
@@ -268,6 +280,7 @@ def _get_available_slots_master_sync(
         t0 = tenant.data[0] if tenant.data else {}
 
         m = mrow.data[0]
+        tz = _get_tz(t0.get("timezone"))
         start_h, start_m, end_h, end_m = _resolve_master_slot_window(t0, m)
         ti = t0.get("slot_interval_minutes")
         mi = m.get("slot_interval_minutes")
@@ -331,7 +344,7 @@ def _get_available_slots_master_sync(
             raw = b.get("preferred_datetime")
             if not raw:
                 continue
-            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00")).astimezone(tz)
             bk_start = dt.hour * 60 + dt.minute
             dur = int(b.get("total_duration_minutes") or 0)
             bk_end = bk_start + dur + buffer

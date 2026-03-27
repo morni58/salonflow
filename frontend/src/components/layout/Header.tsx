@@ -7,8 +7,9 @@ import { siteText } from "../../utils/siteContent";
 interface Props {
   tenant: Tenant;
   onOpenCart: () => void;
-  /** Клик по названию салона — главная (скролл наверх + выход из оформления) */
   onGoHome?: () => void;
+  /** Навигация по разделам (работает и с checkout-страницы) */
+  onNavClick?: (sectionId: string) => void;
 }
 
 function navLinks(tenant: Tenant) {
@@ -21,20 +22,50 @@ function navLinks(tenant: Tenant) {
   ] as const;
 }
 
-export function Header({ tenant, onOpenCart, onGoHome }: Props) {
+export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   const NAV_LINKS = navLinks(tenant);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const { itemCount } = useCart();
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Подсветка активного раздела при скролле
+  useEffect(() => {
+    const ids = NAV_LINKS.map((l) => l.id);
+    const observers: IntersectionObserver[] = [];
+
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      map.set(el, id);
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(id); },
+        { rootMargin: "-20% 0px -65% 0px", threshold: 0 },
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+
+    return () => observers.forEach((o) => o.disconnect());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleNav = (id: string) => {
+    const wasOpen = drawerOpen;
     setDrawerOpen(false);
+    // Wait for mobile drawer close animation + body overflow restore
+    const delay = wasOpen ? 350 : 0;
+    setTimeout(() => {
+      if (onNavClick) {
+        onNavClick(id);
+      } else {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, delay);
   };
 
   const goHome = () => {
     setDrawerOpen(false);
     onGoHome?.();
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -91,16 +122,29 @@ export function Header({ tenant, onOpenCart, onGoHome }: Props) {
                 </button>
 
                 <nav className="hidden items-center gap-8 md:flex" aria-label="Разделы страницы">
-                  {NAV_LINKS.map((link) => (
-                    <button
-                      key={link.id}
-                      type="button"
-                      onClick={() => scrollTo(link.id)}
-                      className="text-sm font-medium text-ink/70 transition-colors duration-300 ease-out hover:text-brand-500"
-                    >
-                      {link.label}
-                    </button>
-                  ))}
+                  {NAV_LINKS.map((link) => {
+                    const isActive = activeSection === link.id;
+                    return (
+                      <button
+                        key={link.id}
+                        type="button"
+                        onClick={() => handleNav(link.id)}
+                        className="relative text-sm font-medium transition-colors duration-300 ease-out"
+                        style={{ color: isActive ? "var(--color-primary)" : undefined }}
+                        aria-current={isActive ? "true" : undefined}
+                      >
+                        <span className={isActive ? "" : "text-ink/70 hover:text-brand-500"}>
+                          {link.label}
+                        </span>
+                        {isActive && (
+                          <span
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full"
+                            style={{ background: "var(--color-primary)" }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </nav>
               </div>
             </div>
@@ -128,6 +172,7 @@ export function Header({ tenant, onOpenCart, onGoHome }: Props) {
         </div>
       </header>
 
+      {/* Мобильное меню */}
       <div
         className={`fixed inset-y-0 left-0 z-[200] flex w-4/5 max-w-sm flex-col bg-surface shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
           drawerOpen ? "translate-x-0" : "-translate-x-full"
@@ -148,14 +193,24 @@ export function Header({ tenant, onOpenCart, onGoHome }: Props) {
         <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6" aria-label="Мобильное меню">
           {NAV_LINKS.map((link) => {
             const Icon = link.icon;
+            const isActive = activeSection === link.id;
             return (
               <button
                 key={link.id}
                 type="button"
-                onClick={() => scrollTo(link.id)}
-                className="flex items-center rounded-lg p-4 text-left text-lg font-medium text-ink transition-colors duration-300 ease-out hover:bg-brand-50 hover:text-brand-600"
+                onClick={() => handleNav(link.id)}
+                className="flex items-center rounded-xl p-4 text-left text-lg font-medium transition-colors duration-200 ease-out"
+                style={isActive
+                  ? { background: "var(--color-primary-muted)", color: "var(--color-primary)" }
+                  : undefined}
+                aria-current={isActive ? "true" : undefined}
               >
-                <Icon className="mr-3 h-5 w-5 opacity-60" strokeWidth={2} aria-hidden />
+                <Icon
+                  className="mr-3 h-5 w-5"
+                  strokeWidth={isActive ? 2.5 : 2}
+                  style={{ opacity: isActive ? 1 : 0.55 }}
+                  aria-hidden
+                />
                 {link.label}
               </button>
             );

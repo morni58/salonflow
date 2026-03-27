@@ -500,7 +500,23 @@ async def reopen_day(callback: CallbackQuery):
     await callback.answer()
     exc_id = callback.data.split(":")[2]
     await run_sync(_reopen_exc_sync, exc_id)
-    await callback.message.reply("🔓 День открыт для записи.")
+    # Show updated list of remaining closed days, or return to schedule menu
+    tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if tenant_id:
+        ok, rows = await run_sync(_closed_days_kb_sync, tenant_id)
+        if ok:
+            rows.append([InlineKeyboardButton(text="◀️ К расписанию", callback_data="sched:back")])
+            await callback.message.edit_text(
+                "🔓 День открыт для записи.\n\nОставшиеся закрытые дни:",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+            )
+            return
+    await callback.message.edit_text(
+        "🔓 День открыт для записи.",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ К расписанию", callback_data="sched:back")]]
+        ),
+    )
 
 
 # ═══════════════════════════════════════════════════
@@ -694,7 +710,7 @@ async def assign_photo_category(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "port:delete")
 async def start_delete_photo(callback: CallbackQuery):
-    """Show recent portfolio photos for deletion."""
+    """Show recent portfolio photos — each as an image with a delete button."""
     await callback.answer()
     tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
     photos = await run_sync(_list_portfolio_for_delete_sync, tenant_id)
@@ -707,28 +723,58 @@ async def start_delete_photo(callback: CallbackQuery):
         await callback.message.reply("📸 Портфолио пусто.")
         return
 
-    buttons = []
-    for i, p in enumerate(photos.data, 1):
-        label = f"🗑 Фото #{i} ({p['created_at'][:10]})"
-        buttons.append([InlineKeyboardButton(text=label, callback_data=f"port:rm:{p['id']}")])
-    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="menu:portfolio")])
-
-    await callback.message.edit_text(
-        "🗑 Выберите фото для удаления (последние 10):",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+    await callback.message.reply(
+        f"📸 Последние {len(photos.data)} фото — нажмите «🗑 Удалить» под нужным:"
     )
+    for i, p in enumerate(photos.data, 1):
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🗑 Удалить это фото", callback_data=f"port:rm:{p['id']}")
+        ]])
+        try:
+            await callback.message.answer_photo(
+                photo=p["image_url"],
+                caption=f"Фото #{i} · {p['created_at'][:10]}",
+                reply_markup=kb,
+            )
+        except Exception:
+            await callback.message.answer(
+                f"📸 Фото #{i} · {p['created_at'][:10]}",
+                reply_markup=kb,
+            )
 
 
 @router.callback_query(F.data.startswith("port:rm:"))
 async def confirm_delete_photo(callback: CallbackQuery):
+    """Ask for confirmation before deleting portfolio photo."""
+    await callback.answer()
+    photo_id = callback.data.split(":")[2]
+    await callback.message.reply(
+        "🗑 Удалить это фото из портфолио?\nДействие нельзя отменить.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"port:rmok:{photo_id}"),
+                InlineKeyboardButton(text="❌ Отмена", callback_data="port:rmcancel"),
+            ]
+        ]),
+    )
+
+
+@router.callback_query(F.data == "port:rmcancel")
+async def cancel_delete_photo(callback: CallbackQuery):
+    await callback.answer("Отменено")
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+
+@router.callback_query(F.data.startswith("port:rmok:"))
+async def do_delete_photo(callback: CallbackQuery):
     """Delete a portfolio photo from storage and DB."""
     await callback.answer()
     photo_id = callback.data.split(":")[2]
     err = await run_sync(_delete_portfolio_photo_sync, photo_id)
     if err:
-        await callback.message.reply("Фото не найдено.")
+        await callback.message.edit_text("Фото не найдено.")
         return
-    await callback.message.reply("🗑 Фото удалено из портфолио.")
+    await callback.message.edit_text("🗑 Фото удалено из портфолио.")
 
 
 # ═══════════════════════════════════════════════════
@@ -855,7 +901,7 @@ def _delete_review_sync(review_id: str) -> str | None:
 
 @router.callback_query(F.data == "rev:delete")
 async def start_delete_review(callback: CallbackQuery):
-    """Show recent reviews for deletion."""
+    """Show recent reviews — each as an image with a delete button."""
     await callback.answer()
     tenant_id = await run_sync(_get_user_tenant_sync, callback.from_user.id)
     reviews = await run_sync(_list_reviews_for_delete_sync, tenant_id)
@@ -868,28 +914,58 @@ async def start_delete_review(callback: CallbackQuery):
         await callback.message.reply("⭐ Отзывов пока нет.")
         return
 
-    buttons = []
-    for i, r in enumerate(reviews.data, 1):
-        label = f"🗑 Отзыв #{i} ({r['created_at'][:10]})"
-        buttons.append([InlineKeyboardButton(text=label, callback_data=f"rev:rm:{r['id']}")])
-    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="menu:reviews")])
-
-    await callback.message.edit_text(
-        "🗑 Выберите отзыв для удаления (последние 10):",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+    await callback.message.reply(
+        f"⭐ Последние {len(reviews.data)} отзыва — нажмите «🗑 Удалить» под нужным:"
     )
+    for i, r in enumerate(reviews.data, 1):
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🗑 Удалить этот отзыв", callback_data=f"rev:rm:{r['id']}")
+        ]])
+        try:
+            await callback.message.answer_photo(
+                photo=r["image_url"],
+                caption=f"Отзыв #{i} · {r['created_at'][:10]}",
+                reply_markup=kb,
+            )
+        except Exception:
+            await callback.message.answer(
+                f"⭐ Отзыв #{i} · {r['created_at'][:10]}",
+                reply_markup=kb,
+            )
 
 
 @router.callback_query(F.data.startswith("rev:rm:"))
 async def confirm_delete_review(callback: CallbackQuery):
+    """Ask for confirmation before deleting review."""
+    await callback.answer()
+    review_id = callback.data.split(":")[2]
+    await callback.message.reply(
+        "🗑 Удалить этот отзыв с сайта?\nДействие нельзя отменить.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"rev:rmok:{review_id}"),
+                InlineKeyboardButton(text="❌ Отмена", callback_data="rev:rmcancel"),
+            ]
+        ]),
+    )
+
+
+@router.callback_query(F.data == "rev:rmcancel")
+async def cancel_delete_review(callback: CallbackQuery):
+    await callback.answer("Отменено")
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+
+@router.callback_query(F.data.startswith("rev:rmok:"))
+async def do_delete_review(callback: CallbackQuery):
     """Delete a review from storage and DB."""
     await callback.answer()
     review_id = callback.data.split(":")[2]
     err = await run_sync(_delete_review_sync, review_id)
     if err:
-        await callback.message.reply("Отзыв не найден.")
+        await callback.message.edit_text("Отзыв не найден.")
         return
-    await callback.message.reply("🗑 Отзыв удалён с сайта.")
+    await callback.message.edit_text("🗑 Отзыв удалён с сайта.")
 
 
 # ═══════════════════════════════════════════════════
@@ -900,6 +976,25 @@ class OfflineStates(StatesGroup):
     waiting_client_name = State()
     waiting_service_choice = State()
     waiting_datetime = State()
+
+
+def _build_offline_services_kb(
+    services: list[dict],
+    selected_ids: list[str],
+) -> InlineKeyboardMarkup:
+    sel_set = set(selected_ids)
+    buttons = []
+    for s in services:
+        mark = "✅" if s["id"] in sel_set else "◻️"
+        price = s["price"] // 100
+        buttons.append([InlineKeyboardButton(
+            text=f"{mark} {s['name']} — {price:,}₸",
+            callback_data=f"off:svc:{s['id']}",
+        )])
+    n = len(sel_set)
+    done_label = f"➡️ Готово — {n} {'услуга' if n == 1 else 'услуги' if 2 <= n <= 4 else 'услуг'}" if n else "➡️ Выберите хотя бы 1 услугу"
+    buttons.append([InlineKeyboardButton(text=done_label, callback_data="off:done")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @router.callback_query(F.data == "menu:offline")
@@ -915,7 +1010,7 @@ def _offline_services_list_sync(tenant_id: str | None):
     sb = get_supabase()
     return (
         sb.table("services")
-        .select("id, name, price")
+        .select("id, name, price, duration_minutes")
         .eq("tenant_id", tenant_id)
         .eq("is_active", True)
         .filter("deleted_at", "is", "null")
@@ -926,16 +1021,19 @@ def _offline_services_list_sync(tenant_id: str | None):
 def _offline_create_booking_sync(
     tenant_id: str | None,
     client_name: str,
-    service_id: str,
+    service_ids: list[str],
     dt: datetime,
 ) -> dict | None:
-    if not tenant_id:
+    if not tenant_id or not service_ids:
         return None
     sb = get_supabase()
-    svc = sb.table("services").select("name, price, duration_minutes").eq("id", service_id).limit(1).execute()
-    if not svc.data:
+    svcs = sb.table("services").select("id, name, price, duration_minutes").in_("id", service_ids).execute()
+    if not svcs.data:
         return None
-    s = svc.data[0]
+    total_price = sum(s["price"] for s in svcs.data)
+    total_duration = sum(s["duration_minutes"] for s in svcs.data)
+    names = [s["name"] for s in svcs.data]
+
     existing_client = (
         sb.table("clients")
         .select("id")
@@ -963,21 +1061,21 @@ def _offline_create_booking_sync(
     sb.table("bookings").insert({
         "tenant_id": tenant_id,
         "client_id": client_id,
-        "service_ids": [service_id],
-        "total_price": s["price"],
-        "total_duration_minutes": s["duration_minutes"],
+        "service_ids": service_ids,
+        "total_price": total_price,
+        "total_duration_minutes": total_duration,
         "preferred_datetime": dt.isoformat(),
         "status": "confirmed",
         "payment_status": "paid",
         "source": "offline",
     }).execute()
 
-    return {"name": s["name"], "price": s["price"], "client_name": client_name, "dt": dt}
+    return {"names": names, "total_price": total_price, "client_name": client_name, "dt": dt}
 
 
 @router.message(OfflineStates.waiting_client_name)
 async def offline_client_name(message: Message, state: FSMContext):
-    await state.update_data(client_name=message.text.strip())
+    await state.update_data(client_name=message.text.strip(), selected_service_ids=[])
     tenant_id = await run_sync(_get_user_tenant_sync, message.from_user.id)
     if not tenant_id:
         await state.clear()
@@ -990,28 +1088,50 @@ async def offline_client_name(message: Message, state: FSMContext):
         await message.reply("❌ Нет активных услуг в каталоге.")
         return
 
-    buttons = []
-    for s in services.data:
-        price = s["price"] // 100
-        buttons.append([InlineKeyboardButton(
-            text=f"{s['name']} — {price:,}₸",
-            callback_data=f"off:svc:{s['id']}",
-        )])
-
+    # Store services list in FSM for later use
+    await state.update_data(services_list=[{"id": s["id"], "name": s["name"], "price": s["price"], "duration_minutes": s["duration_minutes"]} for s in services.data])
     await state.set_state(OfflineStates.waiting_service_choice)
     await message.reply(
-        "Выберите услугу:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        "Выберите услуги (можно несколько) и нажмите «Готово»:",
+        reply_markup=_build_offline_services_kb(services.data, []),
     )
 
 
 @router.callback_query(OfflineStates.waiting_service_choice, F.data.startswith("off:svc:"))
-async def offline_service(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
+async def offline_toggle_service(callback: CallbackQuery, state: FSMContext):
+    """Toggle a service on/off in the selection."""
     svc_id = callback.data.split(":")[2]
-    await state.update_data(service_id=svc_id)
+    data = await state.get_data()
+    selected: list[str] = list(data.get("selected_service_ids", []))
+    if svc_id in selected:
+        selected.remove(svc_id)
+    else:
+        selected.append(svc_id)
+    await state.update_data(selected_service_ids=selected)
+    services = data.get("services_list", [])
+    await callback.message.edit_reply_markup(
+        reply_markup=_build_offline_services_kb(services, selected)
+    )
+    await callback.answer()
+
+
+@router.callback_query(OfflineStates.waiting_service_choice, F.data == "off:done")
+async def offline_confirm_services(callback: CallbackQuery, state: FSMContext):
+    """User confirmed service selection — ask for datetime."""
+    data = await state.get_data()
+    selected: list[str] = data.get("selected_service_ids", [])
+    if not selected:
+        await callback.answer("Выберите хотя бы одну услугу", show_alert=True)
+        return
+    await callback.answer()
+    services = data.get("services_list", [])
+    sel_names = [s["name"] for s in services if s["id"] in set(selected)]
     await state.set_state(OfflineStates.waiting_datetime)
-    await callback.message.reply("📅 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):")
+    await callback.message.reply(
+        f"📋 Выбрано: <b>{', '.join(sel_names)}</b>\n\n"
+        "📅 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):",
+        parse_mode="HTML",
+    )
 
 
 @router.message(OfflineStates.waiting_datetime)
@@ -1028,7 +1148,7 @@ async def offline_datetime(message: Message, state: FSMContext):
         _offline_create_booking_sync,
         tenant_id,
         data["client_name"],
-        data["service_id"],
+        data.get("selected_service_ids", []),
         dt,
     )
 
@@ -1037,15 +1157,16 @@ async def offline_datetime(message: Message, state: FSMContext):
         await message.reply("❌ Не удалось создать запись (нет доступа или услуга не найдена).")
         return
 
-    price = result["price"] // 100
-    s_name = result["name"]
+    total = result["total_price"] // 100
+    names_str = ", ".join(result["names"])
     cname = result["client_name"]
     dt_out = result["dt"]
     await state.clear()
     await message.reply(
         f"✅ <b>Оффлайн-запись создана</b>\n\n"
         f"👤 {cname}\n"
-        f"💇 {s_name} — {price:,}₸\n"
+        f"💇 {names_str}\n"
+        f"💰 {total:,}₸\n"
         f"📅 {dt_out.strftime('%d.%m.%Y %H:%M')}",
         parse_mode="HTML",
     )

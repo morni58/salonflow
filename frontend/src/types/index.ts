@@ -31,6 +31,7 @@ export interface Service {
   price: number; // tiyn
   duration_minutes: number;
   photo_url: string | null;
+  description?: string | null;
 }
 
 export interface Category {

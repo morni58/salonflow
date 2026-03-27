@@ -91,8 +91,18 @@ def _bookings_text_and_keyboard_sync(
     role: str | None = None,
 ) -> tuple[str, InlineKeyboardMarkup]:
     from datetime import date, datetime, timedelta
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
     sb = get_supabase()
+
+    # Fetch tenant timezone for correct local time display
+    t_row = sb.table("tenants").select("timezone").eq("id", tenant_id).limit(1).execute()
+    tz_str = t_row.data[0].get("timezone") if t_row.data else None
+    try:
+        tz = ZoneInfo(tz_str) if tz_str else ZoneInfo("UTC")
+    except (ZoneInfoNotFoundError, Exception):
+        tz = ZoneInfo("UTC")
+
     today = date.today()
     tomorrow = today + timedelta(days=1)
 
@@ -118,7 +128,7 @@ def _bookings_text_and_keyboard_sync(
     else:
         text = f"📋 <b>Записи на {today.strftime('%d.%m.%Y')}</b>\n\n"
         for b in bd:
-            dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00")).astimezone(tz)
             status_emoji = {
                 "pending": "🟡",
                 "waiting": "⏳",

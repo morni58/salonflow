@@ -267,6 +267,46 @@ a:focus-visible {
   animation-delay: 300ms;
 }
 
+/* Лайтбокс и переходы */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.90); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.22s ease forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Masonry-сетка для портфолио */
+.portfolio-thumb img {
+  display: block;
+  width: 100%;
+}
+
+/* Карточки мастеров */
+.shadow-float {
+  box-shadow: 0 20px 60px rgba(54, 49, 47, 0.12);
+}
+
+/* Плавное появление для cart empty state */
+@keyframes popIn {
+  0% { transform: scale(0.88); opacity: 0; }
+  70% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop-in {
+  animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   width: 6px;

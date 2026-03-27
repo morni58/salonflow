@@ -48,9 +48,15 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
 
         <div className="flex flex-1 flex-col overflow-y-auto p-4 md:p-6">
           {items.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center text-ink-muted opacity-60">
-              <ShoppingBag className="mb-3 h-14 w-14 text-brand-200 md:mb-4 md:h-16 md:w-16" strokeWidth={1.5} aria-hidden />
-              <p className="text-sm md:text-base">Список услуг пуст</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+              <div
+                className="flex h-20 w-20 items-center justify-center rounded-2xl"
+                style={{ background: "var(--color-primary-muted)" }}
+              >
+                <ShoppingBag className="h-9 w-9" strokeWidth={1.5} style={{ color: "var(--color-primary)" }} aria-hidden />
+              </div>
+              <p className="font-serif text-lg font-semibold text-ink">Список пуст</p>
+              <p className="max-w-[200px] text-sm text-ink-muted opacity-70">Добавьте услуги из каталога, чтобы записаться</p>
             </div>
           ) : (
             <div className="divide-y divide-brand-100 overflow-hidden rounded-lg border border-brand-200 bg-white shadow-sm">
@@ -113,7 +119,13 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
             </div>
             <p className="mb-4 text-center text-xs text-ink-light opacity-70">{formatDuration(totalDuration)}</p>
             <div className="mb-3 flex justify-end">
-              <button type="button" onClick={clearCart} className="text-sm text-red-400/90 transition-colors hover:text-red-500">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Очистить всю корзину?")) clearCart();
+                }}
+                className="text-sm text-red-400/90 transition-colors hover:text-red-500"
+              >
                 Очистить
               </button>
             </div>

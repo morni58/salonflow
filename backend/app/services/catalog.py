@@ -20,7 +20,7 @@ def _get_catalog_sync(tenant_id: str) -> CatalogResponse:
     # Fetch active services
     svcs = (
         sb.table("services")
-        .select("id, category_id, name, price, duration_minutes, photo_url")
+        .select("id, category_id, name, price, duration_minutes, photo_url, description")
         .eq("tenant_id", tenant_id)
         .eq("is_active", True)
         .filter("deleted_at", "is", "null")
@@ -39,6 +39,7 @@ def _get_catalog_sync(tenant_id: str) -> CatalogResponse:
             price=s["price"],
             duration_minutes=s["duration_minutes"],
             photo_url=s.get("photo_url"),
+            description=s.get("description"),
         ))
 
     categories = []

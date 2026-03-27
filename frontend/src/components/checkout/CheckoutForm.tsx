@@ -8,9 +8,10 @@ import {
   CheckCircle,
   MessageCircle,
   UserRound,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "../common/Toast";
-import type { ContactType, MasterPublic } from "../../types";
+import type { ContactType, MasterPublic, Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
 import { fetchSlots, createBooking, fetchMasters } from "../../api/client";
 import { formatPrice, formatDuration, cn } from "../../utils";
@@ -19,6 +20,7 @@ const PREFILL_MASTER_KEY = "salonflow_prefill_master";
 
 interface Props {
   tenantId: string;
+  tenant: Tenant;
   onBack: () => void;
   onTrackCheckout: () => void;
 }
@@ -31,10 +33,43 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-lg border border-brand-100 bg-white px-4 py-3.5 text-sm outline-none shadow-sm transition-colors focus:border-brand-300";
-const cardBorder = { borderColor: "transparent" };
+  "min-w-0 w-full max-w-full rounded-xl border border-brand-100 bg-white px-4 py-3.5 text-sm outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
 
-export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
+/** Проверить закрыт ли день по расписанию тенанта (без обращения к API) */
+function isDateClosed(dateStr: string, tenant: Tenant): boolean {
+  const d = new Date(dateStr + "T00:00:00");
+  const jsDay = d.getDay(); // 0=Вс, 1=Пн … 6=Сб
+  const weekday = jsDay === 0 ? 6 : jsDay - 1; // Python weekday: 0=Пн, 6=Вс
+
+  const workingDays: number[] = Array.isArray(tenant.working_days)
+    ? tenant.working_days
+    : [0, 1, 2, 3, 4, 5, 6];
+
+  const mode = tenant.schedule_mode ?? "weekdays";
+
+  if (mode === "every_n_days" && tenant.every_n_days_anchor) {
+    const n = Math.max(1, tenant.every_n_days ?? 1);
+    const anchor = new Date(tenant.every_n_days_anchor + "T00:00:00");
+    const delta = Math.floor((d.getTime() - anchor.getTime()) / 86_400_000);
+    if (delta < 0) return !workingDays.includes(weekday);
+    return delta % n !== 0;
+  }
+
+  return !workingDays.includes(weekday);
+}
+
+interface SuccessInfo {
+  date: string;
+  time: string;
+  duration: number;
+  name: string;
+  contactType: ContactType;
+  contactValue: string;
+  services: string;
+  total: number;
+}
+
+export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Props) {
   const { items, totalPrice, totalDuration, clearCart } = useCart();
 
   const [masters, setMasters] = useState<MasterPublic[]>([]);
@@ -51,7 +86,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   const [slotAlternate, setSlotAlternate] = useState<{ id: string; name: string } | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
 
   const dates = Array.from({ length: 60 }, (_, i) => {
     const d = new Date();
@@ -82,7 +117,11 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           }
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        toast.error(
+          "Не удалось загрузить мастеров. Без них слоты недоступны — проверьте сеть и обновите страницу."
+        );
+      })
       .finally(() => setMastersLoading(false));
   }, [tenantId]);
 
@@ -126,8 +165,15 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
   ]);
 
   const masterOk = !requiresMaster || !!selectedMasterId;
+  // Если masters требуются, но список пуст — форма недоступна
+  const mastersUnavailable = requiresMaster && !mastersLoading && masters.length === 0;
   const canSubmit =
-    masterOk && name.trim() && contactValue.trim() && selectedDate && selectedTime;
+    !mastersUnavailable &&
+    masterOk &&
+    name.trim() &&
+    contactValue.trim() &&
+    selectedDate &&
+    selectedTime;
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
@@ -135,17 +181,28 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
 
     try {
       const preferredDatetime = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
+      // Учитываем quantity: flatMap повторяет ID нужное число раз
       await createBooking({
         tenant_id: tenantId,
         name: name.trim(),
         contact_type: contactType,
         contact_value: contactValue.trim(),
-        service_ids: items.map((i) => i.service.id),
+        service_ids: items.flatMap((i) => Array(i.quantity).fill(i.service.id)),
         preferred_datetime: preferredDatetime,
         master_id: requiresMaster ? selectedMasterId : undefined,
       });
       onTrackCheckout();
-      setSuccess(true);
+      // Save snapshot before clearing cart
+      setSuccessInfo({
+        date: selectedDate,
+        time: selectedTime,
+        duration: totalDuration,
+        name: name.trim(),
+        contactType,
+        contactValue: contactValue.trim(),
+        services: items.map((i) => i.quantity > 1 ? `${i.service.name} ×${i.quantity}` : i.service.name).join(", "),
+        total: totalPrice,
+      });
       clearCart();
     } catch (e: unknown) {
       const detail = e instanceof Error ? e.message : "";
@@ -155,24 +212,71 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
     }
   };
 
-  if (success) {
+  if (successInfo) {
+    const formattedDate = new Date(successInfo.date + "T00:00:00").toLocaleDateString("ru", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const contactLabel = CONTACTS.find((c) => c.type === successInfo.contactType)?.label ?? successInfo.contactType;
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
         <div
-          className="mb-6 flex h-20 w-20 items-center justify-center rounded-lg shadow-soft"
+          className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl shadow-soft animate-scale-in"
           style={{ background: "var(--color-primary-muted)" }}
         >
-          <CheckCircle size={40} style={{ color: "var(--color-primary)" }} />
+          <CheckCircle size={44} style={{ color: "var(--color-primary)" }} />
         </div>
-        <h2 className="font-serif text-3xl font-semibold text-ink-dark">Заявка отправлена!</h2>
-        <p className="mt-3 max-w-sm opacity-65" style={{ color: "var(--color-text)" }}>
-          Мы свяжемся с вами через выбранный мессенджер для подтверждения и оплаты.
+        <h2 className="font-serif text-3xl font-semibold text-ink-dark animate-fade-up">Заявка отправлена!</h2>
+        <p className="mt-3 max-w-sm opacity-65 animate-fade-up" style={{ color: "var(--color-text)", animationDelay: "60ms" }}>
+          Мы свяжемся с вами через {contactLabel} для подтверждения.
         </p>
+
+        {/* Сводка записи */}
+        <div className="mt-5 w-full max-w-sm space-y-2 text-left animate-fade-up" style={{ animationDelay: "100ms" }}>
+          <div className="rounded-xl border border-brand-100 bg-brand-50 divide-y divide-brand-100 overflow-hidden">
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="shrink-0 text-base">👤</span>
+              <div className="min-w-0">
+                <p className="text-xs text-ink-muted">Имя</p>
+                <p className="text-sm font-medium text-ink">{successInfo.name}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="shrink-0 text-base">📲</span>
+              <div className="min-w-0">
+                <p className="text-xs text-ink-muted">{contactLabel}</p>
+                <p className="text-sm font-medium text-ink break-all">{successInfo.contactValue}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="shrink-0 text-base">📅</span>
+              <div className="min-w-0">
+                <p className="text-xs text-ink-muted">Дата и время</p>
+                <p className="text-sm font-medium text-ink">{formattedDate} · {successInfo.time}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="shrink-0 text-base">💇</span>
+              <div className="min-w-0">
+                <p className="text-xs text-ink-muted">Услуги · {formatDuration(successInfo.duration)}</p>
+                <p className="text-sm font-medium text-ink">{successInfo.services}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <p className="text-xs text-ink-muted">Итого</p>
+              <p className="text-base font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
+                {formatPrice(successInfo.total)}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={onBack}
-          className="btn-primary-soft mt-8 rounded-lg px-10 py-3.5 font-semibold shadow-soft"
-          style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
+          className="btn-primary-soft mt-6 rounded-xl px-10 py-3.5 font-semibold shadow-soft animate-fade-up"
+          style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)", animationDelay: "180ms" }}
         >
           На главную
         </button>
@@ -191,23 +295,37 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         <ArrowLeft size={16} /> Назад к услугам
       </button>
 
-      <h2 className="font-serif mb-6 text-3xl font-semibold text-ink-dark">Оформление записи</h2>
+      <h2 className="font-serif mb-2 text-3xl font-semibold text-ink-dark">Оформление записи</h2>
+      <p className="mb-6 text-sm text-ink-muted">Заполните форму — мы подтвердим запись в течение нескольких минут.</p>
 
-      <div className="mb-6 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white p-5 shadow-soft">
+      {/* Сводка услуг */}
+      <div className="mb-6 max-w-full overflow-hidden rounded-xl border border-brand-100 bg-white p-5 shadow-soft">
         <p
           className="line-clamp-4 text-sm leading-relaxed opacity-55"
           style={{ color: "var(--color-text)", overflowWrap: "anywhere" }}
         >
-          {items.map((i) => i.service.name).join(", ")}
+          {items.map((i) => i.quantity > 1 ? `${i.service.name} ×${i.quantity}` : i.service.name).join(", ")}
         </p>
         <div className="mt-2 flex items-center justify-between">
-          <span style={{ color: "var(--color-text)", opacity: 0.75 }}>{formatDuration(totalDuration)}</span>
-          <span className="text-xl font-semibold tabular-nums tracking-tight" style={{ color: "var(--color-accent)" }}>
+          <span className="text-sm" style={{ color: "var(--color-text)", opacity: 0.75 }}>{formatDuration(totalDuration)}</span>
+          <span className="text-xl font-semibold tabular-nums tracking-tight" style={{ color: "var(--color-primary)" }}>
             {formatPrice(totalPrice)}
           </span>
         </div>
       </div>
 
+      {/* Ошибка: мастера требуются, но не настроены */}
+      {mastersUnavailable && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
+          <div>
+            <strong className="block font-semibold">Запись временно недоступна онлайн</strong>
+            <span className="opacity-80">Свяжитесь с нами напрямую — контакты в футере страницы.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Выбор мастера */}
       {requiresMaster && masters.length > 0 && (
         <div className="mb-6">
           <label className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
@@ -224,16 +342,12 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                   setSelectedTime("");
                 }}
                 className={cn(
-                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-lg border border-transparent p-3 text-center shadow-sm transition-all sm:w-28",
-                  selectedMasterId === m.id ? "shadow-soft" : "bg-white hover:brightness-[0.995]"
+                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-xl border p-3 text-center shadow-sm transition-all sm:w-28",
+                  selectedMasterId === m.id ? "shadow-soft scale-[1.03]" : "bg-white hover:brightness-[0.995]"
                 )}
                 style={
                   selectedMasterId === m.id
-                    ? {
-                        background: "var(--color-primary)",
-                        borderColor: "transparent",
-                        color: "var(--color-primary-foreground)",
-                      }
+                    ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
                     : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
                 }
               >
@@ -259,6 +373,7 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         </div>
       )}
 
+      {/* Имя */}
       <div className="mb-5">
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <User size={16} /> Ваше имя
@@ -269,15 +384,16 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Как к вам обращаться?"
           className={inputClass}
-          style={{ ...cardBorder, color: "var(--color-text)" }}
+          style={{ color: "var(--color-text)" }}
         />
       </div>
 
+      {/* Контакт */}
       <div className="mb-5">
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <MessageCircle size={16} /> Как с вами связаться?
         </label>
-        <div className="mb-3 grid grid-cols-2 gap-0 overflow-hidden rounded-lg border border-brand-200 bg-brand-50/90 p-1 sm:grid-cols-4">
+        <div className="mb-3 grid grid-cols-2 gap-0 overflow-hidden rounded-xl border border-brand-200 bg-brand-50/90 p-1 sm:grid-cols-4">
           {CONTACTS.map((c) => (
             <button
               key={c.type}
@@ -287,17 +403,13 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                 setContactValue("");
               }}
               className={cn(
-                "rounded-md border border-transparent py-3 text-center text-sm transition-all",
+                "rounded-lg border border-transparent py-3 text-center text-sm transition-all",
                 contactType === c.type ? "shadow-sm" : "hover:bg-white/90"
               )}
               style={
                 contactType === c.type
-                  ? {
-                      background: "var(--color-primary)",
-                      borderColor: "transparent",
-                      color: "var(--color-primary-foreground)",
-                    }
-                  : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
+                  ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
+                  : { color: "var(--color-text)" }
               }
             >
               <span className="text-lg">{c.icon}</span>
@@ -311,56 +423,68 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           onChange={(e) => setContactValue(e.target.value)}
           placeholder={CONTACTS.find((c) => c.type === contactType)?.placeholder}
           className={inputClass}
-          style={{ ...cardBorder, color: "var(--color-text)" }}
+          style={{ color: "var(--color-text)" }}
         />
       </div>
 
+      {/* Дата */}
       <div className="mb-5">
         <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
           <Calendar size={16} /> Дата
         </label>
         {requiresMaster && !selectedMasterId && masters.length > 0 && (
-          <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
             Сначала выберите мастера выше — тогда откроются даты и время.
           </p>
         )}
-        <div className="flex gap-0 overflow-x-auto rounded-lg border border-brand-200 bg-brand-50/90 p-1 pb-2 scrollbar-none">
-          {dates.map((d) => {
+        <div className="flex gap-1 overflow-x-auto rounded-xl border border-brand-200 bg-brand-50/90 p-1.5 pb-2 scrollbar-none">
+          {dates.map((d, idx) => {
             const dt = new Date(d + "T00:00:00");
             const day = dt.getDate();
-            const weekday = dt.toLocaleDateString("ru", { weekday: "short" });
+            const weekdayStr = dt.toLocaleDateString("ru", { weekday: "short" });
             const month = dt.toLocaleDateString("ru", { month: "short" });
+            const isClosed = isDateClosed(d, tenant);
+            const isToday = idx === 0;
+            const isDisabled = isClosed || (requiresMaster && !selectedMasterId) || mastersUnavailable;
+            const isSelected = selectedDate === d;
             return (
               <button
                 key={d}
                 type="button"
-                onClick={() => setSelectedDate(d)}
-                disabled={requiresMaster && !selectedMasterId}
+                onClick={() => !isDisabled && setSelectedDate(d)}
+                disabled={isDisabled}
                 className={cn(
-                  "flex min-w-[4.25rem] shrink-0 flex-col items-center rounded-md border border-transparent px-3 py-3 text-center transition-all",
-                  selectedDate === d ? "shadow-sm" : "hover:bg-white/90",
-                  requiresMaster && !selectedMasterId ? "pointer-events-none opacity-40" : ""
+                  "flex min-w-[4rem] shrink-0 flex-col items-center rounded-lg px-2.5 py-2.5 text-center transition-all duration-200",
+                  isSelected ? "shadow-sm" : !isDisabled && "hover:bg-white",
+                  isClosed && "cursor-not-allowed opacity-25",
+                  requiresMaster && !selectedMasterId && !isClosed ? "pointer-events-none opacity-40" : ""
                 )}
                 style={
-                  selectedDate === d
-                    ? {
-                        background: "var(--color-primary)",
-                        borderColor: "transparent",
-                        color: "var(--color-primary-foreground)",
-                      }
-                    : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
+                  isSelected
+                    ? { background: "var(--color-primary)", color: "var(--color-primary-foreground)" }
+                    : { color: "var(--color-text)" }
                 }
               >
-                <span className="text-xs opacity-70">{weekday}</span>
-                <span className="text-lg font-semibold">{day}</span>
-                <span className="text-xs opacity-70">{month}</span>
+                <span className={cn("text-[11px] font-medium", isSelected ? "opacity-80" : "opacity-50")}>
+                  {isToday ? "сегодня" : weekdayStr}
+                </span>
+                <span className={cn("text-lg font-bold leading-tight", isClosed && "line-through decoration-brand-400")}>{day}</span>
+                <span className={cn("text-[11px]", isSelected ? "opacity-75" : "opacity-45")}>{month}</span>
+                {isToday && !isSelected && (
+                  <span
+                    className="mt-1 h-1 w-1 rounded-full"
+                    style={{ background: "var(--color-primary)" }}
+                    aria-hidden
+                  />
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {selectedDate && masterOk && (
+      {/* Время */}
+      {selectedDate && masterOk && !mastersUnavailable && (
         <div className="mb-6">
           <label className="mb-2 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-text)" }}>
             <Clock size={16} /> Время
@@ -368,14 +492,13 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
           {slotsLoading ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 animate-pulse rounded-lg bg-brand-100" />
+                <div key={i} className="h-10 animate-pulse rounded-xl bg-brand-100" />
               ))}
             </div>
           ) : slots.length === 0 ? (
             <div className="space-y-3">
-              <p className="text-sm opacity-50" style={{ color: "var(--color-text)" }}>
-                Нет окна на эту дату: график закрыт, день нерабочий или не хватает времени под выбранные услуги (
-                {formatDuration(totalDuration)}). Попробуйте другую дату или мастера.
+              <p className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm opacity-65" style={{ color: "var(--color-text)" }}>
+                Нет окна на эту дату: день закрыт или не хватает времени под выбранные услуги ({formatDuration(totalDuration)}). Попробуйте другую дату или мастера.
               </p>
               {slotAlternate && (
                 <button
@@ -384,10 +507,10 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                     setSelectedMasterId(slotAlternate.id);
                     setSelectedTime("");
                   }}
-                  className="w-full rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-left text-sm transition-colors hover:bg-brand-100"
+                  className="w-full rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left text-sm transition-colors hover:bg-brand-100"
                   style={{ color: "var(--color-text)" }}
                 >
-                  Показать слоты: <b>{slotAlternate.name}</b>
+                  Показать слоты мастера: <b>{slotAlternate.name}</b>
                 </button>
               )}
             </div>
@@ -399,16 +522,12 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-lg border border-brand-100 py-3 text-sm font-medium shadow-sm transition-all",
-                    selectedTime === slot ? "shadow-soft" : "bg-white hover:bg-brand-50"
+                    "rounded-xl border py-3 text-sm font-medium shadow-sm transition-all",
+                    selectedTime === slot ? "shadow-soft scale-[1.03]" : "bg-white hover:bg-brand-50"
                   )}
                   style={
                     selectedTime === slot
-                      ? {
-                          background: "var(--color-primary)",
-                          borderColor: "transparent",
-                          color: "var(--color-primary-foreground)",
-                        }
+                      ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
                       : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
                   }
                 >
@@ -420,15 +539,25 @@ export function CheckoutForm({ tenantId, onBack, onTrackCheckout }: Props) {
         </div>
       )}
 
+      {/* Кнопка отправки */}
       <button
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit || submitting}
-        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-lg py-4 text-sm font-semibold shadow-soft disabled:opacity-45"
+        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold shadow-soft disabled:opacity-45"
         style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
       >
-        <Send size={18} />
-        {submitting ? "Отправка..." : "Отправить заявку"}
+        {submitting ? (
+          <>
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            Отправка...
+          </>
+        ) : (
+          <>
+            <Send size={18} />
+            Отправить заявку
+          </>
+        )}
       </button>
     </section>
   );

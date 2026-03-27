@@ -55,7 +55,7 @@ def _fetch_admin_ids_sync(tenant_id: str) -> list[int]:
         .in_("role", ["owner", "admin", "manager"])
         .execute()
     )
-    return [u["telegram_user_id"] for u in users.data]
+    return [u["telegram_user_id"] for u in users.data if u.get("telegram_user_id")]
 
 
 async def _get_admin_ids(tenant_id: str) -> list[int]:
@@ -75,8 +75,8 @@ def _fetch_crm_notify_ids_sync(tenant_id: str, master_id: str | None) -> list[in
     ids: list[int] = []
     seen: set[int] = set()
     for u in admins.data or []:
-        tid = u["telegram_user_id"]
-        if tid not in seen:
+        tid = u.get("telegram_user_id")
+        if tid and tid not in seen:
             seen.add(tid)
             ids.append(tid)
     if master_id:
@@ -184,7 +184,7 @@ async def send_booking_notification(
         f"{master_line}"
         f"👤 {escape(client_name)}\n"
         f"📱 {contact_type.capitalize()}: {contact_link}\n"
-        f"💇 Услуги:\n{services_text}\n"
+        f"📋 Услуги:\n{services_text}\n"
         f"💰 Итого: <b>{_format_price(total_price)}</b>\n"
         f"🕐 {dt_str}\n"
         f"⏱ {duration_str}\n"

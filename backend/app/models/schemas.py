@@ -67,6 +67,7 @@ class ServiceOut(BaseModel):
     price: int  # в тиынах
     duration_minutes: int
     photo_url: Optional[str] = None
+    description: Optional[str] = None
 
 
 class CategoryOut(BaseModel):
