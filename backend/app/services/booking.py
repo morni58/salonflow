@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from app.core.async_utils import run_sync
 from app.core.database import get_supabase
-from app.models.schemas import BookingCreate, BookingOut
+from app.models.schemas import BookingCreate, BookingOut, ContactType
 from app.services.masters_query import (
     master_belongs_to_tenant_sync,
     services_allowed_for_master_sync,
@@ -13,9 +13,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _contact_type_value(ct: ContactType | str) -> str:
+    """Supabase ENUM ждёт 'telegram', а не строку вида 'ContactType.telegram'."""
+    if isinstance(ct, ContactType):
+        return ct.value
+    return str(ct)
+
+
 def _create_booking_sync(data: BookingCreate) -> dict:
     """Вся работа с Supabase в одном sync-вызове (не блокируем event loop)."""
     sb = get_supabase()
+    contact_type_str = _contact_type_value(data.contact_type)
 
     needs_master = tenant_has_bookable_masters_sync(data.tenant_id)
     master_id: str | None = data.master_id
@@ -44,7 +52,7 @@ def _create_booking_sync(data: BookingCreate) -> dict:
         sb.table("clients")
         .select("id, visit_count, total_spent")
         .eq("tenant_id", data.tenant_id)
-        .eq("contact_type", data.contact_type)
+        .eq("contact_type", contact_type_str)
         .eq("contact_value", data.contact_value)
         .limit(1)
         .execute()
@@ -58,7 +66,7 @@ def _create_booking_sync(data: BookingCreate) -> dict:
             .insert({
                 "tenant_id": data.tenant_id,
                 "name": data.name,
-                "contact_type": data.contact_type,
+                "contact_type": contact_type_str,
                 "contact_value": data.contact_value,
                 "first_visit": datetime.utcnow().isoformat(),
             })
@@ -104,7 +112,7 @@ async def create_booking(data: BookingCreate) -> BookingOut:
             tenant_id=data.tenant_id,
             booking_id=r["id"],
             client_name=data.name,
-            contact_type=data.contact_type,
+            contact_type=_contact_type_value(data.contact_type),
             contact_value=data.contact_value,
             service_names=r["service_names"],
             total_price=r["total_price"],
