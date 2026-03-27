@@ -12,6 +12,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 from app.bot.async_db import run_sync
 from app.bot.permissions import can_site
+from app.bot.undo import push_undo, pop_undo, has_undo, undo_count
 from app.core.database import get_supabase
 from app.core.tenant_fields import normalize_contact_json, normalize_site_content
 
@@ -41,17 +42,19 @@ def _get_user_tenant_sync(telegram_user_id: int) -> tuple[str | None, str | None
     return result.data[0]["tenant_id"], result.data[0].get("role")
 
 
-def site_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="🎨 Цвета (hex / rgb)", callback_data="site:colors")],
-            [InlineKeyboardButton(text="📝 Тексты главной", callback_data="site:texts")],
-            [InlineKeyboardButton(text="📞 Контакты — быстро", callback_data="site:contacts_quick")],
-            [InlineKeyboardButton(text="📞 Контакты — JSON", callback_data="site:contacts")],
-            [InlineKeyboardButton(text="🖼 Лого (ссылка)", callback_data="site:logo")],
-            [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")],
-        ]
-    )
+def site_menu_keyboard(tenant_id: str | None = None) -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text="🎨 Цвета (hex / rgb)", callback_data="site:colors")],
+        [InlineKeyboardButton(text="📝 Тексты главной", callback_data="site:texts")],
+        [InlineKeyboardButton(text="📞 Контакты — быстро", callback_data="site:contacts_quick")],
+        [InlineKeyboardButton(text="📞 Контакты — JSON", callback_data="site:contacts")],
+        [InlineKeyboardButton(text="🖼 Лого (ссылка)", callback_data="site:logo")],
+    ]
+    if tenant_id and has_undo(tenant_id):
+        n = undo_count(tenant_id)
+        rows.append([InlineKeyboardButton(text=f"↩️ Отменить ({n})", callback_data="site:undo")])
+    rows.append([InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def _patch_site_content_sync(tenant_id: str, patch: dict) -> None:
@@ -121,7 +124,7 @@ async def site_menu(callback: CallbackQuery):
         "Цвета можно задавать как <code>#c39077</code>, <code>rgb(195, 144, 119)</code> или "
         "<code>rgba(195,144,119,0.9)</code>.",
         parse_mode="HTML",
-        reply_markup=site_menu_keyboard(),
+        reply_markup=site_menu_keyboard(tid),
     )
 
 
@@ -499,19 +502,28 @@ async def site_process_value(message: Message, state: FSMContext):
 
     text = (message.text or "").strip()
 
+    def _undo_kb() -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="↩️ Отменить", callback_data="site:undo")],
+            [InlineKeyboardButton(text="◀️ К настройкам сайта", callback_data="menu:site")],
+        ])
+
     if kind == "color":
         field = data.get("site_field")
         if not field or not _validate_color(text):
             await message.reply("❌ Нужен цвет: #RRGGBB, #RGB или rgb(...)/rgba(...)")
             return
 
-        def _u():
+        def _update_color():
             sb = get_supabase()
+            old = sb.table("tenants").select(field).eq("id", tenant_id).limit(1).execute()
+            old_val = old.data[0].get(field) if old.data else None
+            push_undo(tenant_id, "tenants", tenant_id, field, old_val)
             sb.table("tenants").update({field: text}).eq("id", tenant_id).execute()
 
-        await run_sync(_u)
+        await run_sync(_update_color)
         await state.clear()
-        await message.reply(f"✅ {field} = {text}")
+        await message.reply(f"✅ {field} = {text}", reply_markup=_undo_kb())
         return
 
     if kind == "site_content":
@@ -528,11 +540,28 @@ async def site_process_value(message: Message, state: FSMContext):
             if not isinstance(arr, list):
                 await message.reply("❌ Нужен массив [...]")
                 return
-            await run_sync(_patch_site_content_sync, tenant_id, {"advantages": arr})
+
+            def _save_adv():
+                sb = get_supabase()
+                row = sb.table("tenants").select("site_content").eq("id", tenant_id).limit(1).execute()
+                old_sc = normalize_site_content(row.data[0].get("site_content") if row.data else {})
+                push_undo(tenant_id, "tenants", tenant_id, "site_content", dict(old_sc))
+                old_sc["advantages"] = arr
+                sb.table("tenants").update({"site_content": old_sc}).eq("id", tenant_id).execute()
+
+            await run_sync(_save_adv)
         else:
-            await run_sync(_patch_site_content_sync, tenant_id, {field: text})
+            def _save_text():
+                sb = get_supabase()
+                row = sb.table("tenants").select("site_content").eq("id", tenant_id).limit(1).execute()
+                old_sc = normalize_site_content(row.data[0].get("site_content") if row.data else {})
+                push_undo(tenant_id, "tenants", tenant_id, "site_content", dict(old_sc))
+                old_sc[field] = text
+                sb.table("tenants").update({"site_content": old_sc}).eq("id", tenant_id).execute()
+
+            await run_sync(_save_text)
         await state.clear()
-        await message.reply("✅ Текст на сайте обновлён.")
+        await message.reply("✅ Текст на сайте обновлён.", reply_markup=_undo_kb())
         return
 
     if kind == "contact_json":
@@ -545,13 +574,16 @@ async def site_process_value(message: Message, state: FSMContext):
             await message.reply("❌ Нужен JSON-объект {...}")
             return
 
-        def _u():
+        def _save_contact():
             sb = get_supabase()
+            old = sb.table("tenants").select("contact_json").eq("id", tenant_id).limit(1).execute()
+            old_val = old.data[0].get("contact_json") if old.data else {}
+            push_undo(tenant_id, "tenants", tenant_id, "contact_json", old_val)
             sb.table("tenants").update({"contact_json": obj}).eq("id", tenant_id).execute()
 
-        await run_sync(_u)
+        await run_sync(_save_contact)
         await state.clear()
-        await message.reply("✅ Контакты обновлены.")
+        await message.reply("✅ Контакты обновлены.", reply_markup=_undo_kb())
         return
 
     if kind == "logo_url":
@@ -559,13 +591,16 @@ async def site_process_value(message: Message, state: FSMContext):
             await message.reply("❌ Нужна ссылка https://…")
             return
 
-        def _u():
+        def _save_logo():
             sb = get_supabase()
+            old = sb.table("tenants").select("logo_url").eq("id", tenant_id).limit(1).execute()
+            old_val = old.data[0].get("logo_url") if old.data else None
+            push_undo(tenant_id, "tenants", tenant_id, "logo_url", old_val)
             sb.table("tenants").update({"logo_url": text}).eq("id", tenant_id).execute()
 
-        await run_sync(_u)
+        await run_sync(_save_logo)
         await state.clear()
-        await message.reply("✅ Лого обновлено.")
+        await message.reply("✅ Лого обновлено.", reply_markup=_undo_kb())
         return
 
     if kind == "contact_key":
@@ -576,9 +611,53 @@ async def site_process_value(message: Message, state: FSMContext):
         if ck in ("telegram", "whatsapp", "instagram") and not (text.startswith("http") or text.startswith("@")):
             await message.reply("❌ Для мессенджеров нужна ссылка https://… или @ник для Telegram.")
             return
+
+        def _save_cq():
+            sb = get_supabase()
+            row = sb.table("tenants").select("contact_json").eq("id", tenant_id).limit(1).execute()
+            old_cj = normalize_contact_json(row.data[0].get("contact_json") if row.data else {})
+            push_undo(tenant_id, "tenants", tenant_id, "contact_json", dict(old_cj))
+
+        await run_sync(_save_cq)
         await run_sync(_patch_contact_key_sync, tenant_id, ck, text)
         await state.clear()
-        await message.reply("✅ Контакт обновлён в футере сайта.")
+        await message.reply("✅ Контакт обновлён в футере сайта.", reply_markup=_undo_kb())
         return
 
     await state.clear()
+
+
+@router.callback_query(F.data == "site:undo")
+async def site_undo(callback: CallbackQuery):
+    await callback.answer()
+    tid, role = await run_sync(_get_user_tenant_sync, callback.from_user.id)
+    if not tid or not can_site(role):
+        await callback.message.edit_text("⛔ Нет доступа.")
+        return
+
+    entry = pop_undo(tid)
+    if not entry:
+        await callback.message.edit_text(
+            "⚠️ Нечего отменять.",
+            reply_markup=site_menu_keyboard(tid),
+        )
+        return
+
+    field = entry["field"]
+    old_value = entry["old_value"]
+
+    def _revert():
+        sb = get_supabase()
+        sb.table("tenants").update({field: old_value}).eq("id", tid).execute()
+
+    await run_sync(_revert)
+
+    remaining = undo_count(tid)
+    txt = f"↩️ Отменено! Поле <b>{field}</b> возвращено к предыдущему значению."
+    if remaining > 0:
+        txt += f"\n\nЕщё можно отменить: {remaining} шаг(а)."
+    await callback.message.edit_text(
+        txt,
+        parse_mode="HTML",
+        reply_markup=site_menu_keyboard(tid),
+    )

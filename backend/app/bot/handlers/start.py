@@ -126,24 +126,47 @@ def _bookings_text_and_keyboard_sync(
         suffix = " (только к вам)" if role == "master" else ""
         text = f"📋 На сегодня записей нет{suffix}."
     else:
+        # Batch fetch clients and services
+        client_ids = [b["client_id"] for b in bd if b.get("client_id")]
+        all_svc_ids = list({sid for b in bd for sid in (b.get("service_ids") or [])})
+
+        clients_map: dict = {}
+        if client_ids:
+            cl_res = sb.table("clients").select("id, name, contact_type, contact_value").in_("id", client_ids).execute()
+            clients_map = {c["id"]: c for c in (cl_res.data or [])}
+
+        services_map: dict = {}
+        if all_svc_ids:
+            svc_res = sb.table("services").select("id, name").in_("id", all_svc_ids).execute()
+            services_map = {s["id"]: s["name"] for s in (svc_res.data or [])}
+
         text = f"📋 <b>Записи на {today.strftime('%d.%m.%Y')}</b>\n\n"
+        status_emoji = {
+            "pending": "🟡",
+            "waiting": "⏳",
+            "confirmed": "✅",
+            "completed": "✔️",
+            "cancelled": "❌",
+        }
         for b in bd:
             dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00")).astimezone(tz)
-            status_emoji = {
-                "pending": "🟡",
-                "waiting": "⏳",
-                "confirmed": "✅",
-                "completed": "✔️",
-                "cancelled": "❌",
-            }
             emoji = status_emoji.get(b["status"], "❓")
             price = b["total_price"] // 100
-            client_name = "—"
-            if b.get("client_id"):
-                cl = sb.table("clients").select("name").eq("id", b["client_id"]).limit(1).execute()
-                if cl.data:
-                    client_name = escape(cl.data[0]["name"])
-            text += f"{emoji} {dt.strftime('%H:%M')} — {client_name} — {price:,}₸\n"
+
+            cl = clients_map.get(b.get("client_id", ""), {})
+            client_name = escape(cl.get("name") or "—")
+            contact_type = cl.get("contact_type", "")
+            contact_value = escape(cl.get("contact_value") or "")
+
+            svc_ids = b.get("service_ids") or []
+            svc_names = ", ".join(filter(None, [services_map.get(sid) for sid in svc_ids])) or "—"
+
+            text += (
+                f"{emoji} <b>{dt.strftime('%H:%M')}</b> — {client_name}\n"
+                f"  📱 {contact_type}: {contact_value}\n"
+                f"  💇 {svc_names}\n"
+                f"  💰 {price:,}₸\n\n"
+            )
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")]]

@@ -456,7 +456,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 className={cn(
                   "flex min-w-[4rem] shrink-0 flex-col items-center rounded-lg px-2.5 py-2.5 text-center transition-all duration-200",
                   isSelected ? "shadow-sm" : !isDisabled && "hover:bg-white",
-                  isClosed && "cursor-not-allowed opacity-25",
+                  isClosed && "cursor-not-allowed opacity-50",
                   requiresMaster && !selectedMasterId && !isClosed ? "pointer-events-none opacity-40" : ""
                 )}
                 style={

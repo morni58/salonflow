@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, X, ShoppingBag, ArrowRight, Info, ImageIcon, MessageCircle, UserRound } from "lucide-react";
 import type { Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
@@ -26,7 +26,26 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   const NAV_LINKS = navLinks(tenant);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const lastYRef = useRef(0);
   const { itemCount } = useCart();
+
+  // Auto-hide header on scroll down, show on scroll up
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 10);
+      if (y > lastYRef.current + 8 && y > 80) {
+        setHidden(true);
+      } else if (y < lastYRef.current - 8) {
+        setHidden(false);
+      }
+      lastYRef.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Подсветка активного раздела при скролле
   useEffect(() => {
@@ -82,7 +101,9 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
   return (
     <>
       <header
-        className="glass-nav fixed top-0 z-[100] w-full border-b border-ink/5 transition-all duration-300"
+        className={`glass-nav fixed top-0 z-[100] w-full border-b border-ink/5 transition-all duration-300 ${
+          hidden && !drawerOpen ? "-translate-y-full" : "translate-y-0"
+        } ${scrolled ? "shadow-md" : ""}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="relative mx-auto max-w-[var(--layout-max)] px-4 sm:px-6 lg:px-8">

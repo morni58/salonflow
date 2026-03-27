@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type ReactNode } from "react";
+import { createContext, useContext, useReducer, useEffect, type ReactNode } from "react";
 import type { Service, CartItem } from "../types";
 
 // ── State ──────────────────────────────
@@ -54,6 +54,19 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   }
 }
 
+// ── Persistence ────────────────────────
+const CART_KEY = "salonflow_cart_v2";
+
+function loadCart(): CartState {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    if (!raw) return { items: [] };
+    const parsed = JSON.parse(raw) as { items?: unknown };
+    if (Array.isArray(parsed.items)) return { items: parsed.items as CartItem[] };
+  } catch {/* ignore */}
+  return { items: [] };
+}
+
 // ── Context ────────────────────────────
 
 interface CartContextValue {
@@ -70,7 +83,12 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  const [state, dispatch] = useReducer(cartReducer, undefined, loadCart);
+
+  // Save to localStorage whenever cart changes
+  useEffect(() => {
+    try { localStorage.setItem(CART_KEY, JSON.stringify(state)); } catch {/* ignore */}
+  }, [state]);
 
   const totalPrice = state.items.reduce(
     (sum, i) => sum + i.service.price * i.quantity,

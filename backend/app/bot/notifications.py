@@ -168,7 +168,22 @@ async def send_booking_notification(
 
     contact_link = _format_contact_link(contact_type, contact_value)
     services_text = "\n".join(f"  • {name}" for name in service_names)
-    dt_str = preferred_datetime.strftime("%d.%m.%Y, %H:%M")
+
+    # Convert to tenant local timezone
+    def _fetch_tz_sync(tid: str) -> str:
+        sb = get_supabase()
+        r = sb.table("tenants").select("timezone").eq("id", tid).limit(1).execute()
+        return (r.data[0].get("timezone") or "UTC") if r.data else "UTC"
+
+    tz_str = await run_sync(_fetch_tz_sync, tenant_id)
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(tz_str)
+    except Exception:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("UTC")
+    dt_local = preferred_datetime.astimezone(tz)
+    dt_str = dt_local.strftime("%d.%m.%Y, %H:%M")
     hours = total_duration // 60
     mins = total_duration % 60
     duration_str = f"{hours}ч {mins}мин" if hours else f"{mins}мин"
@@ -253,9 +268,19 @@ def _build_daily_brief_text_sync(tenant_id: str) -> str:
     text += f"📅 Записей: {len(bookings.data)}\n"
     text += f"💰 Ожидаемая выручка: {_format_price(total_revenue)}\n\n"
 
+    # Fetch tenant timezone for local time display
+    tz_row = sb.table("tenants").select("timezone").eq("id", tenant_id).limit(1).execute()
+    tz_str = (tz_row.data[0].get("timezone") or "UTC") if tz_row.data else "UTC"
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(tz_str)
+    except Exception:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("UTC")
+
     if bookings.data:
         for b in bookings.data:
-            dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00")).astimezone(tz)
             time_str = dt.strftime("%H:%M")
 
             client_name = "—"
