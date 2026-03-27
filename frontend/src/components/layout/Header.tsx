@@ -36,7 +36,6 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
     ids.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      map.set(el, id);
       const obs = new IntersectionObserver(
         ([entry]) => { if (entry.isIntersecting) setActiveSection(id); },
         { rootMargin: "-20% 0px -65% 0px", threshold: 0 },
