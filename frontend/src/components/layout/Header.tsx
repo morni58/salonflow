@@ -175,18 +175,19 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
                 onOpenCart();
                 setDrawerOpen(false);
               }}
-              className="relative -mr-2 flex shrink-0 items-center gap-2 rounded-lg border border-brand-200/80 bg-brand-50 px-3 py-2 text-ink transition-colors duration-300 ease-out hover:border-brand-300 hover:text-brand-600 md:mr-0 md:border-0 md:bg-transparent md:px-0"
+              className="relative inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-px active:scale-[0.97]"
+              style={{ background: "var(--color-primary)", boxShadow: itemCount > 0 ? "0 4px 14px rgba(192,137,115,0.4)" : "0 2px 8px rgba(192,137,115,0.25)" }}
               aria-label="Моя запись"
             >
-              <span className="hidden text-sm font-medium md:block">Моя запись</span>
               <div className="relative">
-                <ShoppingBag size={20} strokeWidth={2} />
+                <ShoppingBag size={18} strokeWidth={2} />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex min-w-[1rem] items-center justify-center rounded-md bg-brand-500 px-0.5 text-[10px] font-bold text-white shadow-sm">
+                  <span className="absolute -top-2 -right-2 flex min-w-[1.1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold shadow-sm" style={{ color: "var(--color-primary)" }}>
                     {itemCount > 9 ? "9+" : itemCount}
                   </span>
                 )}
               </div>
+              <span className="whitespace-nowrap">Моя запись</span>
             </button>
           </div>
         </div>
@@ -243,9 +244,10 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
               setDrawerOpen(false);
               onOpenCart();
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 py-4 font-medium tracking-wide text-white shadow-lg shadow-brand-500/20"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px active:scale-[0.97] min-h-[44px]"
+            style={{ background: "var(--color-primary)", boxShadow: "0 4px 16px rgba(192,137,115,0.35)" }}
           >
-            <ShoppingBag size={20} strokeWidth={2} />
+            <ShoppingBag size={18} strokeWidth={2} />
             Открыть корзину
           </button>
         </div>

@@ -39,7 +39,7 @@ export function PortfolioSection({
     ? data.filter((d) => d.category === active).flatMap((d) => d.images)
     : data.flatMap((d) => d.images);
 
-  // Keyboard navigation для лайтбокса
+  // Keyboard navigation for lightbox
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handler = (e: KeyboardEvent) => {
@@ -51,7 +51,7 @@ export function PortfolioSection({
     return () => window.removeEventListener("keydown", handler);
   }, [lightboxIndex, allImages.length]);
 
-  // Блокировать скролл страницы при открытом лайтбоксе
+  // Lock body scroll when lightbox is open
   useEffect(() => {
     if (lightboxIndex !== null) {
       const prev = document.body.style.overflow;
@@ -60,11 +60,17 @@ export function PortfolioSection({
     }
   }, [lightboxIndex]);
 
+  const imageCount = allImages.length;
+  const imageCountLabel =
+    imageCount === 1 ? "1 работа" : imageCount < 5 ? `${imageCount} работы` : `${imageCount} работ`;
+
   if (loading) {
     return (
-      <section id="portfolio" data-anchor-section className="overflow-hidden bg-base py-16 md:py-24">
+      <section id="portfolio" data-anchor-section className="overflow-hidden bg-base scroll-mt-24 py-16 md:py-24">
         <div className="mx-auto w-full max-w-[var(--layout-max)] px-4 sm:px-6 lg:px-8">
-          <h2 className="font-serif mb-4 text-center text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
+          <div className="mb-10 text-center">
+            <h2 className="font-serif text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
+          </div>
           <div className="columns-2 gap-3 md:columns-3 lg:columns-4 lg:gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
@@ -82,23 +88,24 @@ export function PortfolioSection({
   }
 
   return (
-    <section id="portfolio" data-anchor-section className="overflow-hidden bg-base py-16 md:py-24">
+    <section id="portfolio" data-anchor-section className="overflow-hidden bg-base scroll-mt-24 py-16 md:py-24">
       <div className="mx-auto w-full max-w-[var(--layout-max)] px-4 sm:px-6 lg:px-8">
 
-        <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div>
-            <h2 className="font-serif mb-2 text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
-            <p className="text-sm text-ink-muted md:text-base">{subtitle}</p>
-          </div>
-          {allImages.length > 0 && (
-            <span className="text-sm text-ink-light">
-              {allImages.length} {allImages.length === 1 ? "работа" : allImages.length < 5 ? "работы" : "работ"}
-            </span>
-          )}
+        {/* Section header — consistent badge treatment */}
+        <div className="mb-10 text-center md:mb-14">
+          <span
+            className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
+            style={{ borderColor: "var(--color-primary-20)", background: "var(--color-primary-muted)", color: "var(--color-primary)" }}
+          >
+            <Images size={11} aria-hidden />
+            {data.length > 0 && imageCount > 0 ? imageCountLabel : "Портфолио"}
+          </span>
+          <h2 className="font-serif text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
+          <p className="mt-3 text-sm text-ink-muted md:text-base">{subtitle}</p>
         </div>
 
         {data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-brand-100 bg-brand-50/50 px-6 py-14 text-center">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-brand-100 bg-brand-50/50 px-6 py-14 text-center">
             <Images className="mb-3 text-brand-400" size={44} aria-hidden />
             <p className="max-w-sm text-sm leading-relaxed text-ink-muted">
               Здесь будут фото работ. Администратор может загрузить их в Telegram-боте в разделе портфолио.
@@ -151,7 +158,7 @@ export function PortfolioSection({
         )}
       </div>
 
-      {/* Лайтбокс */}
+      {/* Lightbox */}
       {lightboxIndex !== null && (
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center bg-black/92 backdrop-blur-md animate-fade-in"
@@ -166,7 +173,7 @@ export function PortfolioSection({
             touchStartX.current = null;
           }}
         >
-          {/* Кнопка закрыть */}
+          {/* Close button */}
           <button
             type="button"
             onClick={() => setLightboxIndex(null)}
@@ -176,12 +183,12 @@ export function PortfolioSection({
             <X size={20} />
           </button>
 
-          {/* Счётчик */}
+          {/* Counter */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
             {lightboxIndex + 1} / {allImages.length}
           </div>
 
-          {/* Стрелка влево */}
+          {/* Prev arrow */}
           {lightboxIndex > 0 && (
             <button
               type="button"
@@ -193,7 +200,7 @@ export function PortfolioSection({
             </button>
           )}
 
-          {/* Изображение */}
+          {/* Image */}
           <img
             key={lightboxIndex}
             src={allImages[lightboxIndex].url}
@@ -203,7 +210,7 @@ export function PortfolioSection({
             draggable={false}
           />
 
-          {/* Стрелка вправо */}
+          {/* Next arrow */}
           {lightboxIndex < allImages.length - 1 && (
             <button
               type="button"
@@ -215,7 +222,7 @@ export function PortfolioSection({
             </button>
           )}
 
-          {/* Точки-индикаторы (до 12 фото) */}
+          {/* Dot indicators (up to 12 images) */}
           {allImages.length <= 12 && (
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5">
               {allImages.map((_, i) => (

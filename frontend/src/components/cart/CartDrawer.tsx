@@ -59,11 +59,11 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
               <p className="max-w-[200px] text-sm text-ink-muted opacity-70">Добавьте услуги из каталога, чтобы записаться</p>
             </div>
           ) : (
-            <div className="divide-y divide-brand-100 overflow-hidden rounded-lg border border-brand-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-2">
               {items.map((item) => (
                 <div
                   key={item.service.id}
-                  className="flex flex-col gap-3 p-3 transition-colors hover:bg-brand-50/90 md:p-4"
+                  className="flex flex-col gap-3 rounded-xl border border-brand-50 bg-white p-3"
                 >
                   <div className="flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 pr-1">
@@ -73,37 +73,42 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                       >
                         {item.service.name}
                       </h3>
-                      <p className="mt-1 text-sm text-ink-muted">{formatDuration(item.service.duration_minutes)}</p>
+                      <p className="mt-1 text-xs text-ink-muted">{formatDuration(item.service.duration_minutes)}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeItem(item.service.id)}
-                      className="rounded-lg p-2 text-ink-muted transition-colors hover:bg-red-50 hover:text-red-500"
+                      className="shrink-0 rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-50 hover:text-red-500"
                       aria-label="Удалить"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 rounded-lg border border-brand-200 bg-base p-0.5">
+                    <div className="flex items-center gap-1 rounded-lg border border-brand-100 bg-brand-50/50 p-0.5">
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity - 1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors hover:bg-white"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-white hover:text-ink"
                       >
-                        <Minus size={14} />
+                        <Minus size={13} />
                       </button>
-                      <span className="min-w-[2rem] text-center text-sm font-medium text-ink">{item.quantity}</span>
+                      <span className="min-w-[1.75rem] text-center text-sm font-semibold text-ink">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity + 1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors hover:bg-white"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-white hover:text-ink"
                       >
-                        <Plus size={14} />
+                        <Plus size={13} />
                       </button>
                     </div>
-                    <span className="font-semibold tabular-nums text-brand-600">{formatPrice(item.service.price * item.quantity)}</span>
+                    <span
+                      className="font-bold tabular-nums"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      {formatPrice(item.service.price * item.quantity)}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -135,7 +140,8 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                 onClose();
                 onCheckout();
               }}
-              className="btn-primary-soft w-full rounded-lg bg-brand-500 py-3.5 text-center text-sm font-medium tracking-wide text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600 active:scale-[0.98] md:py-4"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px active:scale-[0.97] min-h-[44px]"
+              style={{ background: "var(--color-primary)", boxShadow: "0 4px 16px rgba(192,137,115,0.35)" }}
             >
               Оформить запись
             </button>
