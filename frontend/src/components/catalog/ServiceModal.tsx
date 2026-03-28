@@ -16,17 +16,22 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
   const inCart = items.some((i) => i.service.id === service.id);
 
   useEffect(() => {
-    // Сохраняем overflow один раз при открытии модалки
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // iOS-совместимая блокировка скролла: body фиксируем, запоминаем позицию
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY); // возвращаем на то же место
       document.removeEventListener("keydown", onKey);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // [] — намеренно: восстанавливаем overflow только при размонтировании
+  }, []);
 
   const handleAdd = () => {
     addItem(service);

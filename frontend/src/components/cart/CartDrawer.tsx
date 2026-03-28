@@ -1,6 +1,7 @@
 import { X, Minus, Plus, Trash2, ShoppingBag, ImageIcon } from "lucide-react";
 import { useCart } from "../../store/cartStore";
 import { formatPrice, formatDuration } from "../../utils";
+import { useEffect } from "react";
 
 interface Props {
   open: boolean;
@@ -9,6 +10,21 @@ interface Props {
 }
 
 export function CartDrawer({ open, onClose, onCheckout }: Props) {
+  // iOS-совместимая блокировка скролла
+  useEffect(() => {
+    if (open) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      return () => {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [open]);
   const { items, removeItem, setQuantity, totalPrice, totalDuration, clearCart } = useCart();
 
   return (
@@ -164,7 +180,7 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                 onClick={() => {
                   if (window.confirm("Очистить всю корзину?")) clearCart();
                 }}
-                className="text-[10px] font-bold uppercase tracking-widest text-red-400/70 transition-colors hover:text-red-500"
+                className="text-xs font-medium text-red-400/70 transition-colors hover:text-red-500"
               >
                 Очистить
               </button>

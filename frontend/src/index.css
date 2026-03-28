@@ -50,8 +50,7 @@
   --color-price-bg: rgba(195, 144, 119, 0.15);
   --color-price-border: rgba(195, 144, 119, 0.35);
   --shadow-soft-md: 0 12px 30px -4px rgba(54, 49, 45, 0.08);
-  /* Шире 7xl: контент совпадает с шапкой, меньше «пустого поля» по бокам */
-  --layout-max: min(100%, 96rem);
+  --layout-max: min(100%, 90rem);
 }
 
 * {
@@ -347,20 +346,19 @@ body::-webkit-scrollbar-thumb:hover {
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(255,255,255,0.2);
 }
 
-/* Black CTA button */
+/* Black CTA button — крупнее, прямоугольные скруглённые углы */
 .btn-ink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   background: #1c1917;
   color: #fff;
   border-radius: 14px;
-  padding: 14px 32px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  padding: 16px 36px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   white-space: nowrap;

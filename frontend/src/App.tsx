@@ -164,7 +164,7 @@ function AppInner() {
         />
       )}
 
-      <main className={`mx-auto w-full min-w-0 max-w-[var(--layout-max)] overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8 ${view === "checkout" ? "pt-6 sm:pt-8" : "pt-24 md:pt-28"}`}>
+      <main className={`mx-auto w-full min-w-0 max-w-[var(--layout-max)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8 ${view === "checkout" ? "pt-6 sm:pt-8" : "pt-24 md:pt-28"}`}>
         {view === "home" && (
           <>
             <HeroSection tenant={tenant} />

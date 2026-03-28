@@ -52,14 +52,14 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
             <ImageIcon className="opacity-20" size={40} style={{ color: "var(--color-primary)" }} aria-hidden />
           </div>
         )}
-        {/* Category badge */}
-        <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+        {/* Category badge — прямые скруглённые углы, жирный шрифт */}
+        <span className="absolute top-3 left-3 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
           {categoryName}
         </span>
         {/* In-cart indicator */}
         {inCart && (
-          <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-ink text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1">
-            <Check size={8} strokeWidth={3} />
+          <span className="absolute top-3 right-3 flex items-center gap-1 rounded-lg bg-ink text-white text-xs font-bold px-2.5 py-1.5">
+            <Check size={10} strokeWidth={3} />
             {cartItem && cartItem.quantity > 1 ? `×${cartItem.quantity}` : "В записи"}
           </span>
         )}
@@ -67,16 +67,17 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
 
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col px-5 pb-5 pt-4">
-        {/* Name + Price inline */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3
-            className="text-xl font-bold leading-snug text-ink min-w-0 flex-1"
-            style={{ overflowWrap: "anywhere" }}
-          >
-            {service.name}
-          </h3>
+        {/* Name */}
+        <h3
+          className="text-xl font-bold leading-snug text-ink mb-1"
+          style={{ overflowWrap: "anywhere" }}
+        >
+          {service.name}
+        </h3>
+        {/* Price — крупный, стабильный, без italic */}
+        <div className="mb-2">
           <span
-            className="shrink-0 font-serif italic text-base font-semibold tabular-nums"
+            className="text-lg font-bold tabular-nums"
             style={{ color: "var(--color-primary)" }}
           >
             {formatPrice(service.price)}
@@ -98,19 +99,19 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           {formatDuration(service.duration_minutes)}
         </div>
 
-        {/* Add button */}
+        {/* Add button — крупнее, прямоугольный */}
         <button
           type="button"
           onClick={handleAdd}
           aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
           className={[
-            "mt-auto w-full py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
+            "mt-auto w-full py-4 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97]",
             added || inCart
               ? "bg-ink text-white"
-              : "bg-black/5 text-ink/60 hover:bg-black hover:text-white",
+              : "bg-black/5 text-ink hover:bg-black hover:text-white",
           ].join(" ")}
         >
-          {added ? "Добавлено ✓" : inCart ? "Ещё раз" : "Добавить"}
+          {added ? "Добавлено ✓" : inCart ? "Добавить ещё" : "Добавить в запись"}
         </button>
       </div>
     </div>

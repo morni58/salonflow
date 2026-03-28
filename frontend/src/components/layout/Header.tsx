@@ -45,12 +45,19 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Блокировка скролла при открытом меню
+  // iOS-совместимая блокировка скролла при открытом мобильном меню
   useEffect(() => {
     if (menuOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = prev; };
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      return () => {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        window.scrollTo(0, scrollY);
+      };
     }
   }, [menuOpen]);
 
