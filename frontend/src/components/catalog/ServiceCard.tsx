@@ -28,7 +28,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
   return (
     <div
       className="hover-lift group flex h-full min-h-0 flex-col cursor-pointer overflow-hidden rounded-2xl border-2 border-black/[0.08] bg-white"
-      style={{ padding: "10px" }}
+      style={{ padding: "12px" }}
       onClick={() => onView?.(service)}
       role={onView ? "button" : undefined}
       tabIndex={onView ? 0 : undefined}
@@ -53,12 +53,12 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           </div>
         )}
         {/* Category badge — прямые скруглённые углы, жирный шрифт */}
-        <span className="absolute top-3 left-3 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
+        <span className="absolute top-3 left-3 rounded-md bg-white px-2.5 py-1 text-xs font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
           {categoryName}
         </span>
         {/* In-cart indicator */}
         {inCart && (
-          <span className="absolute top-3 right-3 flex items-center gap-1 rounded-lg bg-ink text-white text-xs font-bold px-2.5 py-1.5">
+          <span className="absolute top-3 right-3 flex items-center gap-1 rounded-md bg-ink text-white text-xs font-bold px-2 py-1">
             <Check size={10} strokeWidth={3} />
             {cartItem && cartItem.quantity > 1 ? `×${cartItem.quantity}` : "В записи"}
           </span>
@@ -97,7 +97,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
         </div>
 
         {/* Duration badge */}
-        <div className="mb-5 flex items-center gap-1.5 text-xs font-medium w-fit rounded-lg px-3 py-1.5" style={{ background: "var(--color-primary-muted)", color: "var(--color-primary)" }}>
+        <div className="mb-5 flex items-center gap-1.5 text-xs font-medium w-fit rounded-md px-2.5 py-1" style={{ background: "var(--color-primary-muted)", color: "var(--color-primary)" }}>
           <Clock size={13} strokeWidth={2} className="shrink-0" aria-hidden />
           {formatDuration(service.duration_minutes)}
         </div>

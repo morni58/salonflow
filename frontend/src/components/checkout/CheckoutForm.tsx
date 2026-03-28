@@ -432,12 +432,17 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
 
       {/* Сводка услуг */}
       <div className="mb-6 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white p-5 shadow-soft">
-        <p
-          className="line-clamp-4 text-sm leading-relaxed opacity-55"
-          style={{ color: "var(--color-text)", overflowWrap: "anywhere" }}
-        >
-          {items.map((i) => i.quantity > 1 ? `${i.service.name} ×${i.quantity}` : i.service.name).join(", ")}
-        </p>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {items.map((i, idx) => (
+            <span
+              key={idx}
+              className="rounded-md border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium"
+              style={{ color: "var(--color-text)" }}
+            >
+              {i.quantity > 1 ? `${i.service.name} ×${i.quantity}` : i.service.name}
+            </span>
+          ))}
+        </div>
         <div className="mt-2 flex items-center justify-between">
           <span className="text-sm" style={{ color: "var(--color-text)", opacity: 0.75 }}>{formatDuration(totalDuration)}</span>
           <span className="text-xl font-semibold tabular-nums tracking-tight" style={{ color: "var(--color-primary)" }}>
@@ -485,7 +490,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 aria-pressed={selectedMasterId === m.id}
               >
                 <div
-                  className="h-14 w-14 overflow-hidden rounded-lg ring-1 ring-black/5"
+                  className="h-14 w-14 overflow-hidden rounded-md"
                   style={{ background: "var(--color-placeholder-surface)" }}
                 >
                   {m.photo_url ? (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserRound, Star, Calendar } from "lucide-react";
+import { UserRound, Calendar } from "lucide-react";
 import type { MasterPublic } from "../../types";
 import { fetchMasters } from "../../api/client";
 
@@ -42,7 +42,7 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
       : "grid sm:grid-cols-2 lg:grid-cols-4 gap-5";
 
   return (
-    <section id="masters" data-anchor-section className="scroll-mt-24 py-16 md:py-24">
+    <section id="masters" data-anchor-section className="scroll-mt-24 py-20 md:py-28">
       <div className="mb-10 text-center md:mb-14">
         <p
           className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40"
@@ -76,12 +76,12 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
 function MasterCard({ master: m, onBook }: { master: MasterPublic; onBook: () => void }) {
   return (
     <article
-      className="hover-lift group flex flex-col overflow-hidden rounded-[28px] bg-white border border-black/[0.06]"
+      className="hover-lift group flex flex-col overflow-hidden rounded-2xl bg-white border border-black/[0.06]"
       style={{ boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
     >
       {/* Portrait */}
       <div
-        className="relative w-full overflow-hidden rounded-t-[26px]"
+        className="relative w-full overflow-hidden rounded-t-2xl"
         style={{ aspectRatio: "3/4", background: "var(--color-placeholder-surface, #f0ebe6)" }}
       >
         {m.photo_url ? (
@@ -104,10 +104,9 @@ function MasterCard({ master: m, onBook }: { master: MasterPublic; onBook: () =>
         {/* Experience badge */}
         {m.experience && (
           <span
-            className="absolute top-3 right-3 flex items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white"
+            className="absolute top-3 right-3 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
             style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
           >
-            <Star size={9} strokeWidth={2.5} aria-hidden />
             {m.experience}
           </span>
         )}
@@ -149,7 +148,7 @@ function MasterCard({ master: m, onBook }: { master: MasterPublic; onBook: () =>
         <button
           type="button"
           onClick={onBook}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[11px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-[0.97] hover:opacity-90"
+          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-[0.97] hover:opacity-90"
           style={{
             background: "var(--color-primary)",
             color: "#fff",

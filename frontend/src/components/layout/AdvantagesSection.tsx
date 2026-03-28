@@ -75,7 +75,7 @@ export function AdvantagesSection({ tenant }: Props) {
     <section
       id="advantages"
       data-anchor-section
-      className="my-12 overflow-hidden rounded-[2rem] md:my-20"
+      className="my-12 overflow-hidden rounded-3xl md:my-20"
       style={{ background: "#1c1917" }}
     >
       <div className="px-6 py-14 md:px-12 md:py-20">
@@ -97,7 +97,7 @@ export function AdvantagesSection({ tenant }: Props) {
           {items.map((item, i) => (
             <div
               key={`${item.title}-${i}`}
-              className="flex flex-col rounded-[28px] p-6 md:p-8 transition-colors duration-300"
+              className="flex flex-col rounded-2xl p-6 md:p-8 transition-colors duration-300"
               style={{
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.06)",

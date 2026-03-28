@@ -36,7 +36,7 @@ export function CatalogSection({
 
   if (loading) {
     return (
-      <section id="catalog" data-anchor-section className="scroll-mt-24 py-16 md:py-24">
+      <section id="catalog" data-anchor-section className="scroll-mt-24 py-20 md:py-28">
         <div className="mb-10 text-center">
           <h2 className="font-serif text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
         </div>
@@ -52,7 +52,7 @@ export function CatalogSection({
   const totalServices = categories.reduce((acc, c) => acc + c.services.length, 0);
 
   return (
-    <section id="catalog" data-anchor-section className="scroll-mt-24 py-16 md:py-24">
+    <section id="catalog" data-anchor-section className="scroll-mt-24 py-20 md:py-28">
       {/* Section header */}
       <div className="mb-10 text-center md:mb-14">
         <span
