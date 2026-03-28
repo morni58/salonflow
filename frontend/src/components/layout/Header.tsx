@@ -45,19 +45,13 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // iOS-совместимая блокировка скролла при открытом мобильном меню
+  // Блокируем скролл без position:fixed (не скачет страница)
   useEffect(() => {
+    const html = document.documentElement;
     if (menuOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = "100%";
-      return () => {
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.width = "";
-        window.scrollTo(0, scrollY);
-      };
+      const prev = html.style.overflow;
+      html.style.overflow = "hidden";
+      return () => { html.style.overflow = prev; };
     }
   }, [menuOpen]);
 
@@ -106,22 +100,26 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
               type="button"
               onClick={goHome}
               className="flex items-center gap-2.5 shrink-0"
-              title="На главную"
+              aria-label="На главную"
             >
               {tenant.logo_url ? (
                 <img
                   src={tenant.logo_url}
-                  alt=""
+                  alt={tenant.name}
                   className="h-8 w-8 shrink-0 rounded-xl object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                    if (sib) sib.style.display = "flex";
+                  }}
                 />
-              ) : (
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-serif text-sm font-bold text-white"
-                  style={{ background: "var(--color-primary)" }}
-                >
-                  {tenant.name.trim().charAt(0).toUpperCase() || "•"}
-                </div>
-              )}
+              ) : null}
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-serif text-sm font-bold text-white"
+                style={{ background: "var(--color-primary)", display: tenant.logo_url ? "none" : "flex" }}
+              >
+                {tenant.name.trim().charAt(0).toUpperCase() || "•"}
+              </div>
               <span className="font-serif text-xl font-bold tracking-tight text-ink">
                 {tenant.name}
               </span>
@@ -162,7 +160,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
                 aria-label="Моя запись"
               >
                 <div className="relative">
-                  <ShoppingBag size={16} strokeWidth={2} />
+                  <ShoppingBag size={20} strokeWidth={2} />
                   {itemCount > 0 && (
                     <span
                       className={`absolute -top-2 -right-2 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold${popping ? " cart-pop" : ""}`}

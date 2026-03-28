@@ -1,7 +1,7 @@
 import { X, Minus, Plus, Trash2, ShoppingBag, ImageIcon } from "lucide-react";
 import { useCart } from "../../store/cartStore";
 import { formatPrice, formatDuration } from "../../utils";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   open: boolean;
@@ -10,6 +10,8 @@ interface Props {
 }
 
 export function CartDrawer({ open, onClose, onCheckout }: Props) {
+  const [confirmClear, setConfirmClear] = useState(false);
+
   // Блокируем скролл без position:fixed (не скачет страница)
   useEffect(() => {
     const html = document.documentElement;
@@ -19,6 +21,10 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
       return () => { html.style.overflow = prevOverflow; };
     }
   }, [open]);
+
+  // Закрыть подтверждение очистки при закрытии дровера
+  useEffect(() => { if (!open) setConfirmClear(false); }, [open]);
+
   const { items, removeItem, setQuantity, totalPrice, totalDuration, clearCart } = useCart();
 
   return (
@@ -168,16 +174,34 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
               <p className="text-xs text-ink-muted opacity-60">{formatDuration(totalDuration)}</p>
             </div>
 
-            <div className="mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm("Очистить всю корзину?")) clearCart();
-                }}
-                className="text-xs font-medium text-red-400/70 transition-colors hover:text-red-500"
-              >
-                Очистить
-              </button>
+            <div className="mb-3 flex items-center justify-end gap-3">
+              {confirmClear ? (
+                <>
+                  <span className="text-xs text-ink-muted opacity-70">Точно очистить?</span>
+                  <button
+                    type="button"
+                    onClick={() => { clearCart(); setConfirmClear(false); }}
+                    className="text-xs font-semibold text-red-500 transition-colors hover:text-red-600"
+                  >
+                    Да, очистить
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClear(false)}
+                    className="text-xs font-medium text-ink-muted transition-colors hover:text-ink"
+                  >
+                    Отмена
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmClear(true)}
+                  className="text-xs font-medium text-red-400/70 transition-colors hover:text-red-500"
+                >
+                  Очистить всё
+                </button>
+              )}
             </div>
 
             <button

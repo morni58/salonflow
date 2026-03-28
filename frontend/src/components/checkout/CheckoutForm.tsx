@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Send,
   Calendar,
@@ -9,6 +9,7 @@ import {
   MessageCircle,
   UserRound,
   AlertTriangle,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "../common/Toast";
 import type { ContactType, MasterPublic, Tenant } from "../../types";
@@ -33,7 +34,7 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-xl border border-brand-100 bg-white px-4 py-3.5 text-sm outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
+  "min-w-0 w-full max-w-full rounded-lg border border-brand-100 bg-white px-4 py-3.5 text-sm outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
 
 /** Проверить закрыт ли день по расписанию тенанта (без обращения к API) */
 function isDateClosed(dateStr: string, tenant: Tenant): boolean {
@@ -58,6 +59,21 @@ function isDateClosed(dateStr: string, tenant: Tenant): boolean {
   return !workingDays.includes(weekday);
 }
 
+/** Валидация контакта по типу */
+function validateContact(type: ContactType, value: string): string | null {
+  const v = value.trim();
+  if (!v) return "Введите контакт";
+  if (type === "telegram" || type === "instagram") {
+    if (!v.startsWith("@")) return `Введите никнейм в формате @username`;
+    if (v.length < 3) return "Слишком короткий никнейм";
+  }
+  if (type === "phone" || type === "whatsapp") {
+    const digits = v.replace(/\D/g, "");
+    if (digits.length < 10) return "Введите номер телефона (минимум 10 цифр)";
+  }
+  return null;
+}
+
 interface SuccessInfo {
   date: string;
   time: string;
@@ -78,8 +94,10 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
   const [selectedMasterId, setSelectedMasterId] = useState<string>("");
 
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [contactType, setContactType] = useState<ContactType>("telegram");
   const [contactValue, setContactValue] = useState("");
+  const [contactError, setContactError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
@@ -87,6 +105,9 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
+
+  // AbortController для предотвращения гонки при смене даты/мастера
+  const slotAbortRef = useRef<AbortController | null>(null);
 
   const dates = Array.from({ length: 60 }, (_, i) => {
     const d = new Date();
@@ -119,7 +140,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       })
       .catch(() => {
         toast.error(
-          "Не удалось загрузить мастеров. Без них слоты недоступны — проверьте сеть и обновите страницу."
+          "Не удалось загрузить мастеров. Проверьте сеть и обновите страницу."
         );
       })
       .finally(() => setMastersLoading(false));
@@ -132,8 +153,16 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       setSlots([]);
       return;
     }
+
+    // Отменяем предыдущий запрос
+    slotAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    slotAbortRef.current = ctrl;
+
     setSlotsLoading(true);
     setSelectedTime("");
+    setSlots([]);
+
     fetchSlots(
       tenantId,
       selectedDate,
@@ -141,6 +170,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       totalDuration > 0 ? totalDuration : null
     )
       .then((res) => {
+        if (ctrl.signal.aborted) return;
         setSlots(res.slots ?? []);
         if (res.alternate_master_id && res.alternate_master_name) {
           setSlotAlternate({ id: res.alternate_master_id, name: res.alternate_master_name });
@@ -149,12 +179,17 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         }
       })
       .catch((err: unknown) => {
+        if (ctrl.signal.aborted) return;
         setSlots([]);
         setSlotAlternate(null);
         const msg = err instanceof Error ? err.message : "Не удалось загрузить слоты";
         toast.error(msg);
       })
-      .finally(() => setSlotsLoading(false));
+      .finally(() => {
+        if (!ctrl.signal.aborted) setSlotsLoading(false);
+      });
+
+    return () => ctrl.abort();
   }, [
     selectedDate,
     tenantId,
@@ -165,23 +200,33 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
   ]);
 
   const masterOk = !requiresMaster || !!selectedMasterId;
-  // Если masters требуются, но список пуст — форма недоступна
   const mastersUnavailable = requiresMaster && !mastersLoading && masters.length === 0;
+
+  const validateName = (v: string) => {
+    if (!v.trim()) return "Введите ваше имя";
+    if (v.trim().length < 2) return "Имя слишком короткое";
+    return null;
+  };
+
   const canSubmit =
     !mastersUnavailable &&
     masterOk &&
-    name.trim() &&
-    contactValue.trim() &&
+    name.trim().length >= 2 &&
+    !validateContact(contactType, contactValue) &&
     selectedDate &&
     selectedTime;
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting) return;
-    setSubmitting(true);
+    // Показываем ошибки при попытке отправить
+    const nErr = validateName(name);
+    const cErr = validateContact(contactType, contactValue);
+    setNameError(nErr);
+    setContactError(cErr);
+    if (nErr || cErr || !canSubmit || submitting) return;
 
+    setSubmitting(true);
     try {
       const preferredDatetime = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
-      // Учитываем quantity: flatMap повторяет ID нужное число раз
       await createBooking({
         tenant_id: tenantId,
         name: name.trim(),
@@ -192,7 +237,6 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         master_id: requiresMaster ? selectedMasterId : undefined,
       });
       onTrackCheckout();
-      // Save snapshot before clearing cart
       setSuccessInfo({
         date: selectedDate,
         time: selectedTime,
@@ -211,6 +255,26 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       setSubmitting(false);
     }
   };
+
+  // Пустая корзина
+  if (items.length === 0 && !successInfo) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center px-4">
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl" style={{ background: "var(--color-primary-muted)" }}>
+          <ShoppingBag size={36} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} aria-hidden />
+        </div>
+        <p className="font-serif text-xl font-semibold text-ink">Корзина пуста</p>
+        <p className="max-w-xs text-sm text-ink-muted opacity-70">Добавьте услуги из каталога, чтобы оформить запись</p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="btn-ink mt-2"
+        >
+          <ArrowLeft size={16} /> К услугам
+        </button>
+      </div>
+    );
+  }
 
   if (successInfo) {
     const formattedDate = new Date(successInfo.date + "T00:00:00").toLocaleDateString("ru", {
@@ -232,7 +296,6 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
           Мы свяжемся с вами через {contactLabel} для подтверждения.
         </p>
 
-        {/* Сводка записи */}
         <div className="mt-5 w-full max-w-sm space-y-2 text-left animate-fade-up" style={{ animationDelay: "100ms" }}>
           <div className="rounded-xl border border-brand-100 bg-brand-50 divide-y divide-brand-100 overflow-hidden">
             <div className="flex items-start gap-3 px-4 py-3">
@@ -275,7 +338,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         <button
           type="button"
           onClick={onBack}
-          className="btn-primary-soft mt-6 rounded-xl px-10 py-3.5 font-semibold shadow-soft animate-fade-up"
+          className="btn-primary-soft mt-6 rounded-lg px-10 py-3.5 font-semibold shadow-soft animate-fade-up"
           style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)", animationDelay: "180ms" }}
         >
           На главную
@@ -299,7 +362,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       <p className="mb-6 text-sm text-ink-muted">Заполните форму — мы подтвердим запись в течение нескольких минут.</p>
 
       {/* Сводка услуг */}
-      <div className="mb-6 max-w-full overflow-hidden rounded-xl border border-brand-100 bg-white p-5 shadow-soft">
+      <div className="mb-6 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white p-5 shadow-soft">
         <p
           className="line-clamp-4 text-sm leading-relaxed opacity-55"
           style={{ color: "var(--color-text)", overflowWrap: "anywhere" }}
@@ -316,7 +379,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
 
       {/* Ошибка: мастера требуются, но не настроены */}
       {mastersUnavailable && (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
           <div>
             <strong className="block font-semibold">Запись временно недоступна онлайн</strong>
@@ -342,7 +405,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                   setSelectedTime("");
                 }}
                 className={cn(
-                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-xl border p-3 text-center shadow-sm transition-all sm:w-28",
+                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-lg border p-3 text-center shadow-sm transition-all sm:w-28",
                   selectedMasterId === m.id ? "shadow-soft scale-[1.03]" : "bg-white hover:brightness-[0.995]"
                 )}
                 style={
@@ -350,16 +413,23 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                     ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
                     : { color: "var(--color-text)", borderColor: "var(--color-border-muted)" }
                 }
+                aria-pressed={selectedMasterId === m.id}
               >
                 <div
-                  className="h-14 w-14 overflow-hidden rounded-2xl ring-1 ring-black/5"
+                  className="h-14 w-14 overflow-hidden rounded-lg ring-1 ring-black/5"
                   style={{ background: "var(--color-placeholder-surface)" }}
                 >
                   {m.photo_url ? (
-                    <img src={m.photo_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    <img
+                      src={m.photo_url}
+                      alt={m.display_name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
                   ) : (
                     <div className="flex h-full items-center justify-center">
-                      <UserRound className="h-7 w-7 opacity-35" />
+                      <UserRound className="h-7 w-7 opacity-35" aria-hidden />
                     </div>
                   )}
                 </div>
@@ -381,11 +451,14 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); if (nameError) setNameError(validateName(e.target.value)); }}
+          onBlur={() => setNameError(validateName(name))}
           placeholder="Как к вам обращаться?"
-          className={inputClass}
+          className={cn(inputClass, nameError ? "border-red-300 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : "")}
           style={{ color: "var(--color-text)" }}
+          autoComplete="name"
         />
+        {nameError && <p className="mt-1.5 text-xs text-red-500">{nameError}</p>}
       </div>
 
       {/* Контакт */}
@@ -401,12 +474,14 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
               onClick={() => {
                 setContactType(c.type);
                 setContactValue("");
+                setContactError(null);
               }}
               className={cn(
-                "rounded-2xl border border-black/5 py-3 text-center text-sm transition-all",
+                "rounded-lg border border-black/5 py-3 text-center text-sm transition-all",
                 contactType === c.type ? "bg-ink text-white border-transparent shadow-sm" : "bg-white hover:bg-black/5"
               )}
               style={contactType !== c.type ? { color: "var(--color-text)" } : undefined}
+              aria-pressed={contactType === c.type}
             >
               <span className="text-lg">{c.icon}</span>
               <p className="mt-0.5 text-xs opacity-80">{c.label}</p>
@@ -416,11 +491,15 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         <input
           type="text"
           value={contactValue}
-          onChange={(e) => setContactValue(e.target.value)}
+          onChange={(e) => { setContactValue(e.target.value); if (contactError) setContactError(validateContact(contactType, e.target.value)); }}
+          onBlur={() => setContactError(validateContact(contactType, contactValue))}
           placeholder={CONTACTS.find((c) => c.type === contactType)?.placeholder}
-          className={inputClass}
+          className={cn(inputClass, contactError ? "border-red-300 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : "")}
           style={{ color: "var(--color-text)" }}
+          autoComplete={contactType === "phone" || contactType === "whatsapp" ? "tel" : "off"}
+          inputMode={contactType === "phone" || contactType === "whatsapp" ? "tel" : "text"}
         />
+        {contactError && <p className="mt-1.5 text-xs text-red-500">{contactError}</p>}
       </div>
 
       {/* Дата */}
@@ -429,11 +508,11 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
           <Calendar size={16} /> Дата
         </label>
         {requiresMaster && !selectedMasterId && masters.length > 0 && (
-          <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
             Сначала выберите мастера выше — тогда откроются даты и время.
           </p>
         )}
-        <div className="flex gap-1 overflow-x-auto rounded-xl border border-brand-200 bg-brand-50/90 p-1.5 pb-2 scrollbar-none">
+        <div className="flex gap-1 overflow-x-auto rounded-lg border border-brand-200 bg-brand-50/90 p-1.5 pb-2 scrollbar-none">
           {dates.map((d, idx) => {
             const dt = new Date(d + "T00:00:00");
             const day = dt.getDate();
@@ -460,6 +539,8 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                     ? { background: "var(--color-primary)", color: "var(--color-primary-foreground)" }
                     : { color: "var(--color-text)" }
                 }
+                aria-label={`${isToday ? "Сегодня" : weekdayStr}, ${day} ${month}${isClosed ? ", закрыто" : ""}`}
+                aria-pressed={isSelected}
               >
                 <span className={cn("text-[11px] font-medium", isSelected ? "opacity-80" : "opacity-50")}>
                   {isToday ? "сегодня" : weekdayStr}
@@ -487,14 +568,14 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
           </label>
           {slotsLoading ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 animate-pulse rounded-xl bg-brand-100" />
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-brand-100" />
               ))}
             </div>
           ) : slots.length === 0 ? (
             <div className="space-y-3">
-              <p className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm opacity-65" style={{ color: "var(--color-text)" }}>
-                Нет окна на эту дату: день закрыт или не хватает времени под выбранные услуги ({formatDuration(totalDuration)}). Попробуйте другую дату или мастера.
+              <p className="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm opacity-65" style={{ color: "var(--color-text)" }}>
+                Нет свободного времени на эту дату ({formatDuration(totalDuration)}). Попробуйте другой день или мастера.
               </p>
               {slotAlternate && (
                 <button
@@ -503,7 +584,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                     setSelectedMasterId(slotAlternate.id);
                     setSelectedTime("");
                   }}
-                  className="w-full rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left text-sm transition-colors hover:bg-brand-100"
+                  className="w-full rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-left text-sm transition-colors hover:bg-brand-100"
                   style={{ color: "var(--color-text)" }}
                 >
                   Показать слоты мастера: <b>{slotAlternate.name}</b>
@@ -518,7 +599,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-2xl border border-black/5 py-3 text-sm font-bold transition-all",
+                    "rounded-lg border border-black/5 py-3 text-sm font-bold transition-all",
                     selectedTime === slot ? "shadow-soft scale-[1.03]" : "bg-white hover:bg-ink hover:text-white hover:border-transparent"
                   )}
                   style={
@@ -526,6 +607,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                       ? { background: "var(--color-primary)", borderColor: "transparent", color: "var(--color-primary-foreground)" }
                       : { color: "var(--color-text)" }
                   }
+                  aria-pressed={selectedTime === slot}
                 >
                   {slot}
                 </button>
@@ -539,8 +621,8 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!canSubmit || submitting}
-        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold shadow-soft disabled:opacity-45"
+        disabled={submitting}
+        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-lg py-4 text-sm font-semibold shadow-soft disabled:opacity-45 transition-opacity"
         style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
       >
         {submitting ? (
