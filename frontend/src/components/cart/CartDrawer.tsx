@@ -1,4 +1,4 @@
-import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ImageIcon } from "lucide-react";
 import { useCart } from "../../store/cartStore";
 import { formatPrice, formatDuration } from "../../utils";
 
@@ -72,8 +72,23 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                   className="flex flex-col gap-3 rounded-2xl p-4"
                   style={{ background: "#f8f7f5", border: "1px solid rgba(0,0,0,0.05)" }}
                 >
-                  <div className="flex min-w-0 items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 pr-1">
+                  <div className="flex min-w-0 items-start gap-3">
+                    {/* Миниатюра товара */}
+                    <div className="shrink-0 h-16 w-16 rounded-xl overflow-hidden" style={{ background: "var(--color-placeholder-surface)" }}>
+                      {item.service.photo_url ? (
+                        <img
+                          src={item.service.photo_url}
+                          alt={item.service.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <ImageIcon size={20} className="opacity-25" style={{ color: "var(--color-primary)" }} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <h3
                         className="font-serif text-sm font-bold leading-snug text-ink md:text-base"
                         style={{ overflowWrap: "anywhere" }}

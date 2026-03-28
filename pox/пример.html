@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DBS — Премиальная Студия Красоты</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #c08973;
+            --primary-dark: #a97965;
+            --bg: #faf9f7;
+            --text: #36312f;
+            --accent: #e0c6ba;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        
+        /* Glassmorphism Effect */
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); }
+        
+        /* Smooth Transitions */
+        .hover-lift { transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.03); }
+        
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Step Animations */
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: slideUp 0.4s ease-out; }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cart-badge { animation: pop 0.3s ease-out; }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Hero Image Mask for Unique Look */
+        .hero-img-mask {
+            clip-path: inset(0 0 0 0 round 60px 60px 0 60px);
+        }
+        @media (min-width: 768px) {
+            .hero-img-mask { clip-path: inset(0 0 0 0 round 100px 100px 0 100px); }
+        }
+
+        /* Mobile Menu */
+        #mobileMenu.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Навигация -->
+    <nav class="fixed top-0 w-full z-50 px-4 mt-4 md:mt-6">
+        <div class="max-w-6xl mx-auto h-14 md:h-16 glass rounded-xl md:rounded-2xl flex items-center justify-between px-4 md:px-8 shadow-sm">
+            <!-- Логотип -->
+            <div class="flex items-center gap-4">
+                <span class="text-xl md:text-2xl font-serif font-bold tracking-tighter text-[var(--text)]">DBS</span>
+            </div>
+            
+            <!-- Десктопное меню -->
+            <div class="hidden md:flex items-center gap-10 text-[10px] uppercase tracking-[0.2em] font-bold opacity-60">
+                <a href="#services" class="hover:text-[var(--primary)] transition-colors">Услуги</a>
+                <a href="#portfolio" class="hover:text-[var(--primary)] transition-colors">Портфолио</a>
+                <a href="#masters" class="hover:text-[var(--primary)] transition-colors">Мастера</a>
+            </div>
+
+            <!-- Кнопки справа -->
+            <div class="flex items-center gap-2 md:gap-5">
+                <button onclick="openBooking()" class="relative p-2 group transition-transform active:scale-90">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span id="cartCount" class="absolute -top-0.5 -right-0.5 bg-[var(--primary)] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+                </button>
+                <button onclick="openBooking()" class="hidden sm:block bg-black text-white px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--primary)] transition-all shadow-lg shadow-black/5">Запись</button>
+                
+                <!-- Мобильный бургер -->
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-[var(--text)]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16M4 16h16"/></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Мобильное Меню (Overlay) -->
+    <div id="mobileMenu" class="fixed inset-0 z-[60] glass flex items-center justify-center transition-all duration-500 opacity-0 pointer-events-none transform -translate-y-full">
+        <button onclick="toggleMobileMenu()" class="absolute top-8 right-8 p-4">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+        <div class="flex flex-col items-center gap-8 text-2xl font-serif italic">
+            <a href="#services" onclick="toggleMobileMenu()">Услуги</a>
+            <a href="#portfolio" onclick="toggleMobileMenu()">Портфолио</a>
+            <a href="#masters" onclick="toggleMobileMenu()">Мастера</a>
+            <button onclick="toggleMobileMenu(); openBooking();" class="mt-4 bg-black text-white px-10 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest">Онлайн Запись</button>
+        </div>
+    </div>
+
+    <!-- Адаптивный Hero -->
+    <section class="pt-28 md:pt-40 pb-16 md:pb-20 px-4 md:px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row items-center gap-10 md:gap-12 lg:gap-20">
+                
+                <!-- Компактное фото (Сверху на мобилках, Справа на ПК) -->
+                <div class="w-full md:w-[45%] lg:w-[40%] order-1 md:order-2">
+                    <div class="relative group mx-auto max-w-[320px] md:max-w-none">
+                        <div class="aspect-[4/5] bg-[var(--accent)] hero-img-mask relative overflow-hidden shadow-2xl transition-transform duration-700 md:group-hover:scale-[1.02]">
+                            <!-- Имитация фото -->
+                            <div class="absolute inset-0 bg-gradient-to-tr from-[var(--primary)]/30 to-transparent"></div>
+                            <div class="absolute inset-6 md:inset-8 border border-white/20 rounded-[40px] md:rounded-[60px] flex items-center justify-center italic text-white/10 font-serif text-2xl md:text-3xl">
+                                DBS Art
+                            </div>
+                        </div>
+                        <!-- Опыт работы -->
+                        <div class="absolute -bottom-4 -left-4 w-20 h-20 md:w-24 md:h-24 bg-white rounded-2xl md:rounded-3xl shadow-xl flex flex-col items-center justify-center border border-black/5 animate-bounce-slow">
+                            <span class="text-lg md:text-xl font-serif font-bold text-[var(--primary)]">15+</span>
+                            <span class="text-[8px] uppercase font-bold opacity-30">лет опыта</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Текст (Снизу на мобилках, Слева на ПК) -->
+                <div class="flex-1 order-2 md:order-1 text-center md:text-left">
+                    <div class="inline-block px-3 py-1 bg-[var(--primary)]/10 text-[var(--primary)] text-[9px] md:text-[10px] font-bold uppercase tracking-widest rounded-full mb-4 md:mb-6">
+                        Premium Beauty Studio
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl lg:text-7xl font-serif leading-[1.1] mb-6 md:mb-8">
+                        Ваша красота <br class="hidden sm:block">в руках <span class="italic text-[var(--primary)]">экспертов</span>
+                    </h1>
+                    <p class="text-sm md:text-base opacity-50 mb-8 md:mb-10 max-w-md mx-auto md:mx-0 leading-relaxed">
+                        Инновационные технологии и классические ритуалы ухода для вашей исключительности.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-6 md:gap-8">
+                        <button onclick="openBooking()" class="w-full sm:w-auto bg-black text-white px-8 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-[0.15em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10">
+                            Выбрать услугу
+                        </button>
+                        <div class="flex items-center gap-3">
+                            <div class="flex -space-x-2">
+                                <div class="w-8 h-8 rounded-full border-2 border-[var(--bg)] bg-gray-200"></div>
+                                <div class="w-8 h-8 rounded-full border-2 border-[var(--bg)] bg-gray-300"></div>
+                            </div>
+                            <span class="text-[10px] font-bold uppercase opacity-40 tracking-wider">4.9/5 рейтинг</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Услуги (Адаптивная сетка) -->
+    <section id="services" class="py-16 md:py-24">
+        <div class="max-w-6xl mx-auto px-4 md:px-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 gap-6">
+                <div class="max-w-md text-center md:text-left">
+                    <h2 class="text-3xl md:text-4xl font-serif mb-4 italic">Наши направления</h2>
+                    <p class="text-sm opacity-50">Выберите одну или несколько услуг.</p>
+                </div>
+                <!-- Фильтры (Центрируются на мобилках) -->
+                <div class="flex justify-center gap-2 overflow-x-auto no-scrollbar pb-2">
+                    <button class="whitespace-nowrap px-5 py-2 rounded-full border border-black/10 text-[9px] font-bold uppercase tracking-widest bg-white">Все</button>
+                    <button class="whitespace-nowrap px-5 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest opacity-40">Лицо</button>
+                    <button class="whitespace-nowrap px-5 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest opacity-40">Тело</button>
+                </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                <!-- Услуга 1 -->
+                <div class="group bg-white p-2 rounded-[30px] md:rounded-[35px] border border-black/5 hover-lift">
+                    <div class="aspect-square bg-[var(--bg)] rounded-[25px] md:rounded-[30px] mb-4 md:mb-6 relative overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-40 transition-transform duration-700 md:group-hover:scale-110">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="0.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                        </div>
+                    </div>
+                    <div class="px-4 md:px-6 pb-4 md:pb-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-lg md:text-xl font-bold">Smart Face Care</h3>
+                            <span class="text-sm font-serif italic text-[var(--primary)]">4 500 ₽</span>
+                        </div>
+                        <p class="text-xs opacity-40 mb-6 line-clamp-2">Персонализированный уход за кожей лица.</p>
+                        <button onclick="addToCart('Face Care', 4500)" class="w-full py-3.5 bg-black/5 rounded-2xl text-[9px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all active:scale-95">Добавить</button>
+                    </div>
+                </div>
+
+                <!-- Услуга 2 -->
+                <div class="group bg-white p-2 rounded-[30px] md:rounded-[35px] border border-black/5 hover-lift">
+                    <div class="aspect-square bg-[#ece8e5] rounded-[25px] md:rounded-[30px] mb-4 md:mb-6 relative overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-40 transition-transform duration-700 md:group-hover:scale-110">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="0.5"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/></svg>
+                        </div>
+                    </div>
+                    <div class="px-4 md:px-6 pb-4 md:pb-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-lg md:text-xl font-bold">Body Therapy</h3>
+                            <span class="text-sm font-serif italic text-[var(--primary)]">6 000 ₽</span>
+                        </div>
+                        <p class="text-xs opacity-40 mb-6 line-clamp-2">Лимфодренажный эффект и релакс.</p>
+                        <button onclick="addToCart('Body Therapy', 6000)" class="w-full py-3.5 bg-black/5 rounded-2xl text-[9px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all active:scale-95">Добавить</button>
+                    </div>
+                </div>
+
+                <!-- Услуга 3 -->
+                <div class="group bg-white p-2 rounded-[30px] md:rounded-[35px] border border-black/5 hover-lift">
+                    <div class="aspect-square bg-[#e8e4e1] rounded-[25px] md:rounded-[30px] mb-4 md:mb-6 relative overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-40 transition-transform duration-700 md:group-hover:scale-110">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="0.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        </div>
+                    </div>
+                    <div class="px-4 md:px-6 pb-4 md:pb-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-lg md:text-xl font-bold">Brows Craft</h3>
+                            <span class="text-sm font-serif italic text-[var(--primary)]">2 500 ₽</span>
+                        </div>
+                        <p class="text-xs opacity-40 mb-6 line-clamp-2">Архитектура бровей премиального уровня.</p>
+                        <button onclick="addToCart('Brows Craft', 2500)" class="w-full py-3.5 bg-black/5 rounded-2xl text-[9px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all active:scale-95">Добавить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Команда -->
+    <section id="masters" class="py-16 md:py-24 bg-white/30">
+        <div class="max-w-6xl mx-auto px-4 md:px-6">
+            <h2 class="text-3xl md:text-4xl font-serif text-center mb-12 md:mb-16 italic">Наши мастера</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                <!-- Мастер 1 -->
+                <div class="text-center group">
+                    <div class="aspect-[3/4] bg-[var(--bg)] rounded-2xl md:rounded-[30px] border border-black/5 mb-4 overflow-hidden relative">
+                         <div class="absolute inset-0 flex items-center justify-center opacity-5">
+                             <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                         </div>
+                    </div>
+                    <h4 class="font-bold text-sm md:text-base">Анна Волкова</h4>
+                    <p class="text-[8px] md:text-[9px] uppercase font-bold opacity-30 tracking-widest">Косметолог</p>
+                </div>
+                <!-- Мастер 2 -->
+                <div class="text-center group">
+                    <div class="aspect-[3/4] bg-[var(--bg)] rounded-2xl md:rounded-[30px] border border-black/5 mb-4 overflow-hidden relative">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-5">
+                             <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm md:text-base">Мария Ли</h4>
+                    <p class="text-[8px] md:text-[9px] uppercase font-bold opacity-30 tracking-widest">Топ-мастер</p>
+                </div>
+                <!-- Мастер 3 (Скрыт на маленьких, если их много, но здесь оставим для сетки) -->
+                <div class="text-center group">
+                    <div class="aspect-[3/4] bg-[var(--bg)] rounded-2xl md:rounded-[30px] border border-black/5 mb-4"></div>
+                    <h4 class="font-bold text-sm md:text-base">Елена Д.</h4>
+                    <p class="text-[8px] md:text-[9px] uppercase font-bold opacity-30 tracking-widest">Визажист</p>
+                </div>
+                <!-- Мастер 4 -->
+                <div class="text-center group">
+                    <div class="aspect-[3/4] bg-[var(--bg)] rounded-2xl md:rounded-[30px] border border-black/5 mb-4"></div>
+                    <h4 class="font-bold text-sm md:text-base">Ксения Р.</h4>
+                    <p class="text-[8px] md:text-[9px] uppercase font-bold opacity-30 tracking-widest">Brows Expert</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Подвал -->
+    <footer class="bg-black text-white py-16 md:py-20 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
+            <span class="text-2xl md:text-3xl font-serif italic tracking-tighter">DBS Studio</span>
+            <div class="flex gap-8 md:gap-12 text-[9px] md:text-[10px] font-bold uppercase tracking-widest opacity-40">
+                <a href="#" class="hover:text-white transition-colors">Instagram</a>
+                <a href="#" class="hover:text-white transition-colors">WhatsApp</a>
+                <a href="#" class="hover:text-white transition-colors">Telegram</a>
+            </div>
+            <p class="text-[9px] opacity-20 text-center">© 2024 Все права защищены</p>
+        </div>
+    </footer>
+
+    <!-- Адаптивная Модалка Записи -->
+    <div id="bookingModal" class="fixed inset-0 z-[100] hidden overflow-hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeBooking()"></div>
+        <!-- Контейнер: Справа на ПК, Снизу на мобилках -->
+        <div class="absolute right-0 bottom-0 md:top-0 w-full max-w-md bg-white shadow-2xl transition-transform duration-500 transform translate-y-full md:translate-y-0 md:translate-x-full flex flex-col rounded-t-[30px] md:rounded-t-none" id="modalContainer">
+            
+            <!-- Индикатор перетаскивания для мобилок -->
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 md:hidden"></div>
+
+            <div class="p-6 md:p-8 border-b border-black/5 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl md:text-2xl font-serif">Запись в студию</h3>
+                    <p id="stepIndicator" class="text-[9px] uppercase tracking-widest font-bold opacity-40 mt-1">Ваша корзина</p>
+                </div>
+                <button onclick="closeBooking()" class="p-2 hover:bg-black/5 rounded-full">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="flex-grow p-6 md:p-8 overflow-y-auto max-h-[70vh] md:max-h-none">
+                <!-- Шаг 1: Корзина -->
+                <div id="step1" class="step-content active">
+                    <div id="cartItems" class="space-y-3 mb-6"></div>
+                    <div class="border-t border-black/5 pt-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-[10px] font-bold uppercase opacity-30 tracking-widest">Итого</span>
+                            <span id="totalPrice" class="text-xl md:text-2xl font-serif">0 ₽</span>
+                        </div>
+                        <button onclick="nextStep(2)" id="btnToStep2" class="w-full py-4 bg-black text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] md:text-[11px] disabled:opacity-20" disabled>Продолжить</button>
+                    </div>
+                </div>
+
+                <!-- Шаг 2: Мастер -->
+                <div id="step2" class="step-content">
+                    <p class="text-[9px] uppercase font-bold opacity-30 mb-4 tracking-widest text-center md:text-left">Выберите мастера</p>
+                    <div class="grid grid-cols-2 gap-3 mb-8">
+                        <button onclick="selectMaster('Любой')" class="p-4 border border-black/5 rounded-2xl text-left hover:border-black/20 transition-all bg-slate-50 active:scale-95">
+                             <p class="text-xs font-bold">Любой мастер</p>
+                        </button>
+                        <button onclick="selectMaster('Анна')" class="p-4 border border-black/5 rounded-2xl text-left hover:border-black/20 transition-all bg-slate-50 active:scale-95">
+                             <p class="text-xs font-bold">Анна В.</p>
+                        </button>
+                    </div>
+                    <button onclick="nextStep(3)" class="w-full py-4 bg-black text-white rounded-2xl font-bold uppercase tracking-widest text-[11px]">К контактам</button>
+                </div>
+
+                <!-- Шаг 3: Контакты -->
+                <div id="step3" class="step-content">
+                    <div class="space-y-4 mb-8">
+                        <input type="text" placeholder="Ваше имя" class="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 ring-[var(--primary)]/20">
+                        <input type="tel" placeholder="+7 (___) ___-__-__" class="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 ring-[var(--primary)]/20">
+                    </div>
+                    <button onclick="finishBooking()" class="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-[var(--primary)]/20">Подтвердить</button>
+                </div>
+
+                <!-- Успех -->
+                <div id="stepSuccess" class="step-content text-center py-6">
+                    <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-500 mb-6">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <h4 class="text-2xl md:text-3xl font-serif mb-4 italic">Готово!</h4>
+                    <p class="opacity-40 text-sm mb-10">Мы перезвоним вам в ближайшее время.</p>
+                    <button onclick="closeBooking()" class="w-full py-4 border border-black/10 rounded-2xl font-bold uppercase tracking-widest text-[11px]">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+
+        // Переключение мобильного меню
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('opacity-0');
+            menu.classList.toggle('pointer-events-none');
+            menu.classList.toggle('-translate-y-full');
+            menu.classList.toggle('active');
+            
+            // Запрет скролла при открытом меню
+            document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : 'auto';
+        }
+
+        function addToCart(name, price) {
+            cart.push({ id: Date.now(), name, price });
+            updateCartUI();
+            
+            const badge = document.getElementById('cartCount');
+            badge.classList.remove('hidden');
+            badge.classList.add('cart-badge');
+            setTimeout(() => badge.classList.remove('cart-badge'), 300);
+            
+            openBooking();
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(item => item.id !== id);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cartItems');
+            const totalEl = document.getElementById('totalPrice');
+            const countEl = document.getElementById('cartCount');
+            const btn = document.getElementById('btnToStep2');
+            
+            countEl.innerText = cart.length;
+            if (cart.length === 0) {
+                countEl.classList.add('hidden');
+                container.innerHTML = '<div class="text-center py-16 opacity-20 italic text-sm">Ваша корзина пуста</div>';
+                btn.disabled = true;
+            } else {
+                countEl.classList.remove('hidden');
+                btn.disabled = false;
+                container.innerHTML = cart.map(item => `
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-black/5">
+                        <div>
+                            <p class="text-xs font-bold">${item.name}</p>
+                            <p class="text-[9px] opacity-40 font-bold uppercase tracking-widest">${item.price} ₽</p>
+                        </div>
+                        <button onclick="removeFromCart(${item.id})" class="text-red-300 p-2">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            totalEl.innerText = `${total.toLocaleString()} ₽`;
+        }
+
+        function openBooking() {
+            const modal = document.getElementById('bookingModal');
+            const container = document.getElementById('modalContainer');
+            modal.classList.remove('hidden');
+            
+            // Анимация входа зависит от экрана
+            setTimeout(() => {
+                if (window.innerWidth >= 768) {
+                    container.classList.remove('translate-x-full');
+                } else {
+                    container.classList.remove('translate-y-full');
+                }
+            }, 10);
+            nextStep(1);
+        }
+
+        function closeBooking() {
+            const container = document.getElementById('modalContainer');
+            
+            if (window.innerWidth >= 768) {
+                container.classList.add('translate-x-full');
+            } else {
+                container.classList.add('translate-y-full');
+            }
+            
+            setTimeout(() => {
+                document.getElementById('bookingModal').classList.add('hidden');
+            }, 500);
+        }
+
+        function nextStep(step) {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById('step' + (step === 'Success' ? 'Success' : step));
+            if(target) target.classList.add('active');
+            
+            const titles = { 1: 'Ваша корзина', 2: 'Мастер и Время', 3: 'Контакты', 'Success': 'Заявка принята' };
+            document.getElementById('stepIndicator').innerText = titles[step];
+        }
+
+        function selectMaster(name) { nextStep(3); }
+
+        function finishBooking() {
+            nextStep('Success');
+            cart = [];
+            updateCartUI();
+        }
+    </script>
+</body>
+</html>

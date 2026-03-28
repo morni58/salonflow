@@ -16,6 +16,7 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
   const inCart = items.some((i) => i.service.id === service.id);
 
   useEffect(() => {
+    // Сохраняем overflow один раз при открытии модалки
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -24,7 +25,8 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // [] — намеренно: восстанавливаем overflow только при размонтировании
 
   const handleAdd = () => {
     addItem(service);
@@ -32,18 +34,39 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
     onClose();
   };
 
+  /** Рендерим описание с поддержкой переносов строк */
+  const renderDescription = (text: string) => {
+    const lines = text.split(/\n+/).filter((l) => l.trim());
+    return lines.map((line, i) => {
+      const trimmed = line.trim();
+      // Маркированный список: строки начинающиеся с -, •, *
+      if (/^[-•*]\s/.test(trimmed)) {
+        return (
+          <li key={i} className="ml-4 list-disc text-sm leading-relaxed text-ink-muted">
+            {trimmed.replace(/^[-•*]\s/, "")}
+          </li>
+        );
+      }
+      return (
+        <p key={i} className="text-sm leading-relaxed text-ink-muted">
+          {trimmed}
+        </p>
+      );
+    });
+  };
+
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — без blur, чтобы контент модалки был четко виден */}
       <div
-        className="fixed inset-0 z-[300] bg-ink-dark/50 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 z-[300] bg-black/60 animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
 
       {/*
-        Mobile: bottom sheet slides up from bottom, max-height 92dvh
-        Desktop (sm+): centered dialog, max-width lg, max-height 88vh
+        Mobile: bottom sheet снизу вверх, max-height 92dvh
+        Desktop (sm+): centered dialog, max-width lg
       */}
       <div
         role="dialog"
@@ -52,20 +75,20 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
         className="
           fixed inset-x-0 bottom-0 z-[301]
           flex max-h-[92dvh] flex-col
-          rounded-t-3xl bg-surface shadow-2xl
+          rounded-t-[32px] bg-white shadow-2xl
           animate-modal
           sm:inset-auto sm:bottom-auto
           sm:left-1/2 sm:top-1/2
           sm:-translate-x-1/2 sm:-translate-y-1/2
           sm:max-h-[88vh] sm:w-full sm:max-w-lg
-          sm:rounded-3xl
+          sm:rounded-[28px]
         "
       >
-        {/* Close button — always visible */}
+        {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 rounded-full bg-white/90 p-2 text-ink-muted shadow-sm backdrop-blur-sm transition-colors hover:text-brand-500"
+          className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-ink-muted transition-colors hover:bg-black/10 hover:text-ink"
           aria-label="Закрыть"
         >
           <X size={18} />
@@ -73,33 +96,33 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
 
         {/* Drag handle (mobile only) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
-          <div className="h-1 w-10 rounded-full bg-brand-200" aria-hidden />
+          <div className="h-1 w-10 rounded-full" style={{ background: "var(--color-border-muted)" }} aria-hidden />
         </div>
 
-        {/* Image — object-contain so full photo is visible, no cropping */}
+        {/* Image */}
         {service.photo_url ? (
           <div
-            className="relative shrink-0 overflow-hidden rounded-t-2xl sm:rounded-t-3xl"
+            className="relative shrink-0 overflow-hidden mx-4 mt-2 rounded-2xl sm:mx-0 sm:mt-0 sm:rounded-t-[28px] sm:rounded-b-none"
             style={{ background: "var(--color-placeholder-surface)" }}
           >
             <img
               src={service.photo_url}
               alt={service.name}
-              className="w-full object-contain"
-              style={{ maxHeight: "clamp(180px, 40vh, 320px)", display: "block" }}
+              className="w-full object-cover"
+              style={{ maxHeight: "clamp(200px, 42vh, 340px)", display: "block" }}
             />
             <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
-            <span className="absolute top-3 left-3 rounded-md bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+            <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
               {categoryName}
             </span>
           </div>
         ) : (
           <div
-            className="flex h-32 shrink-0 items-center justify-center rounded-t-2xl sm:h-40 sm:rounded-t-3xl"
+            className="flex h-36 shrink-0 items-center justify-center rounded-t-[28px] relative"
             style={{ background: "var(--color-placeholder-surface)" }}
           >
-            <ImageIcon size={44} className="opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
-            <span className="absolute top-3 left-3 rounded-md bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+            <ImageIcon size={48} className="opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
+            <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm">
               {categoryName}
             </span>
           </div>
@@ -107,32 +130,36 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
 
         {/* Scrollable content */}
         <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain p-5 sm:p-6">
-          <div>
-            <h2 className="font-serif text-2xl font-semibold leading-snug text-ink sm:text-3xl">
-              {service.name}
-            </h2>
-          </div>
+          {/* Title */}
+          <h2 className="font-serif text-2xl font-semibold leading-snug text-ink sm:text-3xl pr-8">
+            {service.name}
+          </h2>
 
+          {/* Price + Duration */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-sm text-ink-muted">
-              <Clock size={15} strokeWidth={2} className="text-brand-500 shrink-0" />
-              {formatDuration(service.duration_minutes)}
-            </div>
-            <div className="h-4 w-px bg-brand-100" />
             <span className="text-2xl font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
               {formatPrice(service.price)}
             </span>
+            <div className="h-4 w-px" style={{ background: "var(--color-border-muted)" }} />
+            <div className="flex items-center gap-1.5 text-sm text-ink-muted">
+              <Clock size={15} strokeWidth={2} style={{ color: "var(--color-primary)" }} className="shrink-0" />
+              {formatDuration(service.duration_minutes)}
+            </div>
           </div>
 
+          {/* Description — красивое форматирование (поддержка \n и списков) */}
           {service.description && (
-            <p className="text-sm leading-relaxed text-ink-muted">{service.description}</p>
+            <div className="rounded-2xl border p-4 space-y-1.5" style={{ borderColor: "var(--color-border-soft)", background: "var(--color-bg)" }}>
+              {renderDescription(service.description)}
+            </div>
           )}
 
+          {/* CTA */}
           <button
             type="button"
             onClick={handleAdd}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 active:scale-[0.98] btn-primary-soft"
-            style={{ background: "var(--color-primary)", boxShadow: "0 8px 24px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white shadow-lg transition-all duration-200 active:scale-[0.98]"
+            style={{ background: inCart ? "#1c1917" : "var(--color-primary)", boxShadow: "0 8px 24px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}
           >
             {inCart ? (
               <>

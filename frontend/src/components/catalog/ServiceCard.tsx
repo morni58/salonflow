@@ -11,7 +11,7 @@ interface Props {
   onView?: (service: Service) => void;
 }
 
-export function ServiceCard({ service, categoryName: _categoryName, onView }: Props) {
+export function ServiceCard({ service, categoryName, onView }: Props) {
   const { addItem, items } = useCart();
   const [added, setAdded] = useState(false);
   const inCart = items.some((i) => i.service.id === service.id);
@@ -27,17 +27,17 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
 
   return (
     <div
-      className="hover-lift group flex flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white p-2 cursor-pointer"
-      style={{ boxShadow: "none" }}
+      className="hover-lift group flex flex-col overflow-hidden rounded-[30px] border border-black/5 bg-white cursor-pointer"
+      style={{ padding: "8px" }}
       onClick={() => onView?.(service)}
       role={onView ? "button" : undefined}
       tabIndex={onView ? 0 : undefined}
       onKeyDown={onView ? (e) => { if (e.key === "Enter" || e.key === " ") onView(service); } : undefined}
       aria-label={onView ? `Подробнее: ${service.name}` : undefined}
     >
-      {/* Image container */}
+      {/* Image */}
       <div
-        className="relative w-full shrink-0 overflow-hidden rounded-[22px] aspect-square"
+        className="relative w-full shrink-0 overflow-hidden rounded-[24px] aspect-square"
         style={{ background: "var(--color-placeholder-surface)" }}
       >
         {service.photo_url ? (
@@ -49,12 +49,16 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <ImageIcon className="opacity-20" size={32} style={{ color: "var(--color-primary)" }} aria-hidden />
+            <ImageIcon className="opacity-20" size={40} style={{ color: "var(--color-primary)" }} aria-hidden />
           </div>
         )}
+        {/* Category badge */}
+        <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+          {categoryName}
+        </span>
         {/* In-cart indicator */}
         {inCart && (
-          <span className="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-ink text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1">
+          <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-ink text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1">
             <Check size={8} strokeWidth={3} />
             {cartItem && cartItem.quantity > 1 ? `×${cartItem.quantity}` : "В записи"}
           </span>
@@ -62,49 +66,52 @@ export function ServiceCard({ service, categoryName: _categoryName, onView }: Pr
       </div>
 
       {/* Content */}
-      <div className="flex min-w-0 flex-1 flex-col px-4 pb-4 pt-3">
-        <h3
-          className="font-serif text-lg font-bold leading-snug text-ink line-clamp-2"
-          style={{ overflowWrap: "anywhere" }}
-        >
-          {service.name}
-        </h3>
-
-        {/* Duration */}
-        <div className="mt-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest opacity-35">
-          <Clock size={10} strokeWidth={2} className="shrink-0" aria-hidden />
-          {formatDuration(service.duration_minutes)}
-        </div>
-
-        {service.description && (
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-muted">
-            {service.description}
-          </p>
-        )}
-
-        {/* Price + CTA */}
-        <div className="mt-auto pt-4 flex flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col px-5 pb-5 pt-4">
+        {/* Name + Price inline */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3
+            className="text-xl font-bold leading-snug text-ink min-w-0 flex-1"
+            style={{ overflowWrap: "anywhere" }}
+          >
+            {service.name}
+          </h3>
           <span
-            className="font-serif italic text-xl"
+            className="shrink-0 font-serif italic text-base font-semibold tabular-nums"
             style={{ color: "var(--color-primary)" }}
           >
             {formatPrice(service.price)}
           </span>
-
-          <button
-            type="button"
-            onClick={handleAdd}
-            aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
-            className={[
-              "w-full py-3.5 rounded-2xl text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
-              added || inCart
-                ? "bg-ink text-white"
-                : "bg-black/5 text-ink/60 hover:bg-black hover:text-white",
-            ].join(" ")}
-          >
-            {added ? "Добавлено" : inCart ? "Ещё раз" : "Добавить"}
-          </button>
         </div>
+
+        {/* Description */}
+        {service.description ? (
+          <p className="text-xs text-ink-muted opacity-50 line-clamp-2 mb-4" style={{ lineHeight: 1.5 }}>
+            {service.description}
+          </p>
+        ) : (
+          <div className="mb-4" />
+        )}
+
+        {/* Duration badge */}
+        <div className="mb-5 flex items-center gap-1.5 text-xs font-medium w-fit rounded-lg px-3 py-1.5" style={{ background: "var(--color-primary-muted)", color: "var(--color-primary)" }}>
+          <Clock size={13} strokeWidth={2} className="shrink-0" aria-hidden />
+          {formatDuration(service.duration_minutes)}
+        </div>
+
+        {/* Add button */}
+        <button
+          type="button"
+          onClick={handleAdd}
+          aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
+          className={[
+            "mt-auto w-full py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95",
+            added || inCart
+              ? "bg-ink text-white"
+              : "bg-black/5 text-ink/60 hover:bg-black hover:text-white",
+          ].join(" ")}
+        >
+          {added ? "Добавлено ✓" : inCart ? "Ещё раз" : "Добавить"}
+        </button>
       </div>
     </div>
   );

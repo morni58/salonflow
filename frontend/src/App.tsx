@@ -151,17 +151,20 @@ function AppInner() {
 
   return (
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-base">
-      <Header
-        tenant={tenant}
-        onGoHome={() => navigate("home")}
-        onOpenCart={() => {
-          setCartOpen(true);
-          track("cart_open");
-        }}
-        onNavClick={handleNavClick}
-      />
+      {/* Хедер скрываем на checkout — он мешает форме */}
+      {view !== "checkout" && (
+        <Header
+          tenant={tenant}
+          onGoHome={() => navigate("home")}
+          onOpenCart={() => {
+            setCartOpen(true);
+            track("cart_open");
+          }}
+          onNavClick={handleNavClick}
+        />
+      )}
 
-      <main className="mx-auto w-full min-w-0 max-w-[var(--layout-max)] overflow-x-hidden px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 md:pt-20 lg:px-8">
+      <main className={`mx-auto w-full min-w-0 max-w-[var(--layout-max)] overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8 ${view === "checkout" ? "pt-6 sm:pt-8" : "pt-24 md:pt-28"}`}>
         {view === "home" && (
           <>
             <HeroSection tenant={tenant} />
