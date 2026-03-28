@@ -78,7 +78,7 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
     <section
       id="reviews"
       data-anchor-section
-      className="scroll-mt-24 overflow-hidden rounded-[2rem] py-14 md:py-20"
+      className="scroll-mt-24 overflow-hidden rounded-2xl py-14 md:py-20"
       style={{ background: "var(--color-primary-muted, rgba(192,137,115,0.08))" }}
     >
       <div className="px-4 sm:px-6 lg:px-8">
@@ -111,12 +111,12 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
         {loading ? (
           <div className="flex gap-3 overflow-hidden">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-72 w-56 shrink-0 animate-pulse rounded-[24px] bg-black/5" />
+              <div key={i} className="h-72 w-56 shrink-0 animate-pulse rounded-xl bg-black/5" />
             ))}
           </div>
         ) : reviews.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center rounded-[24px] bg-white px-6 py-14 text-center"
+            className="flex flex-col items-center justify-center rounded-xl bg-white px-6 py-14 text-center"
             style={{ border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 8px 30px rgba(54,49,47,0.04)" }}
           >
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: "var(--color-primary-muted)" }}>
@@ -157,7 +157,7 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
                   key={rev.id}
                   type="button"
                   onClick={() => setLightbox(i)}
-                  className="hover-lift group relative w-56 shrink-0 overflow-hidden rounded-[24px] bg-white"
+                  className="hover-lift group relative w-56 shrink-0 overflow-hidden rounded-lg bg-white"
                   style={{
                     scrollSnapAlign: "start",
                     minHeight: "13rem",
