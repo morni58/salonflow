@@ -91,8 +91,10 @@ def _create_booking_sync(data: BookingCreate) -> dict:
     booking = sb.table("bookings").insert(insert_row).execute()
 
     booking_data = booking.data[0]
+    bid = booking_data["id"]
+    booking_code = "SF-" + bid.replace("-", "")[:6].upper()
     return {
-        "id": booking_data["id"],
+        "id": bid,
         "status": booking_data["status"],
         "created_at": booking_data["created_at"],
         "client_id": client_id,
@@ -100,6 +102,7 @@ def _create_booking_sync(data: BookingCreate) -> dict:
         "total_price": total_price,
         "total_duration": total_duration,
         "master_id": master_id,
+        "booking_code": booking_code,
     }
 
 
@@ -111,6 +114,7 @@ async def create_booking(data: BookingCreate) -> BookingOut:
         await _notify_bot(
             tenant_id=data.tenant_id,
             booking_id=r["id"],
+            booking_code=r.get("booking_code", ""),
             client_name=data.name,
             contact_type=_contact_type_value(data.contact_type),
             contact_value=data.contact_value,
@@ -128,20 +132,22 @@ async def create_booking(data: BookingCreate) -> BookingOut:
         id=r["id"],
         status=r["status"],
         created_at=r["created_at"],
+        booking_code=r.get("booking_code", ""),
     )
 
 
 async def _notify_bot(
     tenant_id: str,
     booking_id: str,
-    client_name: str,
-    contact_type: str,
-    contact_value: str,
-    service_names: list[str],
-    total_price: int,
-    total_duration: int,
-    preferred_datetime: datetime,
-    client_id: str,
+    booking_code: str = "",
+    client_name: str = "",
+    contact_type: str = "",
+    contact_value: str = "",
+    service_names: list[str] = (),
+    total_price: int = 0,
+    total_duration: int = 0,
+    preferred_datetime: datetime = None,
+    client_id: str = "",
     master_id: str | None = None,
 ):
     """Send booking notification to the bot's internal webhook handler."""
@@ -163,6 +169,7 @@ async def _notify_bot(
     await send_booking_notification(
         tenant_id=tenant_id,
         booking_id=booking_id,
+        booking_code=booking_code,
         client_name=client_name,
         contact_type=contact_type,
         contact_value=contact_value,

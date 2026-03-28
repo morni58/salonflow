@@ -92,6 +92,7 @@ export interface BookingOut {
   id: string;
   status: string;
   created_at: string;
+  booking_code: string;  // Короткий код: "SF-A3K9B2"
 }
 
 // ── Portfolio & Reviews ───────────────────────

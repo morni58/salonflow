@@ -83,6 +83,7 @@ interface SuccessInfo {
   contactValue: string;
   services: string;
   total: number;
+  bookingCode: string;
 }
 
 export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Props) {
@@ -227,7 +228,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
     setSubmitting(true);
     try {
       const preferredDatetime = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
-      await createBooking({
+      const booking = await createBooking({
         tenant_id: tenantId,
         name: name.trim(),
         contact_type: contactType,
@@ -246,6 +247,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         contactValue: contactValue.trim(),
         services: items.map((i) => i.quantity > 1 ? `${i.service.name} ×${i.quantity}` : i.service.name).join(", "),
         total: totalPrice,
+        bookingCode: booking.booking_code || "",
       });
       clearCart();
     } catch (e: unknown) {
@@ -283,63 +285,130 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
       year: "numeric",
     });
     const contactLabel = CONTACTS.find((c) => c.type === successInfo.contactType)?.label ?? successInfo.contactType;
-    return (
-      <div className="step-slide-up flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
-        <div
-          className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl shadow-soft animate-scale-in"
-          style={{ background: "var(--color-primary-muted)" }}
-        >
-          <CheckCircle size={44} style={{ color: "var(--color-primary)" }} />
-        </div>
-        <h2 className="font-serif text-3xl font-semibold text-ink-dark animate-fade-up">Заявка отправлена!</h2>
-        <p className="mt-3 max-w-sm opacity-65 animate-fade-up" style={{ color: "var(--color-text)", animationDelay: "60ms" }}>
-          Мы свяжемся с вами через {contactLabel} для подтверждения.
-        </p>
 
-        <div className="mt-5 w-full max-w-sm space-y-2 text-left animate-fade-up" style={{ animationDelay: "100ms" }}>
-          <div className="rounded-xl border border-brand-100 bg-brand-50 divide-y divide-brand-100 overflow-hidden">
+    return (
+      <div className="step-slide-up mx-auto w-full max-w-sm px-4 py-8">
+        {/* Иконка успеха */}
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div
+            className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl animate-scale-in"
+            style={{ background: "var(--color-primary-muted)" }}
+          >
+            <CheckCircle size={40} style={{ color: "var(--color-primary)" }} strokeWidth={1.5} />
+          </div>
+          <h2 className="font-serif text-2xl font-semibold text-ink animate-fade-up">
+            Заявка принята!
+          </h2>
+          <p className="mt-1 text-sm text-ink-muted animate-fade-up" style={{ animationDelay: "50ms" }}>
+            Ожидайте подтверждения от мастера
+          </p>
+        </div>
+
+        {/* Код заявки — главный элемент */}
+        {successInfo.bookingCode && (
+          <div
+            className="mb-5 animate-fade-up rounded-xl px-6 py-4 text-center"
+            style={{ background: "var(--color-primary)", animationDelay: "80ms" }}
+          >
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest opacity-70 text-white">
+              Код вашей заявки
+            </p>
+            <p className="font-serif text-3xl font-bold tracking-widest text-white">
+              {successInfo.bookingCode}
+            </p>
+            <p className="mt-1 text-xs opacity-60 text-white">
+              Сообщите его мастеру при визите
+            </p>
+          </div>
+        )}
+
+        {/* Уведомление о следующем шаге */}
+        <div
+          className="mb-5 animate-fade-up rounded-lg border px-4 py-3"
+          style={{
+            background: "rgba(255,251,235,0.8)",
+            borderColor: "rgba(251,191,36,0.3)",
+            animationDelay: "100ms",
+          }}
+        >
+          <p className="text-sm font-medium" style={{ color: "#92400e" }}>
+            ⏳ Что дальше?
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "#78350f" }}>
+            Мастер свяжется с вами через <strong>{contactLabel}</strong> и подтвердит или предложит другое время. Обычно это занимает до 1 часа.
+          </p>
+        </div>
+
+        {/* Детали записи — чек */}
+        <div
+          className="animate-fade-up overflow-hidden rounded-xl border"
+          style={{ borderColor: "var(--color-border-soft)", animationDelay: "130ms" }}
+        >
+          {/* Заголовок чека */}
+          <div
+            className="px-4 py-3"
+            style={{ background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-soft)" }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest opacity-50" style={{ color: "var(--color-text)" }}>
+              Детали записи
+            </p>
+          </div>
+
+          <div className="divide-y bg-white" style={{ borderColor: "var(--color-border-soft)" }}>
             <div className="flex items-start gap-3 px-4 py-3">
-              <span className="shrink-0 text-base">👤</span>
+              <span className="shrink-0 mt-0.5">👤</span>
               <div className="min-w-0">
                 <p className="text-xs text-ink-muted">Имя</p>
                 <p className="text-sm font-medium text-ink">{successInfo.name}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 px-4 py-3">
-              <span className="shrink-0 text-base">📲</span>
+              <span className="shrink-0 mt-0.5">📱</span>
               <div className="min-w-0">
                 <p className="text-xs text-ink-muted">{contactLabel}</p>
                 <p className="text-sm font-medium text-ink break-all">{successInfo.contactValue}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 px-4 py-3">
-              <span className="shrink-0 text-base">📅</span>
+              <span className="shrink-0 mt-0.5">📅</span>
               <div className="min-w-0">
                 <p className="text-xs text-ink-muted">Дата и время</p>
-                <p className="text-sm font-medium text-ink">{formattedDate} · {successInfo.time}</p>
+                <p className="text-sm font-medium text-ink">{formattedDate}, {successInfo.time}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 px-4 py-3">
-              <span className="shrink-0 text-base">💇</span>
+              <span className="shrink-0 mt-0.5">✂️</span>
               <div className="min-w-0">
                 <p className="text-xs text-ink-muted">Услуги · {formatDuration(successInfo.duration)}</p>
-                <p className="text-sm font-medium text-ink">{successInfo.services}</p>
+                <p className="text-sm font-medium text-ink leading-snug">{successInfo.services}</p>
               </div>
             </div>
             <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-xs text-ink-muted">Итого</p>
-              <p className="text-base font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
+              <p className="text-sm text-ink-muted">Итого</p>
+              <p
+                className="font-serif text-xl font-bold tabular-nums"
+                style={{ color: "var(--color-primary)" }}
+              >
                 {formatPrice(successInfo.total)}
               </p>
             </div>
           </div>
         </div>
 
+        {/* Если запись будет отменена */}
+        <p className="mt-4 animate-fade-up text-center text-xs text-ink-muted opacity-60" style={{ animationDelay: "160ms" }}>
+          Если запись не подтвердится — мастер уведомит вас через {contactLabel}.
+        </p>
+
         <button
           type="button"
           onClick={onBack}
-          className="btn-primary-soft mt-6 rounded-lg px-10 py-3.5 font-semibold shadow-soft animate-fade-up"
-          style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)", animationDelay: "180ms" }}
+          className="btn-primary-soft mt-5 w-full animate-fade-up rounded-lg py-4 font-semibold"
+          style={{
+            background: "var(--color-primary)",
+            color: "var(--color-primary-foreground)",
+            animationDelay: "200ms",
+          }}
         >
           На главную
         </button>

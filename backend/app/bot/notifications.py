@@ -154,6 +154,7 @@ async def send_booking_notification(
     preferred_datetime: datetime,
     client_info: dict | None = None,
     master_id: str | None = None,
+    booking_code: str = "",
 ) -> None:
     """Send new booking notification to tenant admins."""
     bot = await _get_bot(tenant_id)
@@ -194,8 +195,10 @@ async def send_booking_notification(
         if mname:
             master_line = f"💇 Мастер: <b>{escape(mname)}</b>\n"
 
+    code_line = f"🔖 Код: <code>{booking_code}</code>\n" if booking_code else ""
     text = (
-        f"📋 <b>Новая заявка</b> <i>(ожидает решения)</i>\n\n"
+        f"📋 <b>Новая заявка</b> <i>(ожидает решения)</i>\n"
+        f"{code_line}\n"
         f"{master_line}"
         f"👤 {escape(client_name)}\n"
         f"📱 {contact_type.capitalize()}: {contact_link}\n"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, ShoppingBag } from "lucide-react";
+import { Menu, X, ShoppingBag, Phone } from "lucide-react";
 import type { Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
 import { siteText } from "../../utils/siteContent";
@@ -143,8 +143,20 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
               ))}
             </nav>
 
-            {/* Right: cart + "Запись" + hamburger */}
+            {/* Right: call + cart + hamburger */}
             <div className="flex items-center gap-2 md:gap-4 shrink-0">
+              {/* Кнопка Позвонить */}
+              {(tenant.contact_json as Record<string, string> | undefined)?.phone && (
+                <a
+                  href={`tel:${(tenant.contact_json as Record<string, string>).phone}`}
+                  className="hidden sm:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:bg-black/5"
+                  style={{ borderColor: "var(--color-border-muted)", color: "var(--color-text)" }}
+                  aria-label="Позвонить"
+                >
+                  <Phone size={14} strokeWidth={2} />
+                  <span>{(tenant.contact_json as Record<string, string>).phone}</span>
+                </a>
+              )}
               {/* Запись (desktop text) */}
               <button
                 type="button"

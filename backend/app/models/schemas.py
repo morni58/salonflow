@@ -126,6 +126,7 @@ class BookingOut(BaseModel):
     id: str
     status: BookingStatus
     created_at: datetime
+    booking_code: str = ""  # Короткий читаемый код, напр. "SF-A3K9B2"
 
 
 # ── Analytics ──────────────────────────────────────────
