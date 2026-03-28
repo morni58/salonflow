@@ -72,7 +72,7 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
           {items.length === 0 ? (
             <div className="step-slide-up flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <div
-                className="flex h-20 w-20 items-center justify-center rounded-[28px]"
+                className="flex h-20 w-20 items-center justify-center rounded-2xl"
                 style={{ background: "var(--color-primary-muted)" }}
               >
                 <ShoppingBag className="h-9 w-9" strokeWidth={1.5} style={{ color: "var(--color-primary)" }} aria-hidden />

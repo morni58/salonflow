@@ -40,9 +40,9 @@ export function CatalogSection({
         <div className="mb-10 text-center">
           <h2 className="font-serif text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-7">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="skeleton rounded-[30px]" style={{ aspectRatio: "3/4" }} />
+            <div key={i} className="skeleton rounded-2xl" style={{ aspectRatio: "3/4" }} />
           ))}
         </div>
       </section>
@@ -56,7 +56,7 @@ export function CatalogSection({
       {/* Section header */}
       <div className="mb-10 text-center md:mb-14">
         <span
-          className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
+          className="mb-4 inline-flex items-center gap-2 rounded-lg border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
           style={{ borderColor: "var(--color-primary-20)", background: "var(--color-primary-muted)", color: "var(--color-primary)" }}
         >
           <Layers size={11} aria-hidden />
@@ -74,7 +74,7 @@ export function CatalogSection({
       )}
 
       {/* Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-7">
         {filteredPairs.map(({ service, category }) => (
           <ServiceCard
             key={service.id}

@@ -27,7 +27,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
 
   return (
     <div
-      className="hover-lift group flex flex-col overflow-hidden rounded-[30px] border border-black/5 bg-white cursor-pointer"
+      className="hover-lift group flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white cursor-pointer"
       style={{ padding: "8px" }}
       onClick={() => onView?.(service)}
       role={onView ? "button" : undefined}
@@ -37,7 +37,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
     >
       {/* Image */}
       <div
-        className="relative w-full shrink-0 overflow-hidden rounded-[24px] aspect-square"
+        className="relative w-full shrink-0 overflow-hidden rounded-xl aspect-square"
         style={{ background: "var(--color-placeholder-surface)" }}
       >
         {service.photo_url ? (

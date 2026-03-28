@@ -80,20 +80,20 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
         className="
           fixed inset-x-0 bottom-0 z-[301]
           flex max-h-[92dvh] flex-col
-          rounded-t-[32px] bg-white shadow-2xl
+          rounded-t-2xl bg-white shadow-2xl
           animate-modal
           sm:inset-auto sm:bottom-auto
           sm:left-1/2 sm:top-1/2
           sm:-translate-x-1/2 sm:-translate-y-1/2
           sm:max-h-[88vh] sm:w-full sm:max-w-lg
-          sm:rounded-[28px]
+          sm:rounded-2xl
         "
       >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-ink-muted transition-colors hover:bg-black/10 hover:text-ink"
+          className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 text-ink-muted transition-colors hover:bg-black/10 hover:text-ink"
           aria-label="Закрыть"
         >
           <X size={18} />
@@ -117,7 +117,7 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
               style={{ maxHeight: "clamp(200px, 42vh, 340px)", display: "block" }}
             />
             <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
-            <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm">
+            <span className="absolute top-3 left-3 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
               {categoryName}
             </span>
           </div>
