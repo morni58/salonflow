@@ -41,7 +41,8 @@ function CartFab({ onOpen, cartOpen }: { onOpen: () => void; cartOpen: boolean }
         background: "#1c1917",
         color: "#fff",
         borderRadius: "16px",
-        padding: "14px 20px",
+        padding: "16px 22px",
+        minHeight: "56px",
         display: "flex",
         alignItems: "center",
         gap: "10px",
@@ -50,7 +51,7 @@ function CartFab({ onOpen, cartOpen }: { onOpen: () => void; cartOpen: boolean }
         fontSize: "15px",
       }}
     >
-      <ShoppingBag size={22} strokeWidth={2} aria-hidden />
+      <ShoppingBag size={26} strokeWidth={2} aria-hidden />
       <span>{itemCount}</span>
     </button>
   );

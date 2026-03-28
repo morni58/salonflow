@@ -21,14 +21,14 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
     e.stopPropagation();
     addItem(service);
     setAdded(true);
-    toast.success(`${service.name} добавлено`);
+    toast.success(`${service.name} добавлено`, { duration: 2000 });
     setTimeout(() => setAdded(false), 800);
   };
 
   return (
     <div
-      className="hover-lift group flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white cursor-pointer"
-      style={{ padding: "8px" }}
+      className="hover-lift group flex h-full min-h-0 flex-col cursor-pointer overflow-hidden rounded-2xl border-2 border-black/[0.08] bg-white"
+      style={{ padding: "10px" }}
       onClick={() => onView?.(service)}
       role={onView ? "button" : undefined}
       tabIndex={onView ? 0 : undefined}
@@ -105,7 +105,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           onClick={handleAdd}
           aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
           className={[
-            "mt-auto w-full py-4 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-[0.97]",
+            "mt-auto flex min-h-[56px] w-full items-center justify-center rounded-xl px-4 py-4 text-base font-semibold transition-all duration-200 active:scale-[0.98]",
             added || inCart
               ? "bg-ink text-white"
               : "bg-black/5 text-ink hover:bg-black hover:text-white",

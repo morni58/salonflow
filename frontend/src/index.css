@@ -354,9 +354,10 @@ body::-webkit-scrollbar-thumb:hover {
   gap: 10px;
   background: #1c1917;
   color: #fff;
-  border-radius: 8px;
-  padding: 16px 36px;
-  font-size: 14px;
+  border-radius: 12px;
+  min-height: 56px;
+  padding: 16px 28px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.04em;
   transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
@@ -380,11 +381,11 @@ body::-webkit-scrollbar-thumb:hover {
 
 /* Hover lift — specific cubic-bezier from reference */
 .hover-lift {
-  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition: box-shadow 0.35s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.25s ease;
 }
+/* Без сдвига по Y — не дёргается макет при открытии модалки / тапе */
 .hover-lift:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 24px 48px rgba(0,0,0,0.06), 0 8px 16px rgba(0,0,0,0.03);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.07), 0 8px 16px rgba(0,0,0,0.04);
 }
 
 /* Step slide-up animation for checkout steps */

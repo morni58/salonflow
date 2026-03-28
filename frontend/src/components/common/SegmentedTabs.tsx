@@ -50,7 +50,7 @@ export function SegmentedTabs({ tabs, activeKey, onSelect, className, ariaLabel 
               key={id} type="button" role="tab" aria-selected={isActive}
               onClick={() => onSelect(tab.key)}
               className={cn(
-                "shrink-0 whitespace-nowrap rounded-lg border px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.97]",
+                "shrink-0 min-h-[48px] whitespace-nowrap rounded-xl border-2 px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.97] sm:min-w-[3rem]",
                 isActive
                   ? "bg-ink text-white border-transparent shadow-sm"
                   : "bg-white text-ink border-black/10 hover:border-black/25 hover:text-ink"

@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Clock, Check, Plus, ImageIcon } from "lucide-react";
 import type { Service } from "../../types";
 import { formatPrice, formatDuration } from "../../utils";
+import { lockBodyScroll } from "../../utils/bodyScrollLock";
 import { useCart } from "../../store/cartStore";
 import { toast } from "../common/Toast";
 
@@ -11,31 +13,30 @@ interface Props {
   onClose: () => void;
 }
 
+const TOAST_ADD = { duration: 2000 };
+
 export function ServiceModal({ service, categoryName, onClose }: Props) {
   const { addItem, items } = useCart();
   const inCart = items.some((i) => i.service.id === service.id);
 
   useEffect(() => {
-    // Блокируем скролл без position:fixed (не скачет страница)
-    const html = document.documentElement;
-    const prevOverflow = html.style.overflow;
-    html.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const unlock = lockBodyScroll();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", onKey);
     return () => {
-      html.style.overflow = prevOverflow;
+      unlock();
       document.removeEventListener("keydown", onKey);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onClose]);
 
   const handleAdd = () => {
     addItem(service);
-    toast.success(`${service.name} добавлено в корзину`);
+    toast.success(`${service.name} добавлено в корзину`, TOAST_ADD);
     onClose();
   };
 
-  /** Рендерим описание с поддержкой переносов строк */
   const renderDescription = (text: string) => {
     const lines = text.split(/\n+/).filter((l) => l.trim());
     return lines.map((line, i) => {
@@ -55,206 +56,121 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
     });
   };
 
-  return (
+  return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Центрирование в видимой области окна — всегда по центру экрана, не обрезается секцией */}
       <div
-        className="fixed inset-0 z-[300] bg-black/60 animate-fade-in"
-        onClick={onClose}
-        aria-hidden
-      />
-
-      {/* Диалог — всегда по центру экрана, на любом устройстве */}
-      <div
-        role="dialog"
-        aria-modal
-        aria-label={service.name}
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          zIndex: 301,
-          width: "min(calc(100vw - 2rem), 480px)",
-          maxHeight: "min(88dvh, 88vh)",
-          display: "flex",
-          flexDirection: "column",
-          background: "#fff",
-          borderRadius: "16px",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.08)",
-          animation: "modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-        }}
+        className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4"
+        role="presentation"
       >
-        {/* Close button */}
-        <button
-          type="button"
+        <div
+          className="absolute inset-0 cursor-default bg-black/60 animate-fade-in"
           onClick={onClose}
+          role="presentation"
+        />
+
+        <div
+          role="dialog"
+          aria-modal
+          aria-label={service.name}
+          className="relative z-[301] flex w-full max-w-[min(100%,480px)] max-h-[min(92dvh,880px)] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-fade-in"
           style={{
-            position: "absolute",
-            top: "12px",
-            right: "12px",
-            zIndex: 10,
-            width: "36px",
-            height: "36px",
-            borderRadius: "10px",
-            background: "rgba(0,0,0,0.06)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--color-ink-muted)",
-            transition: "background 0.15s",
-            flexShrink: 0,
+            boxShadow: "0 24px 80px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.08)",
           }}
-          aria-label="Закрыть"
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.1)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+          onClick={(e) => e.stopPropagation()}
         >
-          <X size={18} />
-        </button>
-
-        {/* Image */}
-        {service.photo_url ? (
-          <div
-            style={{
-              position: "relative",
-              flexShrink: 0,
-              overflow: "hidden",
-              borderRadius: "16px 16px 0 0",
-              background: "var(--color-placeholder-surface)",
-            }}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-xl bg-black/[0.06] text-ink-muted transition-colors hover:bg-black/10"
+            aria-label="Закрыть"
           >
-            <img
-              src={service.photo_url}
-              alt={service.name}
-              style={{ width: "100%", display: "block", maxHeight: "260px", objectFit: "cover" }}
-            />
-            <div style={{ position: "absolute", inset: "0 0 0 0", bottom: 0, height: "48px", background: "linear-gradient(to top, rgba(0,0,0,0.18), transparent)", pointerEvents: "none" }} />
-            <span
-              style={{
-                position: "absolute",
-                top: "12px",
-                left: "12px",
-                borderRadius: "8px",
-                background: "#fff",
-                padding: "5px 10px",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: "var(--color-ink)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                letterSpacing: "0.01em",
-              }}
-            >
-              {categoryName}
-            </span>
-          </div>
-        ) : (
-          <div
-            style={{
-              height: "120px",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "16px 16px 0 0",
-              background: "var(--color-placeholder-surface)",
-              position: "relative",
-            }}
-          >
-            <ImageIcon size={40} style={{ opacity: 0.2, color: "var(--color-primary)" }} aria-hidden />
-            <span
-              style={{
-                position: "absolute",
-                top: "12px",
-                left: "12px",
-                borderRadius: "8px",
-                background: "rgba(255,255,255,0.92)",
-                padding: "4px 10px",
-                fontSize: "10px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: "var(--color-ink)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-              }}
-            >
-              {categoryName}
-            </span>
-          </div>
-        )}
+            <X size={20} strokeWidth={2} />
+          </button>
 
-        {/* Scrollable content */}
-        <div style={{ overflowY: "auto", overscrollBehavior: "contain", padding: "20px 20px 8px" }}>
-          <h2 style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.3rem, 4vw, 1.75rem)", fontWeight: 600, lineHeight: 1.25, color: "var(--color-ink)", paddingRight: "2rem", marginBottom: "12px" }}>
-            {service.name}
-          </h2>
-
-          {/* Price + Duration */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-            <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary)", fontVariantNumeric: "tabular-nums" }}>
-              {formatPrice(service.price)}
-            </span>
-            <div style={{ width: "1px", height: "16px", background: "var(--color-border-muted)" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--color-ink-muted)" }}>
-              <Clock size={14} strokeWidth={2} style={{ color: "var(--color-primary)", flexShrink: 0 }} />
-              {formatDuration(service.duration_minutes)}
+          {service.photo_url ? (
+            <div
+              className="relative shrink-0 overflow-hidden rounded-t-2xl"
+              style={{ background: "var(--color-placeholder-surface)" }}
+            >
+              <img
+                src={service.photo_url}
+                alt={service.name}
+                className="max-h-[min(40vh,260px)] w-full object-cover"
+              />
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
+              <span
+                className="absolute left-3 top-3 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-ink shadow-sm"
+                style={{ letterSpacing: "0.01em" }}
+              >
+                {categoryName}
+              </span>
             </div>
-          </div>
-
-          {/* Description */}
-          {service.description && (
-            <div style={{ borderRadius: "10px", border: "1px solid var(--color-border-soft)", background: "var(--color-bg)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
-              {renderDescription(service.description)}
+          ) : (
+            <div
+              className="relative flex h-[120px] shrink-0 items-center justify-center rounded-t-2xl"
+              style={{ background: "var(--color-placeholder-surface)" }}
+            >
+              <ImageIcon size={44} className="opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
+              <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-ink shadow-sm">
+                {categoryName}
+              </span>
             </div>
           )}
 
-          {/* CTA */}
-          <button
-            type="button"
-            onClick={handleAdd}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              borderRadius: "10px",
-              padding: "15px 0",
-              fontSize: "15px",
-              fontWeight: 700,
-              color: "#fff",
-              background: inCart ? "#1c1917" : "var(--color-primary)",
-              boxShadow: "0 6px 20px color-mix(in srgb, var(--color-primary) 30%, transparent)",
-              transition: "transform 0.15s, background 0.2s",
-              marginBottom: "4px",
-            }}
-            onMouseDown={e => (e.currentTarget.style.transform = "scale(0.98)")}
-            onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}
-            onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            {inCart ? (
-              <>
-                <Check size={19} strokeWidth={2.5} />
-                Добавить ещё
-              </>
-            ) : (
-              <>
-                <Plus size={19} strokeWidth={2.5} />
-                Добавить в запись
-              </>
-            )}
-          </button>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pb-2 pt-5">
+            <h2
+              className="mb-3 pr-10 font-serif text-[clamp(1.25rem,4vw,1.75rem)] font-semibold leading-snug text-ink"
+            >
+              {service.name}
+            </h2>
 
-          {/* Safe area iOS */}
-          <div style={{ height: "max(12px, env(safe-area-inset-bottom, 12px))" }} />
+            <div className="mb-4 flex flex-wrap items-center gap-4">
+              <span className="text-2xl font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
+                {formatPrice(service.price)}
+              </span>
+              <div className="h-4 w-px bg-[var(--color-border-muted)]" />
+              <div className="flex items-center gap-2 text-sm text-ink-muted">
+                <Clock size={16} strokeWidth={2} className="shrink-0 text-[var(--color-primary)]" />
+                {formatDuration(service.duration_minutes)}
+              </div>
+            </div>
+
+            {service.description && (
+              <div
+                className="mb-4 flex flex-col gap-1.5 rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-bg)] px-4 py-3"
+              >
+                {renderDescription(service.description)}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="mb-2 flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
+              style={{
+                background: inCart ? "#1c1917" : "var(--color-primary)",
+                boxShadow: "0 6px 20px color-mix(in srgb, var(--color-primary) 30%, transparent)",
+              }}
+            >
+              {inCart ? (
+                <>
+                  <Check size={22} strokeWidth={2.5} />
+                  Добавить ещё
+                </>
+              ) : (
+                <>
+                  <Plus size={22} strokeWidth={2.5} />
+                  Добавить в запись
+                </>
+              )}
+            </button>
+
+            <div className="h-[max(12px,env(safe-area-inset-bottom))]" />
+          </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes modalPop {
-          from { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
-          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-      `}</style>
-    </>
+    </>,
+    document.body
   );
 }

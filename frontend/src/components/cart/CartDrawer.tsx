@@ -1,6 +1,7 @@
 import { X, Minus, Plus, Trash2, ShoppingBag, ImageIcon } from "lucide-react";
 import { useCart } from "../../store/cartStore";
 import { formatPrice, formatDuration } from "../../utils";
+import { lockBodyScroll } from "../../utils/bodyScrollLock";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -12,14 +13,9 @@ interface Props {
 export function CartDrawer({ open, onClose, onCheckout }: Props) {
   const [confirmClear, setConfirmClear] = useState(false);
 
-  // Блокируем скролл без position:fixed (не скачет страница)
   useEffect(() => {
-    const html = document.documentElement;
-    if (open) {
-      const prevOverflow = html.style.overflow;
-      html.style.overflow = "hidden";
-      return () => { html.style.overflow = prevOverflow; };
-    }
+    if (!open) return;
+    return lockBodyScroll();
   }, [open]);
 
   // Закрыть подтверждение очистки при закрытии дровера
@@ -61,10 +57,10 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center w-9 h-9 rounded-xl border border-black/8 bg-white text-ink/50 hover:text-ink transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/8 bg-white text-ink/50 transition-colors hover:text-ink"
             aria-label="Закрыть"
           >
-            <X size={18} strokeWidth={2} />
+            <X size={22} strokeWidth={2} />
           </button>
         </div>
 
@@ -85,12 +81,12 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
               {items.map((item) => (
                 <div
                   key={item.service.id}
-                  className="flex flex-col gap-3 rounded-2xl p-4"
-                  style={{ background: "#f8f7f5", border: "1px solid rgba(0,0,0,0.05)" }}
+                  className="flex min-h-[140px] flex-col gap-4 rounded-2xl border-2 border-black/[0.06] p-5"
+                  style={{ background: "#f8f7f5" }}
                 >
-                  <div className="flex min-w-0 items-start gap-3">
-                    {/* Миниатюра товара */}
-                    <div className="shrink-0 h-16 w-16 rounded-xl overflow-hidden" style={{ background: "var(--color-placeholder-surface)" }}>
+                  <div className="flex min-w-0 items-start gap-4">
+                    {/* Миниатюра услуги */}
+                    <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl" style={{ background: "var(--color-placeholder-surface)" }}>
                       {item.service.photo_url ? (
                         <img
                           src={item.service.photo_url}
@@ -118,29 +114,31 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                     <button
                       type="button"
                       onClick={() => removeItem(item.service.id)}
-                      className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-ink/30 transition-colors hover:bg-red-50 hover:text-red-400"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink/35 transition-colors hover:bg-red-50 hover:text-red-400"
                       aria-label="Удалить"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={18} strokeWidth={2} />
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 rounded-xl border border-black/8 bg-white p-0.5">
+                    <div className="flex items-center gap-1 rounded-xl border-2 border-black/10 bg-white p-1">
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity - 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/50 transition-colors hover:bg-black/5 hover:text-ink"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg text-ink/60 transition-colors hover:bg-black/5 hover:text-ink"
+                        aria-label="Меньше"
                       >
-                        <Minus size={12} />
+                        <Minus size={18} strokeWidth={2} />
                       </button>
-                      <span className="min-w-[1.75rem] text-center text-sm font-bold text-ink">{item.quantity}</span>
+                      <span className="min-w-[2rem] text-center text-base font-bold text-ink">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity + 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/50 transition-colors hover:bg-black/5 hover:text-ink"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg text-ink/60 transition-colors hover:bg-black/5 hover:text-ink"
+                        aria-label="Больше"
                       >
-                        <Plus size={12} />
+                        <Plus size={18} strokeWidth={2} />
                       </button>
                     </div>
                     <span

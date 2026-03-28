@@ -40,7 +40,7 @@ export function CatalogSection({
         <div className="mb-10 text-center">
           <h2 className="font-serif text-3xl font-semibold text-ink md:text-5xl">{title}</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-7">
+        <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-7">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="skeleton rounded-2xl" style={{ aspectRatio: "3/4" }} />
           ))}
@@ -74,7 +74,7 @@ export function CatalogSection({
       )}
 
       {/* Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-7">
+      <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-7">
         {filteredPairs.map(({ service, category }) => (
           <ServiceCard
             key={service.id}

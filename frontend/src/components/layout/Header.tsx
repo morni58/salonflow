@@ -3,6 +3,7 @@ import { Menu, X, ShoppingBag, Phone } from "lucide-react";
 import type { Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
 import { siteText } from "../../utils/siteContent";
+import { lockBodyScroll } from "../../utils/bodyScrollLock";
 
 interface Props {
   tenant: Tenant;
@@ -46,14 +47,9 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Блокируем скролл без position:fixed (не скачет страница)
   useEffect(() => {
-    const html = document.documentElement;
-    if (menuOpen) {
-      const prev = html.style.overflow;
-      html.style.overflow = "hidden";
-      return () => { html.style.overflow = prev; };
-    }
+    if (!menuOpen) return;
+    return lockBodyScroll();
   }, [menuOpen]);
 
   // Анимация счётчика корзины
@@ -165,18 +161,18 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
                   onOpenCart();
                   setMenuOpen(false);
                 }}
-                className="relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-white transition-all duration-200 active:scale-[0.96]"
+                className="relative flex min-h-[48px] items-center gap-2.5 rounded-xl px-5 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-all duration-200 active:scale-[0.96]"
                 style={{
                   background: "#1c1917",
                   boxShadow: itemCount > 0 ? "0 4px 14px rgba(0,0,0,0.18)" : "0 2px 8px rgba(0,0,0,0.1)",
                 }}
                 aria-label="Моя запись"
               >
-                <div className="relative">
-                  <ShoppingBag size={20} strokeWidth={2} />
+                <div className="relative flex items-center justify-center">
+                  <ShoppingBag size={26} strokeWidth={2} aria-hidden />
                   {itemCount > 0 && (
                     <span
-                      className={`absolute -top-2 -right-2 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold${popping ? " cart-pop" : ""}`}
+                      className={`absolute -right-2.5 -top-2.5 flex min-h-[1.25rem] min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none${popping ? " cart-pop" : ""}`}
                       style={{ color: "var(--color-primary)" }}
                     >
                       {itemCount > 9 ? "9+" : itemCount}
