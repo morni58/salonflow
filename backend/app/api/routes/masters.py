@@ -13,7 +13,7 @@ def _list_masters_sync(tenant_id: str) -> tuple[list[dict], bool]:
     needs = tenant_has_bookable_masters_sync(tenant_id)
     rows = (
         sb.table("masters")
-        .select("id, display_name, title, bio, photo_url, sort_order")
+        .select("id, display_name, title, bio, photo_url, sort_order, experience")
         .eq("tenant_id", tenant_id)
         .eq("is_active", True)
         .eq("is_bookable", True)
@@ -38,6 +38,7 @@ async def list_masters(tenant_id: str = Query(...)):
             bio=r.get("bio"),
             photo_url=r.get("photo_url"),
             sort_order=int(r.get("sort_order") or 0),
+            experience=r.get("experience"),
         )
         for r in raw
     ]

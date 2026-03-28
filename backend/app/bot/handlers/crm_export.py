@@ -11,6 +11,7 @@ from aiogram import Router, F
 from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.bot.async_db import run_sync
+from app.bot.cache import get_user_sync as _cached_get_user
 from app.bot.permissions import can_crm
 from app.core.database import get_supabase
 
@@ -23,11 +24,10 @@ LIST_PAGE = 7
 
 
 def _get_user_tenant_role_sync(tg_id: int) -> tuple[str | None, str | None]:
-    sb = get_supabase()
-    r = sb.table("users").select("tenant_id, role").eq("telegram_user_id", tg_id).limit(1).execute()
-    if r.data:
-        return r.data[0]["tenant_id"], r.data[0]["role"]
-    return None, None
+    u = _cached_get_user(tg_id)
+    if not u:
+        return None, None
+    return u["tenant_id"], u.get("role")
 
 
 def _format_price(tiyn: int) -> str:

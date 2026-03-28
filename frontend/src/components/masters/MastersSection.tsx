@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserRound } from "lucide-react";
+import { UserRound, Star, Calendar } from "lucide-react";
 import type { MasterPublic } from "../../types";
 import { fetchMasters } from "../../api/client";
 
@@ -32,81 +32,133 @@ export function MastersSection({ tenantId, onNavClick }: Props) {
 
   if (loading || masters.length === 0) return null;
 
+  const gridClass =
+    masters.length === 1
+      ? "max-w-xs mx-auto"
+      : masters.length === 2
+      ? "grid sm:grid-cols-2 max-w-xl mx-auto gap-5"
+      : masters.length === 3
+      ? "grid sm:grid-cols-3 gap-5"
+      : "grid sm:grid-cols-2 lg:grid-cols-4 gap-5";
+
   return (
-    <section
-      id="masters"
-      data-anchor-section
-      className="scroll-mt-24 py-16 md:py-24"
-    >
-      {/* Header */}
+    <section id="masters" data-anchor-section className="scroll-mt-24 py-16 md:py-24">
       <div className="mb-10 text-center md:mb-14">
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-40 mb-4">
+        <p
+          className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40"
+          style={{ color: "var(--color-text)" }}
+        >
           Наша команда
         </p>
-        <h2 className="font-serif italic text-3xl md:text-5xl text-ink">Мастера</h2>
-        <p className="mt-3 mx-auto max-w-lg text-sm text-ink-muted md:text-base">
-          Каждый мастер — специалист с опытом и страстью к своему делу
+        <h2
+          className="font-serif text-3xl font-bold md:text-5xl"
+          style={{ color: "var(--color-text)" }}
+        >
+          Мастера
+        </h2>
+        <p
+          className="mt-3 mx-auto max-w-md text-sm leading-relaxed opacity-60"
+          style={{ color: "var(--color-text)" }}
+        >
+          Каждый специалист — профессионал с опытом и страстью к своему делу
         </p>
       </div>
 
-      <div className={`grid gap-5 ${
-        masters.length === 1
-          ? "max-w-xs mx-auto"
-          : masters.length === 2
-          ? "sm:grid-cols-2 max-w-xl mx-auto"
-          : masters.length === 3
-          ? "sm:grid-cols-3"
-          : "sm:grid-cols-2 lg:grid-cols-4"
-      }`}>
+      <div className={gridClass}>
         {masters.map((m) => (
-          <article
-            key={m.id}
-            className="hover-lift group flex flex-col overflow-hidden rounded-[28px] bg-white p-2 border border-black/5"
-          >
-            {/* Portrait image area */}
-            <div
-              className="rounded-[22px] overflow-hidden w-full"
-              style={{ aspectRatio: "3/4", background: "var(--color-placeholder-surface)" }}
-            >
-              {m.photo_url ? (
-                <img
-                  src={m.photo_url}
-                  alt={m.display_name}
-                  className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <UserRound className="h-16 w-16 opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
-                </div>
-              )}
-            </div>
-
-            {/* Name / title / bio below image */}
-            <div className="px-3 py-3 flex flex-col flex-1">
-              <h3 className="font-serif text-xl font-bold text-ink">{m.display_name}</h3>
-              {m.title && (
-                <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest opacity-40">
-                  {m.title}
-                </p>
-              )}
-              {m.bio ? (
-                <p className="mt-2 mb-4 line-clamp-3 text-sm leading-relaxed text-ink-muted">{m.bio}</p>
-              ) : (
-                <p className="mt-2 mb-4 text-sm italic text-ink-muted/60">Описание скоро появится.</p>
-              )}
-
-              <button
-                type="button"
-                onClick={() => scrollToCatalog(m.id)}
-                className="mt-auto w-full rounded-2xl py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-95 bg-black/5 text-ink/60 hover:bg-ink hover:text-white"
-              >
-                Записаться
-              </button>
-            </div>
-          </article>
+          <MasterCard key={m.id} master={m} onBook={() => scrollToCatalog(m.id)} />
         ))}
       </div>
     </section>
+  );
+}
+
+function MasterCard({ master: m, onBook }: { master: MasterPublic; onBook: () => void }) {
+  return (
+    <article
+      className="hover-lift group flex flex-col overflow-hidden rounded-[28px] bg-white border border-black/[0.06]"
+      style={{ boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
+    >
+      {/* Portrait */}
+      <div
+        className="relative w-full overflow-hidden rounded-t-[26px]"
+        style={{ aspectRatio: "3/4", background: "var(--color-placeholder-surface, #f0ebe6)" }}
+      >
+        {m.photo_url ? (
+          <img
+            src={m.photo_url}
+            alt={m.display_name}
+            className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.04]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <UserRound
+              className="h-20 w-20 opacity-15"
+              style={{ color: "var(--color-primary)" }}
+              aria-hidden
+            />
+          </div>
+        )}
+
+        {/* Experience badge */}
+        {m.experience && (
+          <span
+            className="absolute top-3 right-3 flex items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white"
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+          >
+            <Star size={9} strokeWidth={2.5} aria-hidden />
+            {m.experience}
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex flex-1 flex-col px-5 py-5">
+        <h3
+          className="font-serif text-xl font-bold leading-tight"
+          style={{ color: "var(--color-text)" }}
+        >
+          {m.display_name}
+        </h3>
+
+        {m.title && (
+          <p
+            className="mt-1 text-[10px] font-bold uppercase tracking-[0.15em] opacity-45"
+            style={{ color: "var(--color-text)" }}
+          >
+            {m.title}
+          </p>
+        )}
+
+        <div className="mt-3 mb-5 flex-1">
+          {m.bio ? (
+            <p
+              className="line-clamp-3 text-sm leading-relaxed opacity-65"
+              style={{ color: "var(--color-text)", wordBreak: "break-word" }}
+            >
+              {m.bio}
+            </p>
+          ) : (
+            <p className="text-sm italic opacity-35" style={{ color: "var(--color-text)" }}>
+              Описание скоро появится.
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onBook}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[11px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-[0.97] hover:opacity-90"
+          style={{
+            background: "var(--color-primary)",
+            color: "#fff",
+          }}
+        >
+          <Calendar size={12} strokeWidth={2.5} aria-hidden />
+          Записаться
+        </button>
+      </div>
+    </article>
   );
 }

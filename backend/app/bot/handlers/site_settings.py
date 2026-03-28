@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from app.bot.async_db import run_sync
+from app.bot.cache import get_user_sync as _cached_get_user
 from app.bot.permissions import can_site
 from app.bot.undo import push_undo, pop_undo, has_undo, undo_count
 from app.core.database import get_supabase
@@ -29,17 +30,10 @@ class SiteStates(StatesGroup):
 
 
 def _get_user_tenant_sync(telegram_user_id: int) -> tuple[str | None, str | None]:
-    sb = get_supabase()
-    result = (
-        sb.table("users")
-        .select("tenant_id, role")
-        .eq("telegram_user_id", telegram_user_id)
-        .limit(1)
-        .execute()
-    )
-    if not result.data:
+    u = _cached_get_user(telegram_user_id)
+    if not u:
         return None, None
-    return result.data[0]["tenant_id"], result.data[0].get("role")
+    return u["tenant_id"], u.get("role")
 
 
 def site_menu_keyboard(tenant_id: str | None = None) -> InlineKeyboardMarkup:

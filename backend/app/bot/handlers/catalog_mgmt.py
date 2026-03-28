@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from app.bot.async_db import run_sync
+from app.bot.cache import get_user_sync as _cached_get_user
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -29,15 +30,8 @@ class CatalogStates(StatesGroup):
 
 
 def _get_user_tenant_sync(telegram_user_id: int) -> str | None:
-    sb = get_supabase()
-    result = (
-        sb.table("users")
-        .select("tenant_id")
-        .eq("telegram_user_id", telegram_user_id)
-        .limit(1)
-        .execute()
-    )
-    return result.data[0]["tenant_id"] if result.data else None
+    u = _cached_get_user(telegram_user_id)
+    return u["tenant_id"] if u else None
 
 
 def _catalog_categories_kb_sync(tenant_id: str) -> InlineKeyboardMarkup:

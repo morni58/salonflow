@@ -89,6 +89,7 @@ class MasterPublic(BaseModel):
     bio: Optional[str] = None
     photo_url: Optional[str] = None
     sort_order: int = 0
+    experience: Optional[str] = None
 
 
 class MastersResponse(BaseModel):

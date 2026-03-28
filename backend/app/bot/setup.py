@@ -14,6 +14,8 @@ from app.bot.handlers.management import router as management_router
 from app.bot.handlers.master_schedule_bot import router as master_schedule_router
 from app.bot.handlers.staff_masters import router as staff_masters_router
 from app.bot.handlers.site_settings import router as site_settings_router
+from app.bot.handlers.masters_admin import router as masters_admin_router
+from app.bot.handlers.slot_blocks import router as slot_blocks_router
 from app.bot.handlers.start import router as start_router
 from app.core.config import get_settings
 
@@ -60,6 +62,8 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(management_router)
     dp.include_router(clients_router)
     dp.include_router(crm_router)
+    dp.include_router(masters_admin_router)
+    dp.include_router(slot_blocks_router)
     dp.include_router(fallback_router)
 
     @dp.errors()

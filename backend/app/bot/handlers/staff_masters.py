@@ -15,6 +15,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from app.bot.async_db import run_sync
+from app.bot.cache import get_user_sync as _cached_get_user
 from app.bot.permissions import can_add_admin, can_invite_staff
 from app.core.database import get_supabase
 
@@ -29,9 +30,7 @@ class StaffStates(StatesGroup):
 
 
 def _user_row_sync(tg_id: int) -> dict | None:
-    sb = get_supabase()
-    r = sb.table("users").select("id, tenant_id, role, name").eq("telegram_user_id", tg_id).limit(1).execute()
-    return r.data[0] if r.data else None
+    return _cached_get_user(tg_id)
 
 
 def _add_user_and_master_sync(
@@ -180,6 +179,8 @@ async def cmd_add_staff(message: Message) -> None:
         await message.answer(f"❌ Не удалось: {e}")
         return
 
+    from app.bot.cache import invalidate_user
+    invalidate_user(tg_target)
     await message.answer(
         f"✅ Мастер <b>{name}</b> добавлен.\n"
         f"ID в боте: <code>{tg_target}</code>\n"

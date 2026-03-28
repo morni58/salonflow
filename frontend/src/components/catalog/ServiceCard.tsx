@@ -69,8 +69,8 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
       <div className="flex min-w-0 flex-1 flex-col px-5 pb-5 pt-4">
         {/* Name */}
         <h3
-          className="text-xl font-bold leading-snug text-ink mb-1"
-          style={{ overflowWrap: "anywhere" }}
+          className="line-clamp-2 text-xl font-bold leading-snug text-ink mb-1"
+          style={{ wordBreak: "break-word" }}
         >
           {service.name}
         </h3>
@@ -84,14 +84,17 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           </span>
         </div>
 
-        {/* Description */}
-        {service.description ? (
-          <p className="text-xs text-ink-muted opacity-50 line-clamp-2 mb-4" style={{ lineHeight: 1.5 }}>
-            {service.description}
-          </p>
-        ) : (
-          <div className="mb-4" />
-        )}
+        {/* Description — fixed height so button position stays consistent */}
+        <div className="mb-4" style={{ minHeight: "2.75rem" }}>
+          {service.description && (
+            <p
+              className="text-xs text-ink-muted opacity-50 line-clamp-2"
+              style={{ lineHeight: 1.6, wordBreak: "break-word", overflowWrap: "break-word" }}
+            >
+              {service.description}
+            </p>
+          )}
+        </div>
 
         {/* Duration badge */}
         <div className="mb-5 flex items-center gap-1.5 text-xs font-medium w-fit rounded-lg px-3 py-1.5" style={{ background: "var(--color-primary-muted)", color: "var(--color-primary)" }}>
@@ -105,7 +108,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           onClick={handleAdd}
           aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
           className={[
-            "mt-auto flex min-h-[56px] w-full items-center justify-center rounded-xl px-4 py-4 text-base font-semibold transition-all duration-200 active:scale-[0.98]",
+            "mt-auto flex h-[52px] w-full items-center justify-center rounded-xl px-4 text-base font-semibold transition-all duration-200 active:scale-[0.98]",
             added || inCart
               ? "bg-ink text-white"
               : "bg-black/5 text-ink hover:bg-black hover:text-white",

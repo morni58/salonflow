@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.async_utils import run_sync
 from app.core.database import get_supabase
@@ -19,6 +20,34 @@ def _contact_type_value(ct: ContactType | str) -> str:
         return ct.value
     return str(ct)
 
+
+
+def _calc_pending_expires_at_sync(tenant_id: str) -> str:
+    """Умная дата истечения pending: 08:00-21:00 +2ч; ночь 21:00-08:00 → 10:00 следующего утра (по tz салона)."""
+    sb = get_supabase()
+    t = sb.table("tenants").select("timezone").eq("id", tenant_id).limit(1).execute()
+    tz_str = (t.data[0].get("timezone") or "") if t.data else ""
+    try:
+        tz = ZoneInfo(tz_str) if tz_str else ZoneInfo("UTC")
+    except (ZoneInfoNotFoundError, Exception):
+        tz = ZoneInfo("UTC")
+
+    now_local = datetime.now(tz)
+    h = now_local.hour
+    if h >= 21 or h < 8:
+        # Ночь — до 10:00 следующего утра (или сегодня если ещё до 8)
+        if h < 8:
+            target_date = now_local.date()
+        else:
+            target_date = now_local.date() + timedelta(days=1)
+        expires_local = datetime(
+            target_date.year, target_date.month, target_date.day,
+            10, 0, 0, tzinfo=tz
+        )
+        return expires_local.astimezone(ZoneInfo("UTC")).replace(tzinfo=None).isoformat()
+    else:
+        # День — через 2 часа
+        return (datetime.utcnow() + timedelta(hours=2)).isoformat()
 
 def _create_booking_sync(data: BookingCreate) -> dict:
     """Вся работа с Supabase в одном sync-вызове (не блокируем event loop)."""
@@ -84,8 +113,8 @@ def _create_booking_sync(data: BookingCreate) -> dict:
         "status": "pending",
         "payment_status": "unpaid",
         "source": "online",
-        # Слот заблокирован на 2 часа; если владелец не примет — авто-отмена
-        "pending_expires_at": (datetime.utcnow() + timedelta(hours=2)).isoformat(),
+        # Умный таймер: днём +2ч, ночью — до 10:00 следующего утра
+        "pending_expires_at": _calc_pending_expires_at_sync(data.tenant_id),
     }
     if master_id:
         insert_row["master_id"] = master_id

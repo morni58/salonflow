@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from app.bot.async_db import run_sync
+from app.bot.cache import get_user_sync as _cached_get_user
 from app.core.database import get_supabase
 from app.core.tenant_fields import (
     normalize_every_n_days,
@@ -25,9 +26,8 @@ router = Router()
 
 
 def _get_user_tenant_sync(tg_id: int) -> str | None:
-    sb = get_supabase()
-    r = sb.table("users").select("tenant_id").eq("telegram_user_id", tg_id).limit(1).execute()
-    return r.data[0]["tenant_id"] if r.data else None
+    u = _cached_get_user(tg_id)
+    return u["tenant_id"] if u else None
 
 
 def _apply_close_day_sync(tenant_id: str, d: date) -> None:

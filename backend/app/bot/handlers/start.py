@@ -7,6 +7,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from app.bot.async_db import run_sync
+from app.bot.cache import get_user_sync as _cached_get_user
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -14,18 +15,19 @@ router = Router()
 
 
 def _get_user_sync(telegram_user_id: int) -> dict | None:
-    sb = get_supabase()
-    result = (
-        sb.table("users")
-        .select("id, tenant_id, role, name")
-        .eq("telegram_user_id", telegram_user_id)
-        .limit(1)
-        .execute()
-    )
-    return result.data[0] if result.data else None
+    return _cached_get_user(telegram_user_id)
 
 
 def _tenant_name_sync(tenant_id: str) -> str:
+    """Cache tenant names to avoid repeated lookups."""
+    from app.bot.cache import _USER_CACHE  # reuse module for import, but cache separately
+    import time
+    _tc = getattr(_tenant_name_sync, "_cache", None)
+    if _tc is None:
+        _tenant_name_sync._cache = {}
+    entry = _tenant_name_sync._cache.get(tenant_id)
+    if entry and time.monotonic() - entry[1] < 600:  # 10 min TTL
+        return entry[0]
     sb = get_supabase()
     tenant = (
         sb.table("tenants")
@@ -34,7 +36,9 @@ def _tenant_name_sync(tenant_id: str) -> str:
         .limit(1)
         .execute()
     )
-    return tenant.data[0]["name"] if tenant.data else "Салон"
+    name = tenant.data[0]["name"] if tenant.data else "Салон"
+    _tenant_name_sync._cache[tenant_id] = (name, time.monotonic())
+    return name
 
 
 def _main_menu(role: str) -> InlineKeyboardMarkup:
@@ -67,6 +71,10 @@ def _main_menu(role: str) -> InlineKeyboardMarkup:
     )
     if role in ("owner", "admin"):
         buttons.append([InlineKeyboardButton(text="🎨 Сайт и контакты", callback_data="menu:site")])
+    if role in ("owner", "admin"):
+        buttons.append([InlineKeyboardButton(text="🔒 Слоты", callback_data="menu:slot_blocks")])
+    if role in ("owner", "admin"):
+        buttons.append([InlineKeyboardButton(text="🧑‍💼 Мастера", callback_data="menu:masters_admin")])
     if role in ("owner", "admin"):
         buttons.append([InlineKeyboardButton(text="👥 Персонал", callback_data="menu:staff")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)

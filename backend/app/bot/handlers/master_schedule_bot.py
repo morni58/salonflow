@@ -80,19 +80,20 @@ def _apply_close_day_sync(master_id: str, d: date) -> None:
         }).execute()
 
 
-def _master_main_kb(mid: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="▫️ 1×1", callback_data=f"msched:preset:{mid}:1x1"),
-                InlineKeyboardButton(text="▪️ 2×2", callback_data=f"msched:preset:{mid}:2x2"),
-                InlineKeyboardButton(text="15м", callback_data=f"msched:preset:{mid}:dense"),
-            ],
-            [InlineKeyboardButton(text="📅 Дни недели", callback_data=f"msched:weekdays:{mid}")],
-            [InlineKeyboardButton(text="🕐 Часы работы", callback_data=f"msched:hours:{mid}")],
-            [InlineKeyboardButton(text="🔒 Закрыть день", callback_data=f"msched:close:{mid}")],
-        ]
-    )
+def _master_main_kb(mid: str, back_cb: str | None = None) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton(text="▫️ 1×1", callback_data=f"msched:preset:{mid}:1x1"),
+            InlineKeyboardButton(text="▪️ 2×2", callback_data=f"msched:preset:{mid}:2x2"),
+            InlineKeyboardButton(text="15м", callback_data=f"msched:preset:{mid}:dense"),
+        ],
+        [InlineKeyboardButton(text="📅 Дни недели", callback_data=f"msched:weekdays:{mid}")],
+        [InlineKeyboardButton(text="🕐 Часы работы", callback_data=f"msched:hours:{mid}")],
+        [InlineKeyboardButton(text="🔒 Закрыть день", callback_data=f"msched:close:{mid}")],
+    ]
+    if back_cb:
+        rows.append([InlineKeyboardButton(text="◀️ К мастеру", callback_data=back_cb)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def _apply_master_preset_sync(master_id: str, preset: str) -> None:
@@ -155,13 +156,20 @@ async def msched_preset(callback: CallbackQuery):
     if preset not in ("1x1", "2x2", "dense"):
         return
     actor = await run_sync(_user_row_sync, callback.from_user.id)
-    if not actor or actor.get("role") != "master":
+    if not actor:
         return
-    m = await run_sync(_get_master_for_user_sync, actor["id"], actor["tenant_id"])
-    if not m or str(m["id"]) != mid:
+    role = actor.get("role", "")
+    if role in ("owner", "admin"):
+        # Admins can set presets for any master
+        pass
+    elif role == "master":
+        m = await run_sync(_get_master_for_user_sync, actor["id"], actor["tenant_id"])
+        if not m or str(m["id"]) != mid:
+            return
+    else:
         return
     await run_sync(_apply_master_preset_sync, mid, preset)
-    await callback.message.reply("✅ Пресет сетки слотов применён к вашему графику.")
+    await callback.message.reply("✅ Пресет сетки слотов применён.")
 
 
 @router.callback_query(F.data.startswith("msched:weekdays:"))
@@ -253,7 +261,7 @@ async def msched_close_start(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     mid = callback.data.split(":")[2]
     actor = await run_sync(_user_row_sync, callback.from_user.id)
-    if not actor:
+    if not actor or actor.get("role") not in ("owner", "admin", "master"):
         return
     await state.set_state(MasterSchedStates.waiting_close_date)
     await state.update_data(master_id=mid)

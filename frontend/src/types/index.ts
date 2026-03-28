@@ -71,6 +71,7 @@ export interface MasterPublic {
   bio: string | null;
   photo_url: string | null;
   sort_order: number;
+  experience: string | null;
 }
 
 export interface MastersResponse {

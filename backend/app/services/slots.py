@@ -241,6 +241,10 @@ def _get_available_slots_sync(
             if is_free:
                 available.append(f"{slot.hour:02d}:{slot.minute:02d}")
 
+        # Filter out manually blocked slots
+        blocked = _get_blocked_slot_times_sync(tenant_id, target_date)
+        available = [s for s in available if s not in blocked]
+
         return _slot_strings_fit_duration(available, occupied, end_limit_min, duration_minutes)
     except Exception:
         logger.exception("get_available_slots failed tenant_id=%s date=%s", tenant_id, target_date)
@@ -374,6 +378,10 @@ def _get_available_slots_master_sync(
             if is_free:
                 available.append(f"{slot.hour:02d}:{slot.minute:02d}")
 
+        # Filter out manually blocked slots (tenant-level + master-specific)
+        blocked = _get_blocked_slot_times_sync(tenant_id, target_date, master_id=master_id)
+        available = [s for s in available if s not in blocked]
+
         return _slot_strings_fit_duration(available, occupied, end_limit_min, duration_minutes)
     except Exception:
         logger.exception(
@@ -384,6 +392,37 @@ def _get_available_slots_master_sync(
         )
         return []
 
+
+
+def _get_blocked_slot_times_sync(
+    tenant_id: str,
+    target_date: date,
+    master_id: str | None = None,
+) -> set[str]:
+    """Возвращает набор "HH:MM" слотов, заблокированных через slot_overrides."""
+    try:
+        sb = get_supabase()
+        q = (
+            sb.table("slot_overrides")
+            .select("slot_time")
+            .eq("tenant_id", tenant_id)
+            .eq("slot_date", target_date.isoformat())
+            .eq("is_blocked", True)
+        )
+        if master_id:
+            # Блоки для этого мастера ИЛИ tenant-level (master_id IS NULL)
+            q = q.or_(f"master_id.eq.{master_id},master_id.is.null")
+        else:
+            q = q.is_("master_id", "null")
+        r = q.execute()
+        out = set()
+        for row in r.data or []:
+            t = str(row["slot_time"])[:5]
+            out.add(t)
+        return out
+    except Exception:
+        logger.exception("_get_blocked_slot_times_sync failed")
+        return set()
 
 def _route_slots_sync(
     tenant_id: str,
