@@ -202,9 +202,10 @@ def _get_available_slots_sync(
         day_start = datetime.combine(target_date, time(0, 0))
         day_end = datetime.combine(target_date, time(23, 59, 59))
 
+        _now_iso = datetime.utcnow().isoformat()
         bookings = (
             sb.table("bookings")
-            .select("preferred_datetime, total_duration_minutes")
+            .select("preferred_datetime, total_duration_minutes, status, pending_expires_at")
             .eq("tenant_id", tenant_id)
             .in_("status", ["pending", "waiting", "confirmed"])
             .gte("preferred_datetime", day_start.isoformat())
@@ -214,6 +215,11 @@ def _get_available_slots_sync(
 
         occupied: list[tuple[int, int]] = []
         for b in bookings.data or []:
+            # Skip pending bookings that have expired (2h window passed without confirmation)
+            if b.get("status") == "pending":
+                exp = b.get("pending_expires_at")
+                if exp and str(exp) < _now_iso:
+                    continue
             raw = b.get("preferred_datetime")
             if not raw:
                 continue
@@ -326,9 +332,10 @@ def _get_available_slots_master_sync(
         day_start = datetime.combine(target_date, time(0, 0))
         day_end = datetime.combine(target_date, time(23, 59, 59))
 
+        _now_iso2 = datetime.utcnow().isoformat()
         bookings = (
             sb.table("bookings")
-            .select("preferred_datetime, total_duration_minutes, master_id")
+            .select("preferred_datetime, total_duration_minutes, master_id, status, pending_expires_at")
             .eq("tenant_id", tenant_id)
             .in_("status", ["pending", "waiting", "confirmed"])
             .gte("preferred_datetime", day_start.isoformat())
@@ -338,6 +345,11 @@ def _get_available_slots_master_sync(
 
         occupied: list[tuple[int, int]] = []
         for b in bookings.data or []:
+            # Skip expired pending bookings
+            if b.get("status") == "pending":
+                exp = b.get("pending_expires_at")
+                if exp and str(exp) < _now_iso2:
+                    continue
             bid = b.get("master_id")
             if bid is not None and str(bid) != str(master_id):
                 continue

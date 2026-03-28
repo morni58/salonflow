@@ -37,14 +37,14 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
     >
       {/* Image */}
       <div
-        className="relative w-full shrink-0 overflow-hidden rounded-xl aspect-square"
+        className="relative w-full shrink-0 overflow-hidden rounded-xl aspect-[4/3]"
         style={{ background: "var(--color-placeholder-surface)" }}
       >
         {service.photo_url ? (
           <img
             src={service.photo_url}
             alt={service.name}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+            className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.03]"
             loading="lazy"
           />
         ) : (

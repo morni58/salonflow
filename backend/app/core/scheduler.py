@@ -239,6 +239,64 @@ async def job_send_reminders():
                 logger.error(f"Reminder 2h error: {e}")
 
 
+
+def _cleanup_expired_pending_sync() -> list[dict]:
+    """Авто-отмена pending-заявок у которых истёк 2-часовой таймаут."""
+    sb = get_supabase()
+    expired = (
+        sb.table("bookings")
+        .select("id, tenant_id, client_id, preferred_datetime")
+        .eq("status", "pending")
+        .lt("pending_expires_at", datetime.utcnow().isoformat())
+        .execute()
+    )
+    rows = []
+    for b in expired.data or []:
+        sb.table("bookings").update({"status": "cancelled"}).eq("id", b["id"]).execute()
+        client_name = "—"
+        if b.get("client_id"):
+            cl = sb.table("clients").select("name").eq("id", b["client_id"]).limit(1).execute()
+            if cl.data:
+                client_name = cl.data[0]["name"]
+        rows.append({
+            "tenant_id": b["tenant_id"],
+            "client_name": client_name,
+            "datetime": b.get("preferred_datetime", ""),
+        })
+    return rows
+
+
+async def job_cleanup_expired_pending():
+    """Каждые 30 мин: отменяем pending-заявки старше 2ч — слот освобождается."""
+    from app.bot.notifications import _get_bot, _get_admin_ids
+
+    logger.info("Running expired pending cleanup")
+    items = await run_sync(_cleanup_expired_pending_sync)
+    for item in items:
+        bot = await _get_bot(item["tenant_id"])
+        if not bot:
+            continue
+        admin_ids = await _get_admin_ids(item["tenant_id"])
+        dt_raw = item["datetime"]
+        try:
+            dt_str = datetime.fromisoformat(str(dt_raw).replace("Z", "+00:00")).strftime("%d.%m %H:%M")
+        except Exception:
+            dt_str = str(dt_raw)[:16]
+        for uid in admin_ids:
+            try:
+                await bot.send_message(
+                    chat_id=uid,
+                    text=(
+                        f"⏰ Заявка от <b>{item['client_name']}</b> ({dt_str}) автоматически отменена — "
+                        f"владелец не принял в течение 2 часов. Слот освобождён."
+                    ),
+                    parse_mode="HTML",
+                )
+            except Exception as e:
+                logger.error("Pending cleanup notify error: %s", e)
+    if items:
+        logger.info("Cancelled %s expired pending bookings", len(items))
+
 def setup_scheduler():
     """Configure and start the scheduler."""
     scheduler.add_job(job_daily_brief, "cron", hour=4, minute=0, id="daily_brief")
@@ -246,6 +304,7 @@ def setup_scheduler():
     scheduler.add_job(job_cleanup_expired_waiting, "interval", hours=6, id="cleanup_waiting")
     scheduler.add_job(job_send_reminders, "interval", hours=1, id="reminders")
     scheduler.add_job(job_purge_completed_crm, "cron", hour=3, minute=20, id="crm_purge_completed")
+    scheduler.add_job(job_cleanup_expired_pending, "interval", minutes=30, id="cleanup_pending")
 
     scheduler.start()
-    logger.info("Scheduler started with 5 jobs")
+    logger.info("Scheduler started with 6 jobs")

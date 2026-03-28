@@ -84,6 +84,8 @@ def _create_booking_sync(data: BookingCreate) -> dict:
         "status": "pending",
         "payment_status": "unpaid",
         "source": "online",
+        # Слот заблокирован на 2 часа; если владелец не примет — авто-отмена
+        "pending_expires_at": (datetime.utcnow() + timedelta(hours=2)).isoformat(),
     }
     if master_id:
         insert_row["master_id"] = master_id

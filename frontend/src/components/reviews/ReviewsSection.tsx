@@ -21,6 +21,7 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
   const containerRef = useRef<HTMLDivElement>(null);
   const isHovered = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     fetchReviews(tenantId)
@@ -219,6 +220,15 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in"
           onClick={() => setLightbox(null)}
+          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return;
+            const diff = touchStartX.current - e.changedTouches[0].clientX;
+            if (Math.abs(diff) < 50) return;
+            if (diff > 0 && lightbox < reviews.length - 1) setLightbox(lightbox + 1);
+            if (diff < 0 && lightbox > 0) setLightbox(lightbox - 1);
+            touchStartX.current = null;
+          }}
         >
           <button type="button" onClick={() => setLightbox(null)}
             className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2.5 text-white backdrop-blur-sm hover:bg-white/25"
