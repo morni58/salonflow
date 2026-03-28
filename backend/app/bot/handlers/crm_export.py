@@ -547,7 +547,80 @@ async def crm_booking_detail(callback: CallbackQuery):
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
 
 
-# ── CSV exports (existing + completed) ───────────────────────
+# ── CSV exports ───────────────────────────────────────────────
+
+# Статусы на понятном русском
+_STATUS_RU = {
+    "pending":   "Ожидание (лид)",
+    "waiting":   "В очереди",
+    "confirmed": "Подтверждено",
+    "completed": "Выполнено",
+    "cancelled": "Отказ / архив",
+}
+_PAYMENT_RU = {
+    "pending":  "Не оплачено",
+    "paid":     "Оплачено",
+    "overpaid": "Переплата",
+    "refunded": "Возврат",
+}
+_SOURCE_RU = {
+    "web": "Сайт",
+    "bot": "Бот",
+    "manual": "Вручную",
+}
+_EVENT_RU = {
+    "visit":        "Просмотр сайта",
+    "catalog_view": "Просмотр каталога",
+    "cart_open":    "Открыл корзину",
+    "checkout":     "Оформил заявку",
+}
+
+
+def _fmt_dt(raw: str | None) -> str:
+    """ISO-строка → ДД.ММ.ГГГГ ЧЧ:ММ (UTC). Пусто если None."""
+    if not raw:
+        return ""
+    try:
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        return dt.strftime("%d.%m.%Y %H:%M")
+    except ValueError:
+        return str(raw)
+
+
+def _fmt_price(tiyn: int | None) -> str:
+    """Тиыны → «1 500 ₸»."""
+    tenge = (tiyn or 0) // 100
+    return f"{tenge:,}".replace(",", " ") + " ₸"
+
+
+def _fmt_dur(minutes: int | None) -> str:
+    """Минуты → «1ч 30мин» или «45 мин»."""
+    m = minutes or 0
+    if m <= 0:
+        return ""
+    if m < 60:
+        return f"{m} мин"
+    h, rem = divmod(m, 60)
+    return f"{h}ч {rem}мин" if rem else f"{h}ч"
+
+
+def _fmt_contact(contact_type: str, contact_value: str) -> str:
+    """Telegram + @user → «@user (Telegram)»."""
+    label = {"telegram": "Telegram", "whatsapp": "WhatsApp",
+             "instagram": "Instagram", "phone": "Телефон"}.get(contact_type, contact_type)
+    val = contact_value or ""
+    return f"{val} ({label})" if val else ""
+
+
+def _master_name_sync(sb, master_id: str | None) -> str:
+    if not master_id:
+        return "—"
+    r = sb.table("masters").select("display_name").eq("id", master_id).limit(1).execute()
+    return r.data[0].get("display_name") or "—" if r.data else "—"
+
+
+def _today_str() -> str:
+    return datetime.utcnow().strftime("%Y-%m-%d")
 
 
 def _bookings_csv_sync(tenant_id: str) -> bytes:
@@ -555,15 +628,17 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
     rows = (
         sb.table("bookings")
         .select(
-            "id, created_at, preferred_datetime, status, payment_status, source, "
-            "total_price, total_duration_minutes, client_id, service_ids, completed_at, accepted_at",
+            "created_at, preferred_datetime, status, payment_status, source, "
+            "total_price, total_duration_minutes, client_id, service_ids, "
+            "completed_at, accepted_at, master_id",
         )
         .eq("tenant_id", tenant_id)
-        .order("created_at", desc=True)
+        .order("preferred_datetime", desc=True)
         .limit(MAX_ROWS_BOOKINGS)
         .execute()
     )
     svc_cache: dict[str, str] = {}
+    master_cache: dict[str, str] = {}
 
     def svc_names(ids: list) -> str:
         if not ids:
@@ -573,29 +648,37 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
             sid = str(sid)
             if sid not in svc_cache:
                 r = sb.table("services").select("name").eq("id", sid).limit(1).execute()
-                svc_cache[sid] = r.data[0]["name"] if r.data else sid
+                svc_cache[sid] = r.data[0]["name"] if r.data else "?"
             parts.append(svc_cache[sid])
-        return " | ".join(parts)
+        return ", ".join(parts)
+
+    def master_name(mid: str | None) -> str:
+        if not mid:
+            return ""
+        if mid not in master_cache:
+            r = sb.table("masters").select("display_name").eq("id", mid).limit(1).execute()
+            master_cache[mid] = r.data[0].get("display_name") or "" if r.data else ""
+        return master_cache[mid]
 
     out = io.StringIO()
     w = csv.writer(out, delimiter=";", quoting=csv.QUOTE_MINIMAL)
     w.writerow([
-        "id",
-        "создана_utc",
-        "дата_время_визита",
-        "статус",
-        "оплата",
-        "источник",
-        "сумма_тг",
-        "длительность_мин",
-        "клиент_id",
-        "клиент",
-        "контакт",
-        "услуги",
-        "принята_utc",
-        "выполнена_utc",
+        "№",
+        "Дата визита",
+        "Создана",
+        "Статус",
+        "Клиент",
+        "Контакт",
+        "Услуги",
+        "Длительность",
+        "Сумма",
+        "Мастер",
+        "Оплата",
+        "Источник",
+        "Принята",
+        "Выполнена",
     ])
-    for b in rows.data or []:
+    for n, b in enumerate(rows.data or [], start=1):
         client_name = ""
         contact = ""
         if b.get("client_id"):
@@ -603,34 +686,34 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
             if cl.data:
                 c = cl.data[0]
                 client_name = c.get("name") or ""
-                contact = f"{c.get('contact_type', '')}:{c.get('contact_value', '')}"
-        price_tg = (b.get("total_price") or 0) // 100
+                contact = _fmt_contact(c.get("contact_type", ""), c.get("contact_value", ""))
         w.writerow([
-            b["id"],
-            b.get("created_at", ""),
-            b.get("preferred_datetime", ""),
-            b.get("status", ""),
-            b.get("payment_status", ""),
-            b.get("source", ""),
-            price_tg,
-            b.get("total_duration_minutes", ""),
-            b.get("client_id") or "",
+            n,
+            _fmt_dt(b.get("preferred_datetime")),
+            _fmt_dt(b.get("created_at")),
+            _STATUS_RU.get(b.get("status", ""), b.get("status", "")),
             client_name,
             contact,
             svc_names(list(b.get("service_ids") or [])),
-            b.get("accepted_at") or "",
-            b.get("completed_at") or "",
+            _fmt_dur(b.get("total_duration_minutes")),
+            _fmt_price(b.get("total_price")),
+            master_name(b.get("master_id")),
+            _PAYMENT_RU.get(b.get("payment_status", ""), b.get("payment_status", "") or ""),
+            _SOURCE_RU.get(b.get("source", ""), b.get("source", "") or ""),
+            _fmt_dt(b.get("accepted_at")),
+            _fmt_dt(b.get("completed_at")),
         ])
     return out.getvalue().encode("utf-8-sig")
 
 
 def _completed_bookings_csv_sync(tenant_id: str) -> bytes:
-    """Только выполненные (для отчётности)."""
+    """Только выполненные — для бухгалтерии и отчётности."""
     sb = get_supabase()
     rows = (
         sb.table("bookings")
         .select(
-            "id, preferred_datetime, total_price, client_id, service_ids, completed_at, master_id",
+            "preferred_datetime, total_price, total_duration_minutes, "
+            "client_id, service_ids, completed_at, master_id",
         )
         .eq("tenant_id", tenant_id)
         .eq("status", "completed")
@@ -638,10 +721,30 @@ def _completed_bookings_csv_sync(tenant_id: str) -> bytes:
         .limit(MAX_ROWS_BOOKINGS)
         .execute()
     )
+    master_cache: dict[str, str] = {}
+
+    def master_name(mid: str | None) -> str:
+        if not mid:
+            return ""
+        if mid not in master_cache:
+            r = sb.table("masters").select("display_name").eq("id", mid).limit(1).execute()
+            master_cache[mid] = r.data[0].get("display_name") or "" if r.data else ""
+        return master_cache[mid]
+
     out = io.StringIO()
     w = csv.writer(out, delimiter=";", quoting=csv.QUOTE_MINIMAL)
-    w.writerow(["id", "визит", "выполнено_utc", "сумма_тг", "клиент", "контакт", "услуги", "мастер_id"])
-    for b in rows.data or []:
+    w.writerow([
+        "№",
+        "Дата визита",
+        "Выполнено",
+        "Клиент",
+        "Контакт",
+        "Услуги",
+        "Длительность",
+        "Мастер",
+        "Сумма",
+    ])
+    for n, b in enumerate(rows.data or [], start=1):
         client_name = ""
         contact = ""
         if b.get("client_id"):
@@ -649,17 +752,18 @@ def _completed_bookings_csv_sync(tenant_id: str) -> bytes:
             if cl.data:
                 c = cl.data[0]
                 client_name = c.get("name") or ""
-                contact = f"{c.get('contact_type', '')}:{c.get('contact_value', '')}"
+                contact = _fmt_contact(c.get("contact_type", ""), c.get("contact_value", ""))
         svc = _service_names_sync(sb, list(b.get("service_ids") or []))
         w.writerow([
-            b["id"],
-            b.get("preferred_datetime", ""),
-            b.get("completed_at", ""),
-            (b.get("total_price") or 0) // 100,
+            n,
+            _fmt_dt(b.get("preferred_datetime")),
+            _fmt_dt(b.get("completed_at")),
             client_name,
             contact,
             svc,
-            b.get("master_id") or "",
+            _fmt_dur(b.get("total_duration_minutes")),
+            master_name(b.get("master_id")),
+            _fmt_price(b.get("total_price")),
         ])
     return out.getvalue().encode("utf-8-sig")
 
@@ -668,7 +772,7 @@ def _clients_csv_sync(tenant_id: str) -> bytes:
     sb = get_supabase()
     rows = (
         sb.table("clients")
-        .select("id, name, contact_type, contact_value, visit_count, total_spent, notes, first_visit, last_visit, created_at")
+        .select("name, contact_type, contact_value, visit_count, total_spent, notes, first_visit, last_visit, created_at")
         .eq("tenant_id", tenant_id)
         .order("total_spent", desc=True)
         .execute()
@@ -676,29 +780,25 @@ def _clients_csv_sync(tenant_id: str) -> bytes:
     out = io.StringIO()
     w = csv.writer(out, delimiter=";", quoting=csv.QUOTE_MINIMAL)
     w.writerow([
-        "id",
-        "имя",
-        "тип_контакта",
-        "контакт",
-        "визитов",
-        "всего_потрачено_тг",
-        "заметки",
-        "первый_визит",
-        "последний_визит",
-        "создан_в_базе",
+        "№",
+        "Имя клиента",
+        "Контакт",
+        "Количество визитов",
+        "Общая сумма",
+        "Первый визит",
+        "Последний визит",
+        "Заметки",
     ])
-    for c in rows.data or []:
+    for n, c in enumerate(rows.data or [], start=1):
         w.writerow([
-            c["id"],
+            n,
             c.get("name", ""),
-            c.get("contact_type", ""),
-            c.get("contact_value", ""),
+            _fmt_contact(c.get("contact_type", ""), c.get("contact_value", "")),
             c.get("visit_count", 0),
-            (c.get("total_spent") or 0) // 100,
+            _fmt_price(c.get("total_spent")),
+            _fmt_dt(c.get("first_visit")),
+            _fmt_dt(c.get("last_visit")),
             (c.get("notes") or "").replace("\n", " "),
-            c.get("first_visit") or "",
-            c.get("last_visit") or "",
-            c.get("created_at", ""),
         ])
     return out.getvalue().encode("utf-8-sig")
 
@@ -707,8 +807,10 @@ def _services_csv_sync(tenant_id: str) -> bytes:
     sb = get_supabase()
     rows = (
         sb.table("services")
-        .select("id, category_id, name, price, duration_minutes, is_active, deleted_at")
+        .select("category_id, name, price, duration_minutes, is_active")
         .eq("tenant_id", tenant_id)
+        .is_("deleted_at", "null")  # только не удалённые
+        .order("category_id")
         .execute()
     )
     cat_cache: dict[str, str] = {}
@@ -718,39 +820,38 @@ def _services_csv_sync(tenant_id: str) -> bytes:
             return ""
         if cid not in cat_cache:
             r = sb.table("categories").select("name").eq("id", cid).limit(1).execute()
-            cat_cache[cid] = r.data[0]["name"] if r.data else cid
+            cat_cache[cid] = r.data[0]["name"] if r.data else ""
         return cat_cache[cid]
 
     out = io.StringIO()
     w = csv.writer(out, delimiter=";", quoting=csv.QUOTE_MINIMAL)
     w.writerow([
-        "id",
-        "категория",
-        "название",
-        "цена_тг",
-        "длительность_мин",
-        "активна",
-        "удалена_at",
+        "№",
+        "Категория",
+        "Услуга",
+        "Цена",
+        "Длительность",
+        "Активна",
     ])
-    for s in rows.data or []:
+    for n, s in enumerate(rows.data or [], start=1):
         w.writerow([
-            s["id"],
+            n,
             cat_name(s.get("category_id")),
             s.get("name", ""),
-            (s.get("price") or 0) // 100,
-            s.get("duration_minutes", ""),
-            "да" if s.get("is_active") else "нет",
-            s.get("deleted_at") or "",
+            _fmt_price(s.get("price")),
+            _fmt_dur(s.get("duration_minutes")),
+            "Да" if s.get("is_active") else "Нет",
         ])
     return out.getvalue().encode("utf-8-sig")
 
 
 def _analytics_csv_sync(tenant_id: str) -> bytes:
+    """Статистика сайта за 90 дней — сколько раз что делали посетители."""
     sb = get_supabase()
     since = (datetime.utcnow() - timedelta(days=90)).isoformat()
     rows = (
         sb.table("analytics")
-        .select("id, event_type, session_id, created_at")
+        .select("event_type, created_at")
         .eq("tenant_id", tenant_id)
         .gte("created_at", since)
         .order("created_at", desc=True)
@@ -759,9 +860,13 @@ def _analytics_csv_sync(tenant_id: str) -> bytes:
     )
     out = io.StringIO()
     w = csv.writer(out, delimiter=";", quoting=csv.QUOTE_MINIMAL)
-    w.writerow(["id", "событие", "session_id", "время_utc"])
-    for e in rows.data or []:
-        w.writerow([e["id"], e.get("event_type", ""), e.get("session_id", ""), e.get("created_at", "")])
+    w.writerow(["№", "Дата и время", "Действие посетителя"])
+    for n, e in enumerate(rows.data or [], start=1):
+        w.writerow([
+            n,
+            _fmt_dt(e.get("created_at")),
+            _EVENT_RU.get(e.get("event_type", ""), e.get("event_type", "")),
+        ])
     return out.getvalue().encode("utf-8-sig")
 
 
@@ -774,20 +879,28 @@ async def crm_send_csv(callback: CallbackQuery):
         return
     await callback.answer("Формирую файл…")
 
+    today = _today_str()
+    labels = {
+        "bookings":  ("Все заявки",              f"заявки_{today}.csv"),
+        "completed": ("Выполненные визиты",       f"выполненные_{today}.csv"),
+        "clients":   ("База клиентов",            f"клиенты_{today}.csv"),
+        "services":  ("Каталог услуг",            f"услуги_{today}.csv"),
+        "analytics": ("Статистика сайта (90 дн)", f"статистика_{today}.csv"),
+    }
     builders = {
-        "bookings": (_bookings_csv_sync, f"bookings_{tid[:8]}.csv"),
-        "completed": (_completed_bookings_csv_sync, f"completed_{tid[:8]}.csv"),
-        "clients": (_clients_csv_sync, f"clients_{tid[:8]}.csv"),
-        "services": (_services_csv_sync, f"services_{tid[:8]}.csv"),
-        "analytics": (_analytics_csv_sync, f"site_events_90d_{tid[:8]}.csv"),
+        "bookings":  _bookings_csv_sync,
+        "completed": _completed_bookings_csv_sync,
+        "clients":   _clients_csv_sync,
+        "services":  _services_csv_sync,
+        "analytics": _analytics_csv_sync,
     }
     if kind not in builders:
         await callback.message.reply("Неизвестный тип выгрузки.")
         return
 
-    fn, name = builders[kind]
+    label, filename = labels[kind]
     try:
-        data = await run_sync(fn, tid)
+        data = await run_sync(builders[kind], tid)
     except Exception:
         logger.exception("crm csv export failed kind=%s", kind)
         await callback.message.reply("❌ Ошибка при выгрузке. Попробуйте позже.")
@@ -798,6 +911,6 @@ async def crm_send_csv(callback: CallbackQuery):
         return
 
     await callback.message.answer_document(
-        BufferedInputFile(data, filename=name),
-        caption=f"Выгрузка: {name}",
+        BufferedInputFile(data, filename=filename),
+        caption=f"📊 {label} · {today}",
     )
