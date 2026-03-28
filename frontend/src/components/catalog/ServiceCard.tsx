@@ -105,7 +105,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           onClick={handleAdd}
           aria-label={inCart ? "Добавить ещё" : "Добавить в запись"}
           className={[
-            "mt-auto w-full py-4 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97]",
+            "mt-auto w-full py-4 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-[0.97]",
             added || inCart
               ? "bg-ink text-white"
               : "bg-black/5 text-ink hover:bg-black hover:text-white",

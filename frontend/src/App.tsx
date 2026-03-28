@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { ShoppingBag } from "lucide-react";
 import { useTenant } from "./hooks/useTenant";
 import { useSession } from "./hooks/useSession";
-import { CartProvider } from "./store/cartStore";
+import { CartProvider, useCart } from "./store/cartStore";
 import { Header } from "./components/layout/Header";
 import { SiteFooter } from "./components/layout/SiteFooter";
 import { HeroSection } from "./components/layout/HeroSection";
@@ -18,6 +19,41 @@ import { ToastProvider } from "./components/common/Toast";
 import { siteText } from "./utils/siteContent";
 
 type View = "home" | "checkout";
+
+/** Плавающая кнопка корзины (снизу справа) — появляется когда в корзине есть товары */
+function CartFab({ onOpen, cartOpen }: { onOpen: () => void; cartOpen: boolean }) {
+  const { itemCount } = useCart();
+  const visible = itemCount > 0 && !cartOpen;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Открыть корзину, ${itemCount} товаров`}
+      className="fixed z-[150] transition-all duration-300 active:scale-[0.94] focus-visible:outline-none"
+      style={{
+        bottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))",
+        right: "1.25rem",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "scale(1) translateY(0)" : "scale(0.7) translateY(20px)",
+        pointerEvents: visible ? "auto" : "none",
+        background: "#1c1917",
+        color: "#fff",
+        borderRadius: "16px",
+        padding: "14px 20px",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12)",
+        fontWeight: 700,
+        fontSize: "15px",
+      }}
+    >
+      <ShoppingBag size={22} strokeWidth={2} aria-hidden />
+      <span>{itemCount}</span>
+    </button>
+  );
+}
 
 function AppInner() {
   const { tenant, loading, error } = useTenant();
@@ -246,7 +282,7 @@ function AppInner() {
         >
           <button
             type="button"
-            className="pointer-events-auto inline-flex items-center gap-2.5 rounded-2xl px-10 py-4 text-sm font-semibold text-white shadow-2xl transition-all duration-300 active:scale-[0.97]"
+            className="pointer-events-auto inline-flex items-center gap-2.5 rounded-lg px-10 py-4 text-sm font-semibold text-white shadow-2xl transition-all duration-300 active:scale-[0.97]"
             style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 75%, #7a3520) 100%)", boxShadow: "0 12px 36px rgba(192,137,115,0.55)" }}
             onClick={() => { document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
           >
@@ -255,6 +291,9 @@ function AppInner() {
           </button>
         </div>
       )}
+
+      {/* Floating cart FAB — bottom-right when cart has items */}
+      <CartFab onOpen={() => { setCartOpen(true); track("cart_open"); }} cartOpen={cartOpen} />
     </div>
   );
 }

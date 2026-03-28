@@ -354,7 +354,7 @@ body::-webkit-scrollbar-thumb:hover {
   gap: 10px;
   background: #1c1917;
   color: #fff;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 16px 36px;
   font-size: 14px;
   font-weight: 600;
