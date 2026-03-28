@@ -40,7 +40,6 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
     const lines = text.split(/\n+/).filter((l) => l.trim());
     return lines.map((line, i) => {
       const trimmed = line.trim();
-      // Маркированный список: строки начинающиеся с -, •, *
       if (/^[-•*]\s/.test(trimmed)) {
         return (
           <li key={i} className="ml-4 list-disc text-sm leading-relaxed text-ink-muted">
@@ -58,99 +57,152 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
 
   return (
     <>
-      {/* Backdrop — без blur, чтобы контент модалки был четко виден */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[300] bg-black/60 animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
 
-      {/*
-        Mobile: bottom sheet снизу вверх, max-height 92dvh
-        Desktop (sm+): centered dialog, max-width lg
-      */}
+      {/* Диалог — всегда по центру экрана, на любом устройстве */}
       <div
         role="dialog"
         aria-modal
         aria-label={service.name}
-        className="
-          fixed inset-x-0 bottom-0 z-[301]
-          flex max-h-[92dvh] flex-col
-          rounded-t-2xl bg-white shadow-2xl
-          animate-modal
-          sm:inset-auto sm:bottom-auto
-          sm:left-1/2 sm:top-1/2
-          sm:-translate-x-1/2 sm:-translate-y-1/2
-          sm:max-h-[88vh] sm:w-full sm:max-w-lg
-          sm:rounded-2xl
-        "
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 301,
+          width: "min(calc(100vw - 2rem), 480px)",
+          maxHeight: "min(88dvh, 88vh)",
+          display: "flex",
+          flexDirection: "column",
+          background: "#fff",
+          borderRadius: "16px",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.08)",
+          animation: "modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        }}
       >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 text-ink-muted transition-colors hover:bg-black/10 hover:text-ink"
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "12px",
+            zIndex: 10,
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
+            background: "rgba(0,0,0,0.06)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-ink-muted)",
+            transition: "background 0.15s",
+            flexShrink: 0,
+          }}
           aria-label="Закрыть"
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.1)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
         >
           <X size={18} />
         </button>
 
-        {/* Drag handle (mobile only) */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
-          <div className="h-1 w-10 rounded-full" style={{ background: "var(--color-border-muted)" }} aria-hidden />
-        </div>
-
         {/* Image */}
         {service.photo_url ? (
           <div
-            className="relative shrink-0 overflow-hidden mx-4 mt-2 rounded-2xl sm:mx-0 sm:mt-0 sm:rounded-t-[28px] sm:rounded-b-none"
-            style={{ background: "var(--color-placeholder-surface)" }}
+            style={{
+              position: "relative",
+              flexShrink: 0,
+              overflow: "hidden",
+              borderRadius: "16px 16px 0 0",
+              background: "var(--color-placeholder-surface)",
+            }}
           >
             <img
               src={service.photo_url}
               alt={service.name}
-              className="w-full object-cover"
-              style={{ maxHeight: "clamp(200px, 42vh, 340px)", display: "block" }}
+              style={{ width: "100%", display: "block", maxHeight: "260px", objectFit: "cover" }}
             />
-            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
-            <span className="absolute top-3 left-3 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
+            <div style={{ position: "absolute", inset: "0 0 0 0", bottom: 0, height: "48px", background: "linear-gradient(to top, rgba(0,0,0,0.18), transparent)", pointerEvents: "none" }} />
+            <span
+              style={{
+                position: "absolute",
+                top: "12px",
+                left: "12px",
+                borderRadius: "8px",
+                background: "#fff",
+                padding: "5px 10px",
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "var(--color-ink)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                letterSpacing: "0.01em",
+              }}
+            >
               {categoryName}
             </span>
           </div>
         ) : (
           <div
-            className="flex h-36 shrink-0 items-center justify-center rounded-t-[28px] relative"
-            style={{ background: "var(--color-placeholder-surface)" }}
+            style={{
+              height: "120px",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "16px 16px 0 0",
+              background: "var(--color-placeholder-surface)",
+              position: "relative",
+            }}
           >
-            <ImageIcon size={48} className="opacity-20" style={{ color: "var(--color-primary)" }} aria-hidden />
-            <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-ink shadow-sm">
+            <ImageIcon size={40} style={{ opacity: 0.2, color: "var(--color-primary)" }} aria-hidden />
+            <span
+              style={{
+                position: "absolute",
+                top: "12px",
+                left: "12px",
+                borderRadius: "8px",
+                background: "rgba(255,255,255,0.92)",
+                padding: "4px 10px",
+                fontSize: "10px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                color: "var(--color-ink)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+              }}
+            >
               {categoryName}
             </span>
           </div>
         )}
 
         {/* Scrollable content */}
-        <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain p-5 sm:p-6">
-          {/* Title */}
-          <h2 className="font-serif text-2xl font-semibold leading-snug text-ink sm:text-3xl pr-8">
+        <div style={{ overflowY: "auto", overscrollBehavior: "contain", padding: "20px 20px 8px" }}>
+          <h2 style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.3rem, 4vw, 1.75rem)", fontWeight: 600, lineHeight: 1.25, color: "var(--color-ink)", paddingRight: "2rem", marginBottom: "12px" }}>
             {service.name}
           </h2>
 
           {/* Price + Duration */}
-          <div className="flex items-center gap-4">
-            <span className="text-2xl font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary)", fontVariantNumeric: "tabular-nums" }}>
               {formatPrice(service.price)}
             </span>
-            <div className="h-4 w-px" style={{ background: "var(--color-border-muted)" }} />
-            <div className="flex items-center gap-1.5 text-sm text-ink-muted">
-              <Clock size={15} strokeWidth={2} style={{ color: "var(--color-primary)" }} className="shrink-0" />
+            <div style={{ width: "1px", height: "16px", background: "var(--color-border-muted)" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--color-ink-muted)" }}>
+              <Clock size={14} strokeWidth={2} style={{ color: "var(--color-primary)", flexShrink: 0 }} />
               {formatDuration(service.duration_minutes)}
             </div>
           </div>
 
-          {/* Description — красивое форматирование (поддержка \n и списков) */}
+          {/* Description */}
           {service.description && (
-            <div className="rounded-2xl border p-4 space-y-1.5" style={{ borderColor: "var(--color-border-soft)", background: "var(--color-bg)" }}>
+            <div style={{ borderRadius: "10px", border: "1px solid var(--color-border-soft)", background: "var(--color-bg)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
               {renderDescription(service.description)}
             </div>
           )}
@@ -159,26 +211,50 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
           <button
             type="button"
             onClick={handleAdd}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg py-4 text-base font-bold text-white shadow-lg transition-all duration-200 active:scale-[0.98]"
-            style={{ background: inCart ? "#1c1917" : "var(--color-primary)", boxShadow: "0 8px 24px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              borderRadius: "10px",
+              padding: "15px 0",
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "#fff",
+              background: inCart ? "#1c1917" : "var(--color-primary)",
+              boxShadow: "0 6px 20px color-mix(in srgb, var(--color-primary) 30%, transparent)",
+              transition: "transform 0.15s, background 0.2s",
+              marginBottom: "4px",
+            }}
+            onMouseDown={e => (e.currentTarget.style.transform = "scale(0.98)")}
+            onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
           >
             {inCart ? (
               <>
-                <Check size={20} strokeWidth={2.5} />
+                <Check size={19} strokeWidth={2.5} />
                 Добавить ещё
               </>
             ) : (
               <>
-                <Plus size={20} strokeWidth={2.5} />
+                <Plus size={19} strokeWidth={2.5} />
                 Добавить в запись
               </>
             )}
           </button>
-        </div>
 
-        {/* Safe area bottom padding (iOS) */}
-        <div className="shrink-0 sm:hidden" style={{ height: "env(safe-area-inset-bottom, 12px)" }} />
+          {/* Safe area iOS */}
+          <div style={{ height: "max(12px, env(safe-area-inset-bottom, 12px))" }} />
+        </div>
       </div>
+
+      <style>{`
+        @keyframes modalPop {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
+          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+      `}</style>
     </>
   );
 }
