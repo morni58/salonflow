@@ -13,6 +13,7 @@ import { CartDrawer } from "./components/cart/CartDrawer";
 import { CheckoutForm } from "./components/checkout/CheckoutForm";
 import { PortfolioSection } from "./components/portfolio/PortfolioSection";
 import { ReviewsSection } from "./components/reviews/ReviewsSection";
+import { ContactSection } from "./components/layout/ContactSection";
 import { AnimateIn } from "./components/common/AnimateIn";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { ToastProvider } from "./components/common/Toast";
@@ -244,6 +245,12 @@ function AppInner() {
             <AnimateIn className="py-16" delay={200}>
               <ErrorBoundary>
                 <ReviewsSection tenantId={tenant.id} title={siteText(tenant, "section_reviews", "Отзывы")} />
+              </ErrorBoundary>
+            </AnimateIn>
+
+            <AnimateIn className="py-4" delay={100}>
+              <ErrorBoundary>
+                <ContactSection tenant={tenant} />
               </ErrorBoundary>
             </AnimateIn>
           </>

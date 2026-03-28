@@ -139,6 +139,25 @@ async def _ensure_webhook_bot(tenant_id: str) -> Bot | None:
     return bot
 
 
+
+# ── Sentry (опционально) ─────────────────────────────────────────────────────
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    import os as _os
+    _sentry_dsn = _os.getenv("SENTRY_DSN")
+    if _sentry_dsn:
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            environment=_os.getenv("APP_ENV", "production"),
+            integrations=[FastApiIntegration()],
+            traces_sample_rate=0.1,
+        )
+        logger.info("Sentry initialized")
+except ImportError:
+    pass  # sentry-sdk не установлен — работаем без него
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── FastAPI App ──────────────────────────────────
 
 app = FastAPI(

@@ -30,6 +30,7 @@ const NAV_LINKS = [
   { label: "Мастера", id: "masters" },
   { label: "Портфолио", id: "portfolio" },
   { label: "Отзывы", id: "reviews" },
+  { label: "Контакты", id: "contacts" },
 ];
 
 interface Props {

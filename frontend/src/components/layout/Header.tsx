@@ -18,6 +18,7 @@ function navLinks(tenant: Tenant) {
     { id: "masters",    label: siteText(tenant, "nav_masters",    "Мастера")   },
     { id: "portfolio",  label: siteText(tenant, "nav_portfolio",  "Портфолио") },
     { id: "reviews",    label: siteText(tenant, "nav_reviews",    "Отзывы")    },
+    { id: "contacts",  label: siteText(tenant, "nav_contacts",  "Контакты") },
   ] as const;
 }
 
