@@ -6,6 +6,7 @@ import { formatPrice, formatDuration } from "../../utils";
 import { lockBodyScroll } from "../../utils/bodyScrollLock";
 import { useCart } from "../../store/cartStore";
 import { toast } from "../common/Toast";
+import { MediaFrame } from "../common/MediaFrame";
 
 interface Props {
   service: Service;
@@ -90,13 +91,15 @@ export function ServiceModal({ service, categoryName, onClose }: Props) {
 
           {service.photo_url ? (
             <div
-              className="relative shrink-0 overflow-hidden rounded-t-2xl"
+              className="relative min-h-[120px] w-full shrink-0 overflow-hidden rounded-t-2xl"
               style={{ background: "var(--color-placeholder-surface)" }}
             >
-              <img
+              <MediaFrame
                 src={service.photo_url}
                 alt={service.name}
-                className="max-h-[min(40vh,260px)] w-full object-cover"
+                className="w-full justify-center py-1"
+                imgClassName="max-h-[min(40vh,260px)] w-auto max-w-full object-contain"
+                loading="eager"
               />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
               <span

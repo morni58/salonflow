@@ -11,6 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from app.bot.async_db import run_sync
 from app.bot.cache import get_user_sync as _cached_get_user
+from app.bot.ui_helpers import safe_edit_text
 from app.core.database import get_supabase
 from app.core.tenant_fields import (
     normalize_every_n_days,
@@ -123,14 +124,30 @@ async def sched_apply_preset(callback: CallbackQuery):
         return
     await run_sync(_apply_tenant_slot_preset_sync, tenant_id, preset)
     labels = {"1x1": "1×1 — 60 мин, буфер 15", "2x2": "2×2 — 30 мин, буфер 10", "dense": "плотно — 15 мин, буфер 5"}
-    await callback.message.reply(f"✅ Пресет: <b>{labels[preset]}</b>", parse_mode="HTML")
+    await safe_edit_text(
+        callback.message,
+        f"✅ <b>Пресет применён</b>: {labels[preset]}\n\n"
+        "🗓 <b>Расписание салона</b>\n"
+        "Общий график, если на сайте ещё нет мастеров — слоты считаются отсюда.\n"
+        "Пресеты <b>1×1 / 2×2 / плотно</b> задают шаг слота и буфер (перерыв между записями).\n"
+        "Режим «каждые N дней» + якорь — для смен «2/2», «1/1» и т.п.",
+        parse_mode="HTML",
+        reply_markup=_schedule_menu_kb(),
+    )
 
 
 @router.callback_query(F.data == "sched:close")
 async def start_close_day(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ScheduleStates.waiting_close_date)
-    await callback.message.reply("🔒 Введите дату для закрытия (ДД.ММ.ГГГГ):")
+    await safe_edit_text(
+        callback.message,
+        "🔒 <b>Закрыть день</b>\n\nВведите дату (ДД.ММ.ГГГГ):",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")]]
+        ),
+    )
 
 
 @router.message(ScheduleStates.waiting_close_date)
@@ -182,7 +199,13 @@ async def start_open_day(callback: CallbackQuery, state: FSMContext):
         return
     ok, rows = await run_sync(_closed_days_kb_sync, tenant_id)
     if not ok:
-        await callback.message.reply("Нет закрытых дней.")
+        await safe_edit_text(
+            callback.message,
+            "Нет закрытых дней.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")]]
+            ),
+        )
         return
     await callback.message.edit_text(
         "Выберите день для открытия:",
@@ -197,10 +220,12 @@ def _reopen_exc_sync(exc_id: str) -> None:
 
 
 @router.callback_query(F.data == "sched:back")
-async def schedule_back(callback: CallbackQuery):
+async def schedule_back(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.edit_text(
-        "🗓 <b>Расписание</b>\nВыберите действие:",
+    await state.clear()
+    await safe_edit_text(
+        callback.message,
+        "🗓 <b>Расписание салона</b>\nВыберите действие:",
         parse_mode="HTML",
         reply_markup=_schedule_menu_kb(),
     )
@@ -338,10 +363,14 @@ async def sched_mode_weekdays(callback: CallbackQuery):
 async def sched_ask_anchor(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ScheduleStates.waiting_anchor)
-    await callback.message.reply(
+    await safe_edit_text(
+        callback.message,
         "📌 Введите <b>дату отсчёта</b> для режима «каждые N дней» (ДД.ММ.ГГГГ).\n"
         "В этот день салон считается открытым; дальше — каждые N календарных дней.",
         parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")]]
+        ),
     )
 
 
@@ -377,9 +406,13 @@ async def sched_process_anchor(message: Message, state: FSMContext):
 async def sched_ask_n(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ScheduleStates.waiting_every_n)
-    await callback.message.reply(
+    await safe_edit_text(
+        callback.message,
         "🔢 Введите число <b>N</b> (1 = каждый день, 2 = через день, 3 = раз в три дня …), от 1 до 30.",
         parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")]]
+        ),
     )
 
 
@@ -415,10 +448,14 @@ async def sched_process_n(message: Message, state: FSMContext):
 async def sched_ask_hours(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ScheduleStates.waiting_hours)
-    await callback.message.reply(
+    await safe_edit_text(
+        callback.message,
         "🕐 Введите часы работы в одном из форматов:\n"
         "<code>10:00 20:00</code> или <code>10:00-20:00</code>",
         parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")]]
+        ),
     )
 
 
@@ -469,7 +506,13 @@ async def sched_process_hours(message: Message, state: FSMContext):
 async def sched_ask_interval(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ScheduleStates.waiting_interval)
-    await callback.message.reply("⏱ Введите интервал слотов в минутах (например 15, 30, 60):")
+    await safe_edit_text(
+        callback.message,
+        "⏱ Введите интервал слотов в минутах (например 15, 30, 60):",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sched:back")]]
+        ),
+    )
 
 
 @router.message(ScheduleStates.waiting_interval)
@@ -529,8 +572,9 @@ class PortfolioStates(StatesGroup):
 
 
 @router.callback_query(F.data == "menu:portfolio")
-async def portfolio_menu(callback: CallbackQuery):
+async def portfolio_menu(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    await state.clear()
     buttons = [
         [InlineKeyboardButton(text="📤 Загрузить фото", callback_data="port:upload")],
         [InlineKeyboardButton(text="🗑 Удалить фото", callback_data="port:delete")],
@@ -547,7 +591,14 @@ async def portfolio_menu(callback: CallbackQuery):
 async def start_upload_photo(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(PortfolioStates.waiting_photo)
-    await callback.message.reply("📸 Отправьте фотографию работы:")
+    await safe_edit_text(
+        callback.message,
+        "📸 <b>Портфолио</b> — загрузка\n\nОтправьте фотографию работы (как картинку):",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:portfolio")]]
+        ),
+    )
 
 
 @router.message(PortfolioStates.waiting_photo, F.photo)
@@ -682,9 +733,13 @@ async def assign_photo_category(callback: CallbackQuery, state: FSMContext):
 
     if not data.get("file_id") or not tenant_id:
         await state.clear()
-        await callback.message.reply(
+        await safe_edit_text(
+            callback.message,
             "❌ Сессия загрузки сброшена (часто после перезапуска сервера без Redis). "
-            "Нажми «Загрузить фото» ещё раз. Для Cloud Run настрой REDIS_URL."
+            "Нажми «Загрузить фото» ещё раз. Для Cloud Run настрой REDIS_URL.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ В портфолио", callback_data="menu:portfolio")]]
+            ),
         )
         return
 
@@ -698,14 +753,24 @@ async def assign_photo_category(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         logger.exception("portfolio upload failed")
         await state.clear()
-        await callback.message.reply(
+        await safe_edit_text(
+            callback.message,
             f"❌ Не удалось загрузить в портфолио: {e}\n"
-            "Проверь бакет «portfolio» в Supabase Storage и права (service_role)."
+            "Проверь бакет «portfolio» в Supabase Storage и права (service_role).",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ В портфолио", callback_data="menu:portfolio")]]
+            ),
         )
         return
 
     await state.clear()
-    await callback.message.reply("✅ Фото загружено в портфолио!")
+    await safe_edit_text(
+        callback.message,
+        "✅ Фото загружено в портфолио!",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ В портфолио", callback_data="menu:portfolio")]]
+        ),
+    )
 
 
 @router.callback_query(F.data == "port:delete")
@@ -716,15 +781,31 @@ async def start_delete_photo(callback: CallbackQuery):
     photos = await run_sync(_list_portfolio_for_delete_sync, tenant_id)
 
     if not tenant_id or photos is None:
-        await callback.message.reply("⛔ Нет доступа.")
+        await safe_edit_text(
+            callback.message,
+            "⛔ Нет доступа.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:portfolio")]]
+            ),
+        )
         return
 
     if not photos.data:
-        await callback.message.reply("📸 Портфолио пусто.")
+        await safe_edit_text(
+            callback.message,
+            "📸 Портфолио пусто.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:portfolio")]]
+            ),
+        )
         return
 
-    await callback.message.reply(
-        f"📸 Последние {len(photos.data)} фото — нажмите «🗑 Удалить» под нужным:"
+    await safe_edit_text(
+        callback.message,
+        f"📸 Последние {len(photos.data)} фото — нажмите «🗑 Удалить» под нужным:",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:portfolio")]]
+        ),
     )
     for i, p in enumerate(photos.data, 1):
         kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -748,7 +829,8 @@ async def confirm_delete_photo(callback: CallbackQuery):
     """Ask for confirmation before deleting portfolio photo."""
     await callback.answer()
     photo_id = callback.data.split(":")[2]
-    await callback.message.reply(
+    await safe_edit_text(
+        callback.message,
         "🗑 Удалить это фото из портфолио?\nДействие нельзя отменить.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -786,8 +868,9 @@ class ReviewStates(StatesGroup):
 
 
 @router.callback_query(F.data == "menu:reviews")
-async def reviews_menu(callback: CallbackQuery):
+async def reviews_menu(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    await state.clear()
     buttons = [
         [InlineKeyboardButton(text="📤 Загрузить отзыв", callback_data="rev:upload")],
         [InlineKeyboardButton(text="🗑 Удалить отзыв", callback_data="rev:delete")],
@@ -804,7 +887,14 @@ async def reviews_menu(callback: CallbackQuery):
 async def start_review_upload(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(ReviewStates.waiting_screenshot)
-    await callback.message.reply("📸 Отправьте скриншот отзыва:")
+    await safe_edit_text(
+        callback.message,
+        "⭐ <b>Отзывы</b> — загрузка\n\n📸 Отправьте скриншот отзыва (как картинку):",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:reviews")]]
+        ),
+    )
 
 
 def _review_upload_sync(tenant_id: str, raw: bytes) -> None:
@@ -907,15 +997,31 @@ async def start_delete_review(callback: CallbackQuery):
     reviews = await run_sync(_list_reviews_for_delete_sync, tenant_id)
 
     if not tenant_id or reviews is None:
-        await callback.message.reply("⛔ Нет доступа.")
+        await safe_edit_text(
+            callback.message,
+            "⛔ Нет доступа.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:reviews")]]
+            ),
+        )
         return
 
     if not reviews.data:
-        await callback.message.reply("⭐ Отзывов пока нет.")
+        await safe_edit_text(
+            callback.message,
+            "⭐ Отзывов пока нет.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:reviews")]]
+            ),
+        )
         return
 
-    await callback.message.reply(
-        f"⭐ Последние {len(reviews.data)} отзыва — нажмите «🗑 Удалить» под нужным:"
+    await safe_edit_text(
+        callback.message,
+        f"⭐ Последние {len(reviews.data)} отзыва — нажмите «🗑 Удалить» под нужным:",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:reviews")]]
+        ),
     )
     for i, r in enumerate(reviews.data, 1):
         kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -939,7 +1045,8 @@ async def confirm_delete_review(callback: CallbackQuery):
     """Ask for confirmation before deleting review."""
     await callback.answer()
     review_id = callback.data.split(":")[2]
-    await callback.message.reply(
+    await safe_edit_text(
+        callback.message,
         "🗑 Удалить этот отзыв с сайта?\nДействие нельзя отменить.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -1001,7 +1108,14 @@ def _build_offline_services_kb(
 async def start_offline(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.set_state(OfflineStates.waiting_client_name)
-    await callback.message.reply("📝 Введите имя клиента:")
+    await safe_edit_text(
+        callback.message,
+        "📝 <b>Оффлайн-запись</b>\n\nВведите имя клиента (одной строкой в чат):",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")]]
+        ),
+    )
 
 
 def _offline_services_list_sync(tenant_id: str | None):

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { UserRound, Calendar } from "lucide-react";
 import type { MasterPublic } from "../../types";
 import { fetchMasters } from "../../api/client";
+import { MediaFrame } from "../common/MediaFrame";
 
 const STORAGE_KEY = "salonflow_prefill_master";
 
@@ -81,15 +82,15 @@ function MasterCard({ master: m, onBook }: { master: MasterPublic; onBook: () =>
     >
       {/* Portrait */}
       <div
-        className="relative w-full overflow-hidden rounded-t-2xl"
+        className="relative flex w-full overflow-hidden rounded-t-2xl"
         style={{ aspectRatio: "3/4", background: "var(--color-placeholder-surface, #f0ebe6)" }}
       >
         {m.photo_url ? (
-          <img
+          <MediaFrame
             src={m.photo_url}
             alt={m.display_name}
-            className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.04]"
-            loading="lazy"
+            className="h-full w-full min-h-0 min-w-0"
+            imgClassName="transition-transform duration-700 group-hover:scale-[1.04]"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

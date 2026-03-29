@@ -16,11 +16,11 @@ const CONTACTS: { type: ContactType; label: string; placeholder: string }[] = [
 ];
 
 const STATUS_MAP: Record<BookingStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:   { label: "Ожидает",      color: "bg-amber-100 text-amber-800",   icon: <AlertCircle size={13} /> },
-  waiting:   { label: "В очереди",    color: "bg-orange-100 text-orange-800", icon: <Hourglass size={13} /> },
-  confirmed: { label: "Подтверждено", color: "bg-green-100 text-green-800",   icon: <CheckCircle size={13} /> },
-  completed: { label: "Завершено",    color: "bg-gray-100 text-gray-600",     icon: <CheckCircle size={13} /> },
-  cancelled: { label: "Отменено",     color: "bg-red-100 text-red-700",       icon: <XCircle size={13} /> },
+  pending:   { label: "Ожидает",      color: "bg-amber-100 text-amber-800",   icon: <AlertCircle size={18} className="shrink-0" aria-hidden /> },
+  waiting:   { label: "В очереди",    color: "bg-orange-100 text-orange-800", icon: <Hourglass size={18} className="shrink-0" aria-hidden /> },
+  confirmed: { label: "Подтверждено", color: "bg-green-100 text-green-800",   icon: <CheckCircle size={18} className="shrink-0" aria-hidden /> },
+  completed: { label: "Завершено",    color: "bg-gray-100 text-gray-600",     icon: <CheckCircle size={18} className="shrink-0" aria-hidden /> },
+  cancelled: { label: "Отменено",     color: "bg-red-100 text-red-700",       icon: <XCircle size={18} className="shrink-0" aria-hidden /> },
 };
 
 const CANCELLABLE: BookingStatus[] = ["pending", "waiting", "confirmed"];
@@ -108,7 +108,7 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
   };
 
   const inputClass =
-    "w-full rounded-xl border border-black/10 bg-white px-4 py-4 text-base outline-none transition-all focus:border-black/30 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]";
+    "w-full rounded-2xl border border-black/10 bg-white px-5 py-5 text-lg outline-none transition-all focus:border-black/30 focus:shadow-[0_0_0_4px_rgba(0,0,0,0.06)] sm:text-xl";
 
   return (
     <div
@@ -116,50 +116,50 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full sm:max-w-xl bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: "92vh" }}
+        className="relative flex w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-w-2xl sm:rounded-2xl lg:max-w-3xl"
+        style={{ maxHeight: "94vh" }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-5 border-b shrink-0"
+          className="flex shrink-0 items-center justify-between border-b px-6 py-6 sm:px-8 sm:py-7"
           style={{ borderColor: "rgba(0,0,0,0.06)" }}
         >
-          <div className="flex items-center gap-3">
-            <ClipboardList size={24} style={{ color: "var(--color-primary)" }} />
+          <div className="flex items-center gap-4">
+            <ClipboardList size={32} className="shrink-0" style={{ color: "var(--color-primary)" }} aria-hidden />
             <div>
-              <h2 className="font-serif text-2xl font-semibold text-ink">Мои записи</h2>
+              <h2 className="font-serif text-3xl font-semibold text-ink sm:text-4xl">Мои записи</h2>
               {step === "list" && bookings.length > 0 && (
-                <p className="text-sm text-ink-muted mt-0.5">Обновляется каждые 30 сек</p>
+                <p className="mt-1 text-base text-ink-muted">Обновляется каждые 30 сек</p>
               )}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-colors"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-black/5 transition-colors hover:bg-black/10 sm:h-14 sm:w-14"
             aria-label="Закрыть"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-6">
+        <div className="max-h-[min(78vh,820px)] flex-1 overflow-y-auto px-6 py-7 sm:px-8 sm:py-8">
           {step === "form" ? (
-            <div className="space-y-5">
-              <p className="text-base text-ink-muted leading-relaxed">
+            <div className="space-y-6 sm:space-y-7">
+              <p className="text-lg leading-relaxed text-ink-muted sm:text-xl">
                 Введите контакт, который вы указали при записи — найдём все ваши заявки.
               </p>
 
               {/* Contact type selector — 2×2 grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {CONTACTS.map((c) => (
                   <button
                     key={c.type}
                     type="button"
                     onClick={() => { setContactType(c.type); setContactValue(""); }}
                     className={cn(
-                      "h-[60px] rounded-xl border text-base font-bold transition-all active:scale-[0.97]",
+                      "min-h-[68px] rounded-2xl border text-lg font-bold transition-all active:scale-[0.97] sm:min-h-[76px] sm:text-xl",
                       contactType === c.type
                         ? "border-transparent text-white shadow-sm"
                         : "bg-white border-black/10 hover:bg-black/4"
@@ -192,14 +192,14 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                 type="button"
                 disabled={!contactValue.trim() || loading}
                 onClick={() => doLookup()}
-                className="flex h-[60px] w-full items-center justify-center gap-2.5 rounded-xl text-base font-bold transition-all disabled:opacity-40 active:scale-[0.97]"
+                className="flex h-[68px] w-full items-center justify-center gap-3 rounded-2xl text-lg font-bold transition-all disabled:opacity-40 active:scale-[0.97] sm:h-[76px] sm:text-xl"
                 style={{ background: "#1c1917", color: "#fff" }}
               >
                 {loading ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 ) : (
                   <>
-                    <Search size={18} />
+                    <Search size={22} strokeWidth={2} aria-hidden />
                     Найти записи
                   </>
                 )}
@@ -211,22 +211,22 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => { setStep("form"); prevStatusesRef.current = {}; }}
-                className="mb-5 flex items-center gap-1.5 text-sm font-medium opacity-55 hover:opacity-100 transition-opacity"
+                className="mb-6 flex items-center gap-2 text-base font-medium opacity-55 transition-opacity hover:opacity-100 sm:text-lg"
                 style={{ color: "var(--color-text)" }}
               >
                 ← Изменить контакт
               </button>
 
               {bookings.length === 0 ? (
-                <div className="flex flex-col items-center py-14 text-center gap-4">
-                  <CalendarDays size={52} className="opacity-20" style={{ color: "var(--color-text)" }} />
-                  <p className="text-lg font-semibold text-ink">Записей не найдено</p>
-                  <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
+                <div className="flex flex-col items-center gap-5 py-16 text-center sm:py-20">
+                  <CalendarDays size={64} className="opacity-20" style={{ color: "var(--color-text)" }} aria-hidden />
+                  <p className="text-2xl font-semibold text-ink">Записей не найдено</p>
+                  <p className="max-w-md text-lg leading-relaxed text-ink-muted">
                     Убедитесь, что вы указали тот же контакт, что использовали при записи.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-5 sm:space-y-6">
                   {bookings.map((b) => {
                     const status = STATUS_MAP[b.status] ?? STATUS_MAP.pending;
                     const canCancel = CANCELLABLE.includes(b.status);
@@ -237,32 +237,32 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                       <div
                         key={b.id}
                         className={cn(
-                          "rounded-2xl border p-5 transition-all",
+                          "rounded-2xl border p-6 transition-all sm:p-7",
                           b.status === "cancelled" ? "opacity-50" : "",
                           b.status === "completed" ? "opacity-70" : ""
                         )}
                         style={{ borderColor: "rgba(0,0,0,0.09)", background: b.status === "confirmed" ? "rgba(0,0,0,0.015)" : undefined }}
                       >
                         {/* Status + date row */}
-                        <div className="flex items-start justify-between gap-3 mb-4">
-                          <span className={cn("inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold", status.color)}>
+                        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                          <span className={cn("inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-base font-bold sm:text-lg", status.color)}>
                             {status.icon}
                             {status.label}
                           </span>
-                          <div className="text-right shrink-0">
-                            <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{b.datetime_display}</p>
+                          <div className="shrink-0 text-right">
+                            <p className="text-lg font-bold sm:text-xl" style={{ color: "var(--color-text)" }}>{b.datetime_display}</p>
                             {isPast && b.status !== "cancelled" && (
-                              <p className="text-xs opacity-40 mt-0.5" style={{ color: "var(--color-text)" }}>прошло</p>
+                              <p className="mt-0.5 text-sm opacity-40" style={{ color: "var(--color-text)" }}>прошло</p>
                             )}
                           </div>
                         </div>
 
                         {/* Services */}
-                        <div className="flex flex-wrap gap-1.5 mb-3">
+                        <div className="mb-4 flex flex-wrap gap-2">
                           {b.service_names.map((svc, i) => (
                             <span
                               key={i}
-                              className="rounded-lg border px-3 py-1 text-sm font-medium"
+                              className="rounded-xl border px-4 py-2 text-base font-medium sm:text-lg"
                               style={{ borderColor: "rgba(0,0,0,0.10)", color: "var(--color-text)" }}
                             >
                               {svc}
@@ -271,17 +271,17 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                         </div>
 
                         {/* Details row */}
-                        <div className="flex items-center gap-4 mb-4">
-                          <span className="flex items-center gap-1.5 text-sm opacity-55" style={{ color: "var(--color-text)" }}>
-                            <Clock size={14} />
+                        <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                          <span className="flex items-center gap-2 text-base opacity-55 sm:text-lg" style={{ color: "var(--color-text)" }}>
+                            <Clock size={18} aria-hidden />
                             {formatDuration(b.total_duration_minutes)}
                           </span>
-                          <span className="text-lg font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
+                          <span className="text-2xl font-bold tabular-nums sm:text-3xl" style={{ color: "var(--color-primary)" }}>
                             {formatPrice(b.total_price)}
                           </span>
                           {b.master_name && (
-                            <span className="flex items-center gap-1 text-sm opacity-55" style={{ color: "var(--color-text)" }}>
-                              <ChevronRight size={14} />
+                            <span className="flex items-center gap-1.5 text-base opacity-55 sm:text-lg" style={{ color: "var(--color-text)" }}>
+                              <ChevronRight size={18} aria-hidden />
                               {b.master_name}
                             </span>
                           )}
@@ -289,7 +289,7 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
 
                         {/* Booking code */}
                         {b.booking_code && (
-                          <p className="font-mono text-xs opacity-35 mb-3" style={{ color: "var(--color-text)" }}>{b.booking_code}</p>
+                          <p className="mb-4 font-mono text-sm opacity-35 sm:text-base" style={{ color: "var(--color-text)" }}>{b.booking_code}</p>
                         )}
 
                         {/* Cancel */}
@@ -297,29 +297,29 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                           <button
                             type="button"
                             onClick={() => setCancelConfirm(b.id)}
-                            className="flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-500 hover:bg-red-100 transition-colors"
+                            className="flex min-h-[48px] items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 text-base font-semibold text-red-600 transition-colors hover:bg-red-100 sm:text-lg"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={18} aria-hidden />
                             Отменить запись
                           </button>
                         )}
 
                         {isCancelConfirm && (
-                          <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-                            <p className="text-sm font-semibold text-red-800 mb-3">Отменить эту запись?</p>
-                            <div className="flex gap-2">
+                          <div className="rounded-2xl border border-red-100 bg-red-50 p-5 sm:p-6">
+                            <p className="mb-4 text-lg font-semibold text-red-800 sm:text-xl">Отменить эту запись?</p>
+                            <div className="flex flex-col gap-3 sm:flex-row">
                               <button
                                 type="button"
                                 disabled={cancelling}
                                 onClick={() => handleCancel(b.id)}
-                                className="flex-1 h-12 rounded-xl bg-red-500 text-white text-sm font-bold transition-opacity disabled:opacity-50"
+                                className="h-14 flex-1 rounded-2xl bg-red-500 text-base font-bold text-white transition-opacity disabled:opacity-50 sm:text-lg"
                               >
                                 {cancelling ? "..." : "Да, отменить"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setCancelConfirm(null)}
-                                className="flex-1 h-12 rounded-xl bg-black/8 text-sm font-semibold"
+                                className="h-14 flex-1 rounded-2xl bg-black/8 text-base font-semibold sm:text-lg"
                                 style={{ color: "var(--color-text)" }}
                               >
                                 Нет

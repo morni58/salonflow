@@ -1,4 +1,5 @@
 import { Clock, Check, ImageIcon } from "lucide-react";
+import { MediaFrame } from "../common/MediaFrame";
 import type { Service } from "../../types";
 import { formatPrice, formatDuration } from "../../utils";
 import { useCart } from "../../store/cartStore";
@@ -37,15 +38,15 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
     >
       {/* Image */}
       <div
-        className="relative w-full shrink-0 overflow-hidden rounded-xl aspect-[4/3]"
+        className="relative flex aspect-[4/3] w-full shrink-0 flex-col overflow-hidden rounded-xl"
         style={{ background: "var(--color-placeholder-surface)" }}
       >
         {service.photo_url ? (
-          <img
+          <MediaFrame
             src={service.photo_url}
             alt={service.name}
-            className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.03]"
-            loading="lazy"
+            className="min-h-0 min-w-0 flex-1"
+            imgClassName="transition-transform duration-700 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

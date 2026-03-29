@@ -40,33 +40,33 @@ function StatusNotifCard({ notif, onDismiss, onOpen }: {
   const s = STATUS_LABELS[notif.newStatus] ?? { text: notif.newStatus, emoji: "🔔" };
   return (
     <div
-      className="pointer-events-auto flex w-full max-w-xs flex-col gap-1.5 rounded-2xl border bg-white p-4 shadow-2xl animate-slide-in-left"
+      className="pointer-events-auto flex w-full max-w-md flex-col gap-2 rounded-2xl border bg-white p-5 shadow-2xl animate-slide-in-left sm:max-w-lg"
       style={{ borderColor: "rgba(0,0,0,0.07)" }}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Bell size={15} style={{ color: "var(--color-primary)" }} />
-          <p className="text-xs font-bold uppercase tracking-widest opacity-50" style={{ color: "var(--color-text)" }}>
+        <div className="flex items-center gap-2.5">
+          <Bell size={18} style={{ color: "var(--color-primary)" }} aria-hidden />
+          <p className="text-[11px] font-bold uppercase tracking-widest opacity-50" style={{ color: "var(--color-text)" }}>
             Статус записи
           </p>
         </div>
-        <button type="button" onClick={onDismiss} className="flex h-6 w-6 items-center justify-center rounded-lg bg-black/5 hover:bg-black/10 transition-colors shrink-0" aria-label="Закрыть">
-          <X size={12} />
+        <button type="button" onClick={onDismiss} className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-colors shrink-0" aria-label="Закрыть">
+          <X size={16} />
         </button>
       </div>
-      <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+      <p className="text-lg font-semibold leading-snug sm:text-xl" style={{ color: "var(--color-text)" }}>
         {s.emoji} {s.text}
       </p>
       {notif.bookingCode && (
-        <p className="font-mono text-xs opacity-50" style={{ color: "var(--color-text)" }}>{notif.bookingCode}</p>
+        <p className="font-mono text-sm opacity-50" style={{ color: "var(--color-text)" }}>{notif.bookingCode}</p>
       )}
       {notif.serviceNames.length > 0 && (
-        <p className="text-xs opacity-60 line-clamp-2" style={{ color: "var(--color-text)" }}>{notif.serviceNames.join(", ")}</p>
+        <p className="text-sm leading-relaxed opacity-70 sm:text-base" style={{ color: "var(--color-text)" }}>{notif.serviceNames.join(", ")}</p>
       )}
       <button
         type="button"
         onClick={() => { onOpen(); onDismiss(); }}
-        className="mt-1 h-9 w-full rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
+        className="mt-1 h-12 w-full rounded-xl text-sm font-bold text-white transition-all active:scale-[0.97] sm:h-14 sm:text-base"
         style={{ background: "var(--color-primary)" }}
       >
         Посмотреть запись
@@ -114,7 +114,7 @@ function CartFab({ onOpen, cartOpen }: { onOpen: () => void; cartOpen: boolean }
 function AppInner() {
   const { tenant, loading, error } = useTenant();
   const { track } = useSession(tenant?.id);
-  const { notifications, hasContact, dismiss } = useBookingPoller();
+  const { notifications, dismiss } = useBookingPoller();
 
   // Инициализация вида из URL (для поддержки кнопки "назад" браузера)
   const [view, setView] = useState<View>(() =>
@@ -259,10 +259,37 @@ function AppInner() {
         />
       )}
 
-      <main className={`mx-auto w-full min-w-0 max-w-[var(--layout-max)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8 ${view === "checkout" ? "pt-6 sm:pt-8" : "pt-24 md:pt-28"}`}>
+      <main
+        className={`mx-auto w-full min-w-0 max-w-[var(--layout-max)] px-4 sm:px-6 lg:px-8 ${
+          view === "checkout"
+            ? "pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 sm:pt-8"
+            : "pb-28 pt-24 md:pt-28 lg:pb-[max(1rem,env(safe-area-inset-bottom))]"
+        }`}
+      >
         {view === "home" && (
           <>
             <HeroSection tenant={tenant} />
+
+            {/* Мобильная / планшет: крупная кнопка сразу под hero (не только в бургере и FAB) */}
+            <div className="mb-8 mt-1 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMyBookingsOpen(true)}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-lg font-bold shadow-lg transition-all active:scale-[0.99] sm:py-5 sm:text-xl"
+                style={{
+                  background: "var(--color-primary)",
+                  color: "#fff",
+                  boxShadow: "0 10px 36px color-mix(in srgb, var(--color-primary) 45%, transparent)",
+                }}
+                aria-label="Мои записи"
+              >
+                <ClipboardList size={26} strokeWidth={2} aria-hidden />
+                Мои записи
+              </button>
+              <p className="mt-2 text-center text-sm text-ink-muted">
+                Найти записи по контакту, отменить при необходимости
+              </p>
+            </div>
 
             <AnimateIn className="py-6 sm:py-10">
               <ErrorBoundary>
@@ -364,13 +391,12 @@ function AppInner() {
         </div>
       )}
 
-      {/* Floating "Мои записи" — bottom-left, always visible on home */}
-      {view === "home" && (
+      {/* Уведомления о смене статуса — слева снизу (все экраны) */}
+      {view === "home" && notifications.length > 0 && (
         <div
-          className="pointer-events-none fixed z-[150] flex flex-col items-start gap-3"
-          style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))", left: "1.25rem" }}
+          className="pointer-events-none fixed z-[152] flex max-w-[min(100vw-2rem,22rem)] flex-col gap-2"
+          style={{ bottom: "max(6.5rem, env(safe-area-inset-bottom, 1.5rem))", left: "1rem" }}
         >
-          {/* Status change notifications */}
           {notifications.map((n) => (
             <StatusNotifCard
               key={n.uid}
@@ -379,35 +405,38 @@ function AppInner() {
               onOpen={() => setMyBookingsOpen(true)}
             />
           ))}
-
-          {/* "Мои записи" — крупная заметная кнопка */}
-          <button
-            type="button"
-            onClick={() => setMyBookingsOpen(true)}
-            className="pointer-events-auto flex items-center gap-3 rounded-2xl transition-all duration-200 active:scale-[0.94] hover:brightness-110"
-            style={{
-              background: "var(--color-primary)",
-              color: "#fff",
-              boxShadow: "0 8px 28px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15)",
-              minHeight: "64px",
-              padding: "0 24px",
-              fontSize: "15px",
-              fontWeight: 700,
-            }}
-            aria-label="Мои записи"
-          >
-            <ClipboardList size={24} strokeWidth={2} aria-hidden />
-            <span>Мои записи</span>
-            {notifications.length > 0 && (
-              <span
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
-                style={{ background: "#fff", color: "var(--color-primary)" }}
-              >
-                {notifications.length}
-              </span>
-            )}
-          </button>
         </div>
+      )}
+
+      {/* Floating «Мои записи» — только до lg; на ПК кнопка в шапке у логотипа */}
+      {view === "home" && (
+        <button
+          type="button"
+          onClick={() => setMyBookingsOpen(true)}
+          className="pointer-events-auto fixed z-[150] flex items-center gap-3 rounded-2xl font-bold shadow-xl transition-all active:scale-[0.94] hover:brightness-110 lg:hidden"
+          style={{
+            bottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
+            left: "max(1rem, env(safe-area-inset-left, 1rem))",
+            background: "var(--color-primary)",
+            color: "#fff",
+            boxShadow: "0 10px 32px rgba(0,0,0,0.28), 0 2px 10px rgba(0,0,0,0.18)",
+            minHeight: "72px",
+            padding: "0 28px",
+            fontSize: "17px",
+          }}
+          aria-label="Мои записи"
+        >
+          <ClipboardList size={28} strokeWidth={2} aria-hidden />
+          <span>Мои записи</span>
+          {notifications.length > 0 && (
+            <span
+              className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-full px-1.5 text-xs font-bold"
+              style={{ background: "#fff", color: "var(--color-primary)" }}
+            >
+              {notifications.length}
+            </span>
+          )}
+        </button>
       )}
 
       {/* Floating cart FAB — bottom-right when cart has items */}

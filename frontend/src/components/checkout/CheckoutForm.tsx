@@ -13,6 +13,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { toast } from "../common/Toast";
+import { MediaFrame } from "../common/MediaFrame";
 import type { ContactType, MasterPublic, Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
 import { fetchSlots, createBooking, fetchMasters } from "../../api/client";
@@ -492,15 +493,14 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 aria-pressed={selectedMasterId === m.id}
               >
                 <div
-                  className="h-12 w-12 overflow-hidden rounded-md"
+                  className="flex h-12 w-12 overflow-hidden rounded-md"
                   style={{ background: "var(--color-placeholder-surface)" }}
                 >
                   {m.photo_url ? (
-                    <img
+                    <MediaFrame
                       src={m.photo_url}
                       alt={m.display_name}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
+                      className="h-full w-full min-h-0 min-w-0"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                   ) : (

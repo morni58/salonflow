@@ -2,6 +2,7 @@ import { X, Minus, Plus, Trash2, ShoppingBag, ImageIcon } from "lucide-react";
 import { useCart } from "../../store/cartStore";
 import { formatPrice, formatDuration } from "../../utils";
 import { lockBodyScroll } from "../../utils/bodyScrollLock";
+import { MediaFrame } from "../common/MediaFrame";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -86,13 +87,12 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                 >
                   <div className="flex min-w-0 items-start gap-4">
                     {/* Миниатюра услуги */}
-                    <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl" style={{ background: "var(--color-placeholder-surface)" }}>
+                    <div className="flex h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl" style={{ background: "var(--color-placeholder-surface)" }}>
                       {item.service.photo_url ? (
-                        <img
+                        <MediaFrame
                           src={item.service.photo_url}
                           alt={item.service.name}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
+                          className="h-full w-full min-h-0 min-w-0"
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">

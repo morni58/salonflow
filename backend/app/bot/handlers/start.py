@@ -4,6 +4,7 @@ from html import escape
 from aiogram import Router, F
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from app.bot.async_db import run_sync
@@ -219,8 +220,9 @@ async def cmd_start(message: Message):
 
 
 @router.callback_query(F.data == "menu:main")
-async def back_to_menu(callback: CallbackQuery):
+async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    await state.clear()
     user = await run_sync(_get_user_sync, callback.from_user.id)
     if not user:
         await callback.message.edit_text("⛔ Нет доступа.")

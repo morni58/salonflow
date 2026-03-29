@@ -6,6 +6,7 @@ import logging
 import re
 
 from aiogram import F, Router
+from aiogram.filters import StateFilter
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -27,6 +28,7 @@ class SiteStates(StatesGroup):
     waiting_adv_title = State()
     waiting_adv_text = State()
     waiting_adv_icon = State()
+    waiting_adv_image = State()
 
 
 def _get_user_tenant_sync(telegram_user_id: int) -> tuple[str | None, str | None]:
@@ -253,6 +255,9 @@ async def site_texts_more(callback: CallbackQuery):
             [InlineKeyboardButton(text="Рейтинг в hero (цифры)", callback_data="site:tx:hero_rating_text")],
             [InlineKeyboardButton(text="Подпись под рейтингом", callback_data="site:tx:hero_rating_sub")],
             [InlineKeyboardButton(text="Meta description (SEO)", callback_data="site:tx:meta_description")],
+            [InlineKeyboardButton(text="Бейдж блока «Почему нас»", callback_data="site:tx:advantages_badge")],
+            [InlineKeyboardButton(text="Заголовок «Почему нас» (часть 1)", callback_data="site:tx:advantages_title_before")],
+            [InlineKeyboardButton(text="Заголовок — акцент (часть 2)", callback_data="site:tx:advantages_title_accent")],
             [InlineKeyboardButton(text="◀️ К текстам главной", callback_data="site:texts")],
         ]
     )
@@ -391,6 +396,19 @@ def _adv_more_kb() -> InlineKeyboardMarkup:
     )
 
 
+def _adv_skip_image_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Без фото", callback_data="site:adv_skip_image")],
+        ]
+    )
+
+
+def _is_http_image_url(s: str) -> bool:
+    t = s.strip()
+    return t.startswith("https://") or t.startswith("http://")
+
+
 @router.callback_query(F.data == "site:adv_menu")
 async def site_adv_menu(callback: CallbackQuery):
     await callback.answer()
@@ -405,15 +423,16 @@ async def site_adv_menu(callback: CallbackQuery):
         f"  {i+1}. {a.get('title','?')} — {a.get('text','')[:40]}…"
         if len(a.get("text","")) > 40 else f"  {i+1}. {a.get('title','?')} — {a.get('text','')}"
         for i, a in enumerate(adv)
-    ) if adv else "  (нет, будут показаны стандартные)"
+    ) if adv else "  (нет — блок «Почему нас выбирают» на сайте скрыт)"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="➕ Добавить / заменить список", callback_data="site:adv_start")],
-        [InlineKeyboardButton(text="🗑 Сбросить к стандартным", callback_data="site:adv_reset")],
+        [InlineKeyboardButton(text="🗑 Очистить (скрыть блок)", callback_data="site:adv_reset")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="site:texts")],
     ])
     await callback.message.edit_text(
-        f"⭐ <b>Преимущества</b>\n\nТекущие:\n{lines}\n\n"
-        "Вы можете добавить новые (они заменят текущие) или сбросить к стандартным.",
+        f"⭐ <b>Преимущества («Почему нас выбирают»)</b>\n\nТекущие:\n{lines}\n\n"
+        "Добавьте заголовок, текст и иконку к каждому пункту; по желанию — ссылку на фото. "
+        "Список целиком заменяется при новом проходе. Очистка убирает секцию с сайта.",
         parse_mode="HTML",
         reply_markup=kb,
     )
@@ -425,9 +444,8 @@ async def site_adv_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SiteStates.waiting_adv_title)
     await state.update_data(adv_items=[], adv_current={})
     await callback.message.reply(
-        "⭐ Начнём создавать преимущества!\n\n"
-        "<b>Преимущество 1</b>\n"
-        "Введите заголовок (например: «Опытные мастера»):",
+        "⭐ Создаём блок «Почему нас выбирают» для сайта.\n\n"
+        "<b>Пункт 1</b> — введите заголовок (например: «Опытные мастера»):",
         parse_mode="HTML",
     )
 
@@ -440,7 +458,7 @@ async def site_adv_reset(callback: CallbackQuery):
         return
     await run_sync(_patch_site_content_sync, tid, {"advantages": []})
     await callback.message.edit_text(
-        "✅ Преимущества сброшены — на сайте будут показаны стандартные.",
+        "✅ Список очищен — секция «Почему нас выбирают» на сайте скрыта, пока снова не добавите пункты.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="◀️ К текстам", callback_data="site:texts")]
         ]),
@@ -479,13 +497,60 @@ async def adv_got_icon(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     cur = data.get("adv_current", {})
     cur["icon"] = icon
+    await state.update_data(adv_current=cur)
+    await state.set_state(SiteStates.waiting_adv_image)
+    await callback.message.edit_text(
+        "🖼 <b>Фото к этому пункту</b> (по желанию)\n\n"
+        "Отправьте <b>прямую ссылку</b> на картинку (<code>https://…</code>), "
+        "например изображение в облаке или публичная ссылка из хранилища.\n\n"
+        "Или нажмите «Без фото» — на сайте будет только иконка.",
+        parse_mode="HTML",
+        reply_markup=_adv_skip_image_kb(),
+    )
+
+
+async def _adv_finish_item(message: Message, state: FSMContext, cur: dict) -> None:
+    data = await state.get_data()
     items: list = list(data.get("adv_items", []))
     items.append(cur)
     await state.update_data(adv_items=items, adv_current={})
+    await state.set_state(None)
+    n = len(items)
+    await message.reply(
+        f"✅ Пункт {n} добавлен: «{cur.get('title')}»\n\n"
+        "Добавить ещё или сохранить список на сайт?",
+        reply_markup=_adv_more_kb(),
+    )
+
+
+@router.message(SiteStates.waiting_adv_image)
+async def adv_got_image_url(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if not _is_http_image_url(text):
+        await message.reply(
+            "❌ Нужна ссылка, начинающаяся с <code>https://</code> или <code>http://</code>",
+            parse_mode="HTML",
+        )
+        return
+    data = await state.get_data()
+    cur = data.get("adv_current", {})
+    cur["image_url"] = text
+    await _adv_finish_item(message, state, cur)
+
+
+@router.callback_query(StateFilter(SiteStates.waiting_adv_image), F.data == "site:adv_skip_image")
+async def adv_skip_image(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    cur = data.get("adv_current", {})
+    items: list = list(data.get("adv_items", []))
+    items.append(cur)
+    await state.update_data(adv_items=items, adv_current={})
+    await state.set_state(None)
     n = len(items)
     await callback.message.edit_text(
-        f"✅ Преимущество {n} добавлено: «{cur.get('title')}»\n\n"
-        "Добавить ещё или сохранить список?",
+        f"✅ Пункт {n} добавлен: «{cur.get('title')}»\n\n"
+        "Добавить ещё или сохранить список на сайт?",
         reply_markup=_adv_more_kb(),
     )
 

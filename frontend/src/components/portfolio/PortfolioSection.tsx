@@ -138,9 +138,8 @@ export function PortfolioSection({
                     <img
                       src={img.url}
                       alt=""
-                      className="w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      className="block h-auto w-full transition-transform duration-500 group-hover:scale-[1.04]"
                       loading="lazy"
-                      style={{ display: "block" }}
                     />
                     {/* Hover overlay */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/25">

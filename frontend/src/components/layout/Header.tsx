@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Menu, X, ShoppingBag, Phone, ClipboardList } from "lucide-react";
 import type { Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
+import { hasAdvantagesSection } from "../../utils/advantages";
 import { siteText } from "../../utils/siteContent";
 import { lockBodyScroll } from "../../utils/bodyScrollLock";
 
@@ -14,14 +15,18 @@ interface Props {
 }
 
 function navLinks(tenant: Tenant) {
-  return [
-    { id: "catalog",    label: siteText(tenant, "nav_catalog",    "Услуги")    },
-    { id: "advantages", label: siteText(tenant, "nav_advantages", "О нас")     },
-    { id: "masters",    label: siteText(tenant, "nav_masters",    "Мастера")   },
-    { id: "portfolio",  label: siteText(tenant, "nav_portfolio",  "Портфолио") },
-    { id: "reviews",    label: siteText(tenant, "nav_reviews",    "Отзывы")    },
-    { id: "contacts",  label: siteText(tenant, "nav_contacts",  "Контакты") },
+  const all = [
+    { id: "catalog", label: siteText(tenant, "nav_catalog", "Услуги") },
+    { id: "advantages", label: siteText(tenant, "nav_advantages", "О нас") },
+    { id: "masters", label: siteText(tenant, "nav_masters", "Мастера") },
+    { id: "portfolio", label: siteText(tenant, "nav_portfolio", "Портфолио") },
+    { id: "reviews", label: siteText(tenant, "nav_reviews", "Отзывы") },
+    { id: "contacts", label: siteText(tenant, "nav_contacts", "Контакты") },
   ] as const;
+  if (!hasAdvantagesSection(tenant)) {
+    return all.filter((l) => l.id !== "advantages");
+  }
+  return all;
 }
 
 export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings }: Props) {
@@ -93,35 +98,55 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
         <div className="mx-auto max-w-6xl">
           <div className="glass-nav-float rounded-xl md:rounded-2xl flex h-14 md:h-16 items-center justify-between px-4 md:px-8 shadow-sm">
 
-            {/* Logo / Brand */}
-            <button
-              type="button"
-              onClick={goHome}
-              className="flex items-center gap-2.5 shrink-0"
-              aria-label="На главную"
-            >
-              {tenant.logo_url ? (
-                <img
-                  src={tenant.logo_url}
-                  alt={tenant.name}
-                  className="h-8 w-8 shrink-0 rounded-xl object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
-                    if (sib) sib.style.display = "flex";
-                  }}
-                />
-              ) : null}
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-serif text-sm font-bold text-white"
-                style={{ background: "var(--color-primary)", display: tenant.logo_url ? "none" : "flex" }}
+            {/* Logo / Brand + «Мои записи» на ПК (отдельно от корзины и звонка) */}
+            <div className="flex min-w-0 max-w-[min(100%,52vw)] items-center gap-2 sm:gap-3 lg:max-w-none lg:gap-4">
+              <button
+                type="button"
+                onClick={goHome}
+                className="flex min-w-0 items-center gap-2.5 shrink-0"
+                aria-label="На главную"
               >
-                {tenant.name.trim().charAt(0).toUpperCase() || "•"}
-              </div>
-              <span className="font-serif text-xl font-bold tracking-tight text-ink">
-                {tenant.name}
-              </span>
-            </button>
+                {tenant.logo_url ? (
+                  <img
+                    src={tenant.logo_url}
+                    alt={tenant.name}
+                    className="h-8 w-8 shrink-0 rounded-xl object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                      if (sib) sib.style.display = "flex";
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-serif text-sm font-bold text-white"
+                  style={{ background: "var(--color-primary)", display: tenant.logo_url ? "none" : "flex" }}
+                >
+                  {tenant.name.trim().charAt(0).toUpperCase() || "•"}
+                </div>
+                <span className="truncate font-serif text-xl font-bold tracking-tight text-ink">
+                  {tenant.name}
+                </span>
+              </button>
+
+              {onMyBookings && (
+                <button
+                  type="button"
+                  onClick={onMyBookings}
+                  className="hidden min-h-[48px] shrink-0 items-center gap-2.5 rounded-2xl border-2 px-5 py-2.5 text-sm font-bold transition-all hover:brightness-[0.97] active:scale-[0.98] lg:inline-flex"
+                  style={{
+                    borderColor: "var(--color-primary)",
+                    color: "var(--color-primary)",
+                    background: "color-mix(in srgb, var(--color-primary) 12%, white)",
+                    boxShadow: "0 4px 18px color-mix(in srgb, var(--color-primary) 25%, transparent)",
+                  }}
+                  aria-label="Мои записи"
+                >
+                  <ClipboardList size={22} strokeWidth={2} aria-hidden />
+                  <span className="whitespace-nowrap">Мои записи</span>
+                </button>
+              )}
+            </div>
 
             {/* Desktop nav — centered */}
             <nav
@@ -141,32 +166,19 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
               ))}
             </nav>
 
-            {/* Right: call + cart + hamburger */}
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            {/* Right: звонок + корзина (без «Мои записи» — она слева у логотипа на lg+) */}
+            <div className="flex shrink-0 items-center gap-2 md:gap-3">
               {/* Кнопка Позвонить */}
               {(tenant.contact_json as Record<string, string> | undefined)?.phone && (
                 <a
                   href={`tel:${(tenant.contact_json as Record<string, string>).phone}`}
-                  className="hidden lg:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:bg-black/5"
+                  className="hidden items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:bg-black/5 lg:flex"
                   style={{ borderColor: "var(--color-border-muted)", color: "var(--color-text)" }}
                   aria-label="Позвонить"
                 >
                   <Phone size={14} strokeWidth={2} />
                   <span>{(tenant.contact_json as Record<string, string>).phone}</span>
                 </a>
-              )}
-              {/* Мои записи */}
-              {onMyBookings && (
-                <button
-                  type="button"
-                  onClick={onMyBookings}
-                  className="hidden lg:flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors hover:bg-black/5"
-                  style={{ borderColor: "var(--color-border-muted)", color: "var(--color-text)" }}
-                  aria-label="Мои записи"
-                >
-                  <ClipboardList size={15} strokeWidth={2} />
-                  Мои записи
-                </button>
               )}
 
               {/* Запись (desktop text) */}
@@ -260,30 +272,35 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
           ))}
         </nav>
 
-        {/* Мои записи (mobile menu) */}
+        {/* Мои записи — крупная отдельная кнопка (не мелкий текст) */}
         {onMyBookings && (
-          <button
-            type="button"
-            onClick={() => { setMenuOpen(false); onMyBookings(); }}
-            className="absolute bottom-28 left-0 right-0 flex justify-center"
-            aria-label="Мои записи"
-          >
-            <span className="flex items-center gap-2 text-sm font-medium opacity-55 hover:opacity-100 transition-opacity" style={{ color: "var(--color-text)" }}>
-              <ClipboardList size={16} strokeWidth={2} />
+          <div className="absolute bottom-[7.25rem] left-0 right-0 flex justify-center px-8">
+            <button
+              type="button"
+              onClick={() => { setMenuOpen(false); onMyBookings(); }}
+              className="flex w-full max-w-md items-center justify-center gap-3 rounded-2xl border-2 py-4 text-base font-bold shadow-md transition-all active:scale-[0.98]"
+              style={{
+                borderColor: "var(--color-primary)",
+                color: "var(--color-primary)",
+                background: "color-mix(in srgb, var(--color-primary) 10%, white)",
+              }}
+              aria-label="Мои записи"
+            >
+              <ClipboardList size={22} strokeWidth={2} aria-hidden />
               Мои записи
-            </span>
-          </button>
+            </button>
+          </div>
         )}
 
         {/* CTA bottom */}
-        <div className="absolute bottom-12 left-0 right-0 flex justify-center px-8">
+        <div className={`absolute left-0 right-0 flex justify-center px-8 ${onMyBookings ? "bottom-10" : "bottom-12"}`}>
           <button
             type="button"
             onClick={() => {
               setMenuOpen(false);
               onOpenCart();
             }}
-            className="w-full max-w-xs flex items-center justify-center gap-2.5 rounded-2xl bg-black py-4 text-[11px] font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all active:scale-[0.97]"
+            className="flex w-full max-w-xs items-center justify-center gap-2.5 rounded-2xl bg-black py-4 text-[11px] font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all active:scale-[0.97]"
           >
             <ShoppingBag size={16} strokeWidth={2} />
             Онлайн запись

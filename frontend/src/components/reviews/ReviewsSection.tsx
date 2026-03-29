@@ -85,9 +85,6 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
         {/* Section header */}
         <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end md:mb-12">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest opacity-40 mb-4">
-              Реальные отзывы
-            </p>
             <h2 className="font-serif italic text-3xl md:text-5xl text-ink">{title}</h2>
             <p className="mt-2 text-sm text-ink-muted">Скриншоты из мессенджеров и соцсетей</p>
           </div>
@@ -149,7 +146,7 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
             <div
               ref={containerRef}
               onScroll={handleScroll}
-              className="flex gap-3 overflow-x-auto pb-3 scrollbar-none scroll-smooth"
+              className="flex items-start gap-3 overflow-x-auto pb-3 scrollbar-none scroll-smooth"
               style={{ scrollSnapType: "x mandatory" }}
             >
               {reviews.map((rev, i) => (
@@ -160,19 +157,21 @@ export function ReviewsSection({ tenantId, title = "Отзывы клиенто�
                   className="hover-lift group relative w-56 shrink-0 overflow-hidden rounded-lg bg-white"
                   style={{
                     scrollSnapAlign: "start",
-                    minHeight: "13rem",
                     border: "1px solid rgba(0,0,0,0.05)",
                     boxShadow: "0 8px 30px rgba(54,49,47,0.04)",
                   }}
                   aria-label={`Отзыв ${i + 1}`}
                 >
-                  <img
-                    src={rev.url}
-                    alt={`Отзыв ${i + 1}`}
-                    className="w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    style={{ display: "block", maxHeight: "22rem" }}
-                    loading="lazy"
-                  />
+                  <div
+                    className="flex max-h-[min(32rem,78vh)] w-full items-center justify-center bg-black/[0.03]"
+                  >
+                    <img
+                      src={rev.url}
+                      alt={`Отзыв ${i + 1}`}
+                      className="max-h-[min(32rem,78vh)] w-auto max-w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                  </div>
                   <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/18">
                     <span className="scale-75 rounded-full bg-white/25 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
                       Открыть

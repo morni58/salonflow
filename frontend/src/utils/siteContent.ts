@@ -7,7 +7,8 @@ import { SITE_CONTACT, type PhoneEntry } from "../constants/siteContact";
  *
  * Примеры ключей: `hero_badge`, `hero_title_line1`, `hero_title_accent`, `hero_subtitle`, `hero_image_url`,
  * `hero_cta_primary`, `hero_cta_secondary`, `nav_catalog`, `section_catalog`, `section_catalog_subtitle`,
- * `section_portfolio`, `portfolio_subtitle`, `meta_description`, …
+ * `section_portfolio`, `portfolio_subtitle`, `meta_description`,
+ * `advantages_badge`, `advantages_title_before`, `advantages_title_accent` (блок «Почему нас выбирают»), …
  */
 export function siteText(tenant: Tenant, key: string, fallback: string): string {
   const sc = tenant.site_content;
