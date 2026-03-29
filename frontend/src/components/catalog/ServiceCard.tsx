@@ -1,5 +1,4 @@
 import { Clock, Check, ImageIcon } from "lucide-react";
-import { MediaFrame } from "../common/MediaFrame";
 import type { Service } from "../../types";
 import { formatPrice, formatDuration } from "../../utils";
 import { useCart } from "../../store/cartStore";
@@ -42,11 +41,12 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
         style={{ background: "var(--color-placeholder-surface)" }}
       >
         {service.photo_url ? (
-          <MediaFrame
+          <img
             src={service.photo_url}
             alt={service.name}
-            className="min-h-0 min-w-0 flex-1"
-            imgClassName="transition-transform duration-700 group-hover:scale-[1.03]"
+            loading="lazy"
+            draggable={false}
+            className="h-full w-full object-fill transition-transform duration-700 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -54,7 +54,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
           </div>
         )}
         {/* Category badge — прямые скруглённые углы, жирный шрифт */}
-        <span className="absolute top-3 left-3 rounded-md bg-white px-2.5 py-1 text-xs font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
+        <span className="absolute top-2 left-2 rounded bg-white px-2 py-0.5 text-[10px] font-bold text-ink shadow-sm" style={{ letterSpacing: "0.01em" }}>
           {categoryName}
         </span>
         {/* In-cart indicator */}
