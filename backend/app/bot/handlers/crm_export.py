@@ -131,7 +131,7 @@ def _booking_card_sync(tenant_id: str, bid: str) -> tuple[str, InlineKeyboardMar
         sb.table("bookings")
         .select(
             "id, status, preferred_datetime, total_price, total_duration_minutes, "
-            "client_id, service_ids, master_id, created_at, payment_status, source",
+            "client_id, service_ids, master_id",
         )
         .eq("tenant_id", tenant_id)
         .eq("id", bid)
@@ -173,8 +173,7 @@ def _booking_card_sync(tenant_id: str, bid: str) -> tuple[str, InlineKeyboardMar
         f"💇 {escape(svc)}\n"
         f"💰 {_format_price(b.get('total_price') or 0)}\n"
         f"🕐 {dt_s}\n"
-        f"⏱ {b.get('total_duration_minutes') or 0} мин\n"
-        f"📥 Источник: {b.get('source', '')}\n"
+        f"⏱ {_fmt_dur(b.get('total_duration_minutes'))}\n"
     )
     kb: list[list[InlineKeyboardButton]] = []
     if st == "pending" or st == "waiting":
@@ -628,9 +627,8 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
     rows = (
         sb.table("bookings")
         .select(
-            "created_at, preferred_datetime, status, payment_status, source, "
-            "total_price, total_duration_minutes, client_id, service_ids, "
-            "completed_at, accepted_at, master_id",
+            "preferred_datetime, status, total_price, total_duration_minutes, "
+            "client_id, service_ids, master_id",
         )
         .eq("tenant_id", tenant_id)
         .order("preferred_datetime", desc=True)
@@ -665,7 +663,6 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
     w.writerow([
         "№",
         "Дата визита",
-        "Создана",
         "Статус",
         "Клиент",
         "Контакт",
@@ -673,10 +670,6 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
         "Длительность",
         "Сумма",
         "Мастер",
-        "Оплата",
-        "Источник",
-        "Принята",
-        "Выполнена",
     ])
     for n, b in enumerate(rows.data or [], start=1):
         client_name = ""
@@ -690,7 +683,6 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
         w.writerow([
             n,
             _fmt_dt(b.get("preferred_datetime")),
-            _fmt_dt(b.get("created_at")),
             _STATUS_RU.get(b.get("status", ""), b.get("status", "")),
             client_name,
             contact,
@@ -698,10 +690,6 @@ def _bookings_csv_sync(tenant_id: str) -> bytes:
             _fmt_dur(b.get("total_duration_minutes")),
             _fmt_price(b.get("total_price")),
             master_name(b.get("master_id")),
-            _PAYMENT_RU.get(b.get("payment_status", ""), b.get("payment_status", "") or ""),
-            _SOURCE_RU.get(b.get("source", ""), b.get("source", "") or ""),
-            _fmt_dt(b.get("accepted_at")),
-            _fmt_dt(b.get("completed_at")),
         ])
     return out.getvalue().encode("utf-8-sig")
 
