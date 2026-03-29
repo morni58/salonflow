@@ -94,7 +94,7 @@ export function PortfolioSection({
         {/* Section header — consistent badge treatment */}
         <div className="mb-10 text-center md:mb-14">
           <span
-            className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
+            className="mb-4 inline-flex items-center gap-2 rounded-lg border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
             style={{ borderColor: "var(--color-primary-20)", background: "var(--color-primary-muted)", color: "var(--color-primary)" }}
           >
             <Images size={11} aria-hidden />

@@ -34,7 +34,7 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-lg border border-brand-100 bg-white px-4 py-3.5 text-sm outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
+  "min-w-0 w-full max-w-full rounded-xl border border-brand-100 bg-white px-5 py-4 text-base outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
 
 /** Проверить закрыт ли день по расписанию тенанта (без обращения к API) */
 function isDateClosed(dateStr: string, tenant: Tenant): boolean {
@@ -479,8 +479,8 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                   setSelectedTime("");
                 }}
                 className={cn(
-                  "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-lg border p-3 text-center shadow-sm transition-all sm:w-28",
-                  selectedMasterId === m.id ? "shadow-soft scale-[1.03]" : "bg-white hover:brightness-[0.995]"
+                  "flex w-[8.5rem] shrink-0 flex-col items-center gap-2 rounded-xl border p-4 text-center shadow-sm transition-all",
+                  selectedMasterId === m.id ? "shadow-soft scale-[1.02]" : "bg-white hover:brightness-[0.995]"
                 )}
                 style={
                   selectedMasterId === m.id
@@ -551,7 +551,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 setContactError(null);
               }}
               className={cn(
-                "rounded-lg border border-black/5 py-3 text-center text-sm transition-all",
+                "min-h-[56px] rounded-xl border border-black/8 py-3 text-center text-sm font-medium transition-all",
                 contactType === c.type ? "bg-ink text-white border-transparent shadow-sm" : "bg-white hover:bg-black/5"
               )}
               style={contactType !== c.type ? { color: "var(--color-text)" } : undefined}
@@ -603,7 +603,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 onClick={() => !isDisabled && setSelectedDate(d)}
                 disabled={isDisabled}
                 className={cn(
-                  "flex min-w-[4rem] shrink-0 flex-col items-center rounded-lg px-2.5 py-2.5 text-center transition-all duration-200",
+                  "flex min-w-[4.5rem] shrink-0 flex-col items-center rounded-xl px-3 py-3 text-center transition-all duration-200",
                   isSelected ? "shadow-sm" : !isDisabled && "hover:bg-white",
                   isClosed && "cursor-not-allowed opacity-50",
                   requiresMaster && !selectedMasterId && !isClosed ? "pointer-events-none opacity-40" : ""
@@ -673,7 +673,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                   type="button"
                   onClick={() => setSelectedTime(slot)}
                   className={cn(
-                    "rounded-lg border border-black/5 py-3 text-sm font-bold transition-all",
+                    "min-h-[56px] rounded-xl border border-black/8 text-base font-bold transition-all",
                     selectedTime === slot ? "shadow-soft scale-[1.03]" : "bg-white hover:bg-ink hover:text-white hover:border-transparent"
                   )}
                   style={
@@ -696,7 +696,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         type="button"
         onClick={handleSubmit}
         disabled={submitting}
-        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-lg py-4 text-sm font-semibold shadow-soft disabled:opacity-45 transition-opacity"
+        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-xl h-[64px] text-base font-semibold shadow-soft disabled:opacity-45 transition-opacity"
         style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
       >
         {submitting ? (
