@@ -364,9 +364,10 @@ function AppInner() {
         </div>
       )}
 
-      {/* Floating "Мои записи" — bottom-left, visible when client has past booking */}
-      {hasContact && view === "home" && (
-        <div className="pointer-events-none fixed z-[150] flex flex-col items-start gap-2"
+      {/* Floating "Мои записи" — bottom-left, always visible on home */}
+      {view === "home" && (
+        <div
+          className="pointer-events-none fixed z-[150] flex flex-col items-start gap-3"
           style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))", left: "1.25rem" }}
         >
           {/* Status change notifications */}
@@ -379,23 +380,29 @@ function AppInner() {
             />
           ))}
 
-          {/* "Мои записи" floating button */}
+          {/* "Мои записи" — крупная заметная кнопка */}
           <button
             type="button"
             onClick={() => setMyBookingsOpen(true)}
-            className="pointer-events-auto flex items-center gap-2.5 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.94]"
+            className="pointer-events-auto flex items-center gap-3 rounded-2xl transition-all duration-200 active:scale-[0.94] hover:brightness-110"
             style={{
-              background: "#1c1917",
+              background: "var(--color-primary)",
               color: "#fff",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12)",
-              minHeight: "56px",
+              boxShadow: "0 8px 28px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15)",
+              minHeight: "64px",
+              padding: "0 24px",
+              fontSize: "15px",
+              fontWeight: 700,
             }}
             aria-label="Мои записи"
           >
-            <ClipboardList size={20} strokeWidth={2} aria-hidden />
+            <ClipboardList size={24} strokeWidth={2} aria-hidden />
             <span>Мои записи</span>
             {notifications.length > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                style={{ background: "#fff", color: "var(--color-primary)" }}
+              >
                 {notifications.length}
               </span>
             )}

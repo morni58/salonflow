@@ -45,8 +45,10 @@ interface Props {
 }
 
 export function AdvantagesSection({ tenant }: Props) {
+  // Hidden until owner configures meaningful content via bot
+  // parseAdvantages returns null if not configured
   const items = parseAdvantages(tenant);
-  if (!items) return null;
+  if (!items || items.every(i => i.title.length < 3 || i.text.length < 10)) return null;
 
   return (
     <section

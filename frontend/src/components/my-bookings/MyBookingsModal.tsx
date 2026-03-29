@@ -116,50 +116,50 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full sm:max-w-lg bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full sm:max-w-xl bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
         style={{ maxHeight: "92vh" }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-4 border-b shrink-0"
+          className="flex items-center justify-between px-6 py-5 border-b shrink-0"
           style={{ borderColor: "rgba(0,0,0,0.06)" }}
         >
-          <div className="flex items-center gap-2.5">
-            <ClipboardList size={20} style={{ color: "var(--color-primary)" }} />
+          <div className="flex items-center gap-3">
+            <ClipboardList size={24} style={{ color: "var(--color-primary)" }} />
             <div>
-              <h2 className="font-serif text-xl font-semibold text-ink">Мои записи</h2>
+              <h2 className="font-serif text-2xl font-semibold text-ink">Мои записи</h2>
               {step === "list" && bookings.length > 0 && (
-                <p className="text-xs text-ink-muted">Обновляется каждые 30 сек</p>
+                <p className="text-sm text-ink-muted mt-0.5">Обновляется каждые 30 сек</p>
               )}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-colors"
             aria-label="Закрыть"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5">
+        <div className="overflow-y-auto flex-1 px-6 py-6">
           {step === "form" ? (
             <div className="space-y-5">
-              <p className="text-sm text-ink-muted leading-relaxed">
+              <p className="text-base text-ink-muted leading-relaxed">
                 Введите контакт, который вы указали при записи — найдём все ваши заявки.
               </p>
 
-              {/* Contact type selector — 2×2 grid, square buttons */}
-              <div className="grid grid-cols-2 gap-2.5">
+              {/* Contact type selector — 2×2 grid */}
+              <div className="grid grid-cols-2 gap-3">
                 {CONTACTS.map((c) => (
                   <button
                     key={c.type}
                     type="button"
                     onClick={() => { setContactType(c.type); setContactValue(""); }}
                     className={cn(
-                      "h-[56px] rounded-xl border text-sm font-semibold transition-all active:scale-[0.97]",
+                      "h-[60px] rounded-xl border text-base font-bold transition-all active:scale-[0.97]",
                       contactType === c.type
                         ? "border-transparent text-white shadow-sm"
                         : "bg-white border-black/10 hover:bg-black/4"
@@ -218,15 +218,15 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
               </button>
 
               {bookings.length === 0 ? (
-                <div className="flex flex-col items-center py-12 text-center gap-3">
-                  <CalendarDays size={44} className="opacity-20" style={{ color: "var(--color-text)" }} />
-                  <p className="font-semibold text-ink">Записей не найдено</p>
-                  <p className="text-sm text-ink-muted max-w-xs">
+                <div className="flex flex-col items-center py-14 text-center gap-4">
+                  <CalendarDays size={52} className="opacity-20" style={{ color: "var(--color-text)" }} />
+                  <p className="text-lg font-semibold text-ink">Записей не найдено</p>
+                  <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
                     Убедитесь, что вы указали тот же контакт, что использовали при записи.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {bookings.map((b) => {
                     const status = STATUS_MAP[b.status] ?? STATUS_MAP.pending;
                     const canCancel = CANCELLABLE.includes(b.status);
@@ -237,91 +237,89 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                       <div
                         key={b.id}
                         className={cn(
-                          "rounded-2xl border p-4 transition-all",
-                          b.status === "cancelled" ? "opacity-55" : "",
-                          b.status === "completed" ? "opacity-75" : ""
+                          "rounded-2xl border p-5 transition-all",
+                          b.status === "cancelled" ? "opacity-50" : "",
+                          b.status === "completed" ? "opacity-70" : ""
                         )}
-                        style={{ borderColor: "rgba(0,0,0,0.07)" }}
+                        style={{ borderColor: "rgba(0,0,0,0.09)", background: b.status === "confirmed" ? "rgba(0,0,0,0.015)" : undefined }}
                       >
-                        {/* Top row */}
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={cn("inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold", status.color)}>
-                              {status.icon}
-                              {status.label}
-                            </span>
-                            {b.booking_code && (
-                              <span className="font-mono text-[11px] font-bold opacity-40" style={{ color: "var(--color-text)" }}>
-                                {b.booking_code}
-                              </span>
-                            )}
-                          </div>
+                        {/* Status + date row */}
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          <span className={cn("inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold", status.color)}>
+                            {status.icon}
+                            {status.label}
+                          </span>
                           <div className="text-right shrink-0">
-                            <p className="text-xs font-semibold" style={{ color: "var(--color-text)" }}>{b.datetime_display}</p>
+                            <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{b.datetime_display}</p>
                             {isPast && b.status !== "cancelled" && (
-                              <p className="text-[10px] opacity-40 mt-0.5" style={{ color: "var(--color-text)" }}>прошло</p>
+                              <p className="text-xs opacity-40 mt-0.5" style={{ color: "var(--color-text)" }}>прошло</p>
                             )}
                           </div>
                         </div>
 
                         {/* Services */}
-                        <div className="flex flex-wrap gap-1 mb-2">
+                        <div className="flex flex-wrap gap-1.5 mb-3">
                           {b.service_names.map((svc, i) => (
                             <span
                               key={i}
-                              className="rounded-md border px-2 py-0.5 text-xs"
-                              style={{ borderColor: "rgba(0,0,0,0.08)", color: "var(--color-text)", opacity: 0.8 }}
+                              className="rounded-lg border px-3 py-1 text-sm font-medium"
+                              style={{ borderColor: "rgba(0,0,0,0.10)", color: "var(--color-text)" }}
                             >
                               {svc}
                             </span>
                           ))}
                         </div>
 
-                        {/* Details */}
-                        <div className="flex items-center gap-3 text-xs opacity-55 mb-3" style={{ color: "var(--color-text)" }}>
-                          <span className="flex items-center gap-1">
-                            <Clock size={11} />
+                        {/* Details row */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <span className="flex items-center gap-1.5 text-sm opacity-55" style={{ color: "var(--color-text)" }}>
+                            <Clock size={14} />
                             {formatDuration(b.total_duration_minutes)}
                           </span>
-                          <span className="font-semibold" style={{ color: "var(--color-primary)", opacity: 1 }}>
+                          <span className="text-lg font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
                             {formatPrice(b.total_price)}
                           </span>
                           {b.master_name && (
-                            <span className="flex items-center gap-1">
-                              <ChevronRight size={11} />
+                            <span className="flex items-center gap-1 text-sm opacity-55" style={{ color: "var(--color-text)" }}>
+                              <ChevronRight size={14} />
                               {b.master_name}
                             </span>
                           )}
                         </div>
+
+                        {/* Booking code */}
+                        {b.booking_code && (
+                          <p className="font-mono text-xs opacity-35 mb-3" style={{ color: "var(--color-text)" }}>{b.booking_code}</p>
+                        )}
 
                         {/* Cancel */}
                         {canCancel && !isCancelConfirm && (
                           <button
                             type="button"
                             onClick={() => setCancelConfirm(b.id)}
-                            className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition-colors font-medium"
+                            className="flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-500 hover:bg-red-100 transition-colors"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                             Отменить запись
                           </button>
                         )}
 
                         {isCancelConfirm && (
-                          <div className="mt-1 rounded-xl border border-red-100 bg-red-50 p-3">
-                            <p className="text-xs text-red-800 font-medium mb-2">Отменить эту запись?</p>
+                          <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                            <p className="text-sm font-semibold text-red-800 mb-3">Отменить эту запись?</p>
                             <div className="flex gap-2">
                               <button
                                 type="button"
                                 disabled={cancelling}
                                 onClick={() => handleCancel(b.id)}
-                                className="flex-1 h-10 rounded-xl bg-red-500 text-white text-xs font-bold transition-opacity disabled:opacity-50"
+                                className="flex-1 h-12 rounded-xl bg-red-500 text-white text-sm font-bold transition-opacity disabled:opacity-50"
                               >
                                 {cancelling ? "..." : "Да, отменить"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setCancelConfirm(null)}
-                                className="flex-1 h-10 rounded-xl bg-black/6 text-xs font-medium"
+                                className="flex-1 h-12 rounded-xl bg-black/8 text-sm font-semibold"
                                 style={{ color: "var(--color-text)" }}
                               >
                                 Нет
