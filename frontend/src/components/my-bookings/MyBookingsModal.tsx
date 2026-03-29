@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X, Search, Clock, CheckCircle, XCircle, AlertCircle,
-  Hourglass, CalendarDays, ChevronRight, Trash2,
+  Hourglass, CalendarDays, ChevronRight, Trash2, ClipboardList,
 } from "lucide-react";
 import type { MyBooking, BookingStatus, ContactType } from "../../types";
 import { lookupMyBookings, cancelMyBooking } from "../../api/client";
@@ -16,11 +16,11 @@ const CONTACTS: { type: ContactType; label: string; placeholder: string }[] = [
 ];
 
 const STATUS_MAP: Record<BookingStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:   { label: "Ожидает",       color: "bg-amber-100 text-amber-800",  icon: <AlertCircle size={13} /> },
-  waiting:   { label: "В очереди",     color: "bg-orange-100 text-orange-800", icon: <Hourglass size={13} /> },
-  confirmed: { label: "Подтверждено",  color: "bg-green-100 text-green-800",  icon: <CheckCircle size={13} /> },
-  completed: { label: "Завершено",     color: "bg-gray-100 text-gray-600",    icon: <CheckCircle size={13} /> },
-  cancelled: { label: "Отменено",      color: "bg-red-100 text-red-700",      icon: <XCircle size={13} /> },
+  pending:   { label: "Ожидает",      color: "bg-amber-100 text-amber-800",   icon: <AlertCircle size={13} /> },
+  waiting:   { label: "В очереди",    color: "bg-orange-100 text-orange-800", icon: <Hourglass size={13} /> },
+  confirmed: { label: "Подтверждено", color: "bg-green-100 text-green-800",   icon: <CheckCircle size={13} /> },
+  completed: { label: "Завершено",    color: "bg-gray-100 text-gray-600",     icon: <CheckCircle size={13} /> },
+  cancelled: { label: "Отменено",     color: "bg-red-100 text-red-700",       icon: <XCircle size={13} /> },
 };
 
 const CANCELLABLE: BookingStatus[] = ["pending", "waiting", "confirmed"];
@@ -39,10 +39,14 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
   const [cancelConfirm, setCancelConfirm] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // For status-change notifications
   const prevStatusesRef = useRef<Record<string, BookingStatus>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Always keep ref in sync with current state — fixes the empty-ref bug
   const contactRef = useRef({ type: contactType, value: contactValue });
+  useEffect(() => {
+    contactRef.current = { type: contactType, value: contactValue };
+  }, [contactType, contactValue]);
 
   const doLookup = useCallback(async (silent = false) => {
     const { type, value } = contactRef.current;
@@ -52,7 +56,6 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
       const result = await lookupMyBookings(tenantId, type, value.trim());
       setBookings(result);
 
-      // Detect status changes (only after first load)
       if (Object.keys(prevStatusesRef.current).length > 0) {
         result.forEach((b) => {
           const prev = prevStatusesRef.current[b.id];
@@ -63,7 +66,6 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
         });
       }
 
-      // Update prev statuses
       const next: Record<string, BookingStatus> = {};
       result.forEach((b) => { next[b.id] = b.status; });
       prevStatusesRef.current = next;
@@ -77,13 +79,12 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
     }
   }, [tenantId]);
 
-  // Start polling when in list view
+  // Polling every 30s while on list view
   useEffect(() => {
     if (step !== "list") return;
-    contactRef.current = { type: contactType, value: contactValue };
     pollRef.current = setInterval(() => doLookup(true), 30_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [step, contactType, contactValue, doLookup]);
+  }, [step, doLookup]);
 
   // Close on Escape
   useEffect(() => {
@@ -106,6 +107,9 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
     }
   };
 
+  const inputClass =
+    "w-full rounded-xl border border-black/10 bg-white px-4 py-4 text-base outline-none transition-all focus:border-black/30 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]";
+
   return (
     <div
       className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -113,23 +117,26 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
     >
       <div
         className="relative w-full sm:max-w-lg bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: "90vh" }}
+        style={{ maxHeight: "92vh" }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4 border-b shrink-0"
-          style={{ borderColor: "var(--color-border-soft, rgba(0,0,0,0.06))" }}
+          style={{ borderColor: "rgba(0,0,0,0.06)" }}
         >
-          <div>
-            <h2 className="font-serif text-xl font-semibold text-ink">Мои записи</h2>
-            {step === "list" && bookings.length > 0 && (
-              <p className="text-xs text-ink-muted mt-0.5">Обновляется каждые 30 сек</p>
-            )}
+          <div className="flex items-center gap-2.5">
+            <ClipboardList size={20} style={{ color: "var(--color-primary)" }} />
+            <div>
+              <h2 className="font-serif text-xl font-semibold text-ink">Мои записи</h2>
+              {step === "list" && bookings.length > 0 && (
+                <p className="text-xs text-ink-muted">Обновляется каждые 30 сек</p>
+              )}
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-colors"
             aria-label="Закрыть"
           >
             <X size={18} />
@@ -139,25 +146,29 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
           {step === "form" ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <p className="text-sm text-ink-muted leading-relaxed">
                 Введите контакт, который вы указали при записи — найдём все ваши заявки.
               </p>
 
-              {/* Contact type selector */}
-              <div className="grid grid-cols-4 gap-2">
+              {/* Contact type selector — 2×2 grid, square buttons */}
+              <div className="grid grid-cols-2 gap-2.5">
                 {CONTACTS.map((c) => (
                   <button
                     key={c.type}
                     type="button"
-                    onClick={() => setContactType(c.type)}
+                    onClick={() => { setContactType(c.type); setContactValue(""); }}
                     className={cn(
-                      "rounded-xl border py-2.5 text-xs font-medium transition-all",
+                      "h-[56px] rounded-xl border text-sm font-semibold transition-all active:scale-[0.97]",
                       contactType === c.type
-                        ? "border-transparent text-white"
-                        : "bg-white border-black/8 hover:bg-black/4"
+                        ? "border-transparent text-white shadow-sm"
+                        : "bg-white border-black/10 hover:bg-black/4"
                     )}
-                    style={contactType === c.type ? { background: "var(--color-primary)" } : { color: "var(--color-text)" }}
+                    style={
+                      contactType === c.type
+                        ? { background: "#1c1917" }
+                        : { color: "var(--color-text)" }
+                    }
                   >
                     {c.label}
                   </button>
@@ -170,23 +181,25 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                 onChange={(e) => setContactValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && contactValue.trim()) doLookup(); }}
                 placeholder={CONTACTS.find((c) => c.type === contactType)?.placeholder}
-                className="w-full rounded-xl border border-black/10 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-black/30 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                className={inputClass}
                 style={{ color: "var(--color-text)" }}
                 autoFocus
+                autoComplete="off"
+                inputMode={contactType === "phone" || contactType === "whatsapp" ? "tel" : "text"}
               />
 
               <button
                 type="button"
                 disabled={!contactValue.trim() || loading}
                 onClick={() => doLookup()}
-                className="flex h-[52px] w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
-                style={{ background: "var(--color-primary)", color: "#fff" }}
+                className="flex h-[60px] w-full items-center justify-center gap-2.5 rounded-xl text-base font-bold transition-all disabled:opacity-40 active:scale-[0.97]"
+                style={{ background: "#1c1917", color: "#fff" }}
               >
                 {loading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 ) : (
                   <>
-                    <Search size={16} />
+                    <Search size={18} />
                     Найти записи
                   </>
                 )}
@@ -194,20 +207,20 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
             </div>
           ) : (
             <div>
-              {/* Back + re-search */}
+              {/* Back */}
               <button
                 type="button"
                 onClick={() => { setStep("form"); prevStatusesRef.current = {}; }}
-                className="mb-4 flex items-center gap-1.5 text-xs font-medium opacity-55 hover:opacity-100 transition-opacity"
+                className="mb-5 flex items-center gap-1.5 text-sm font-medium opacity-55 hover:opacity-100 transition-opacity"
                 style={{ color: "var(--color-text)" }}
               >
                 ← Изменить контакт
               </button>
 
               {bookings.length === 0 ? (
-                <div className="flex flex-col items-center py-10 text-center gap-3">
-                  <CalendarDays size={40} className="opacity-20" style={{ color: "var(--color-text)" }} />
-                  <p className="font-medium text-ink">Записей не найдено</p>
+                <div className="flex flex-col items-center py-12 text-center gap-3">
+                  <CalendarDays size={44} className="opacity-20" style={{ color: "var(--color-text)" }} />
+                  <p className="font-semibold text-ink">Записей не найдено</p>
                   <p className="text-sm text-ink-muted max-w-xs">
                     Убедитесь, что вы указали тот же контакт, что использовали при записи.
                   </p>
@@ -228,17 +241,17 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                           b.status === "cancelled" ? "opacity-55" : "",
                           b.status === "completed" ? "opacity-75" : ""
                         )}
-                        style={{ borderColor: "var(--color-border-soft, rgba(0,0,0,0.07))" }}
+                        style={{ borderColor: "rgba(0,0,0,0.07)" }}
                       >
-                        {/* Top row: status + code + date */}
+                        {/* Top row */}
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold", status.color)}>
+                            <span className={cn("inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold", status.color)}>
                               {status.icon}
                               {status.label}
                             </span>
                             {b.booking_code && (
-                              <span className="text-[11px] font-mono font-bold opacity-45" style={{ color: "var(--color-text)" }}>
+                              <span className="font-mono text-[11px] font-bold opacity-40" style={{ color: "var(--color-text)" }}>
                                 {b.booking_code}
                               </span>
                             )}
@@ -264,7 +277,7 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                           ))}
                         </div>
 
-                        {/* Details row */}
+                        {/* Details */}
                         <div className="flex items-center gap-3 text-xs opacity-55 mb-3" style={{ color: "var(--color-text)" }}>
                           <span className="flex items-center gap-1">
                             <Clock size={11} />
@@ -281,7 +294,7 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                           )}
                         </div>
 
-                        {/* Cancel button */}
+                        {/* Cancel */}
                         {canCancel && !isCancelConfirm && (
                           <button
                             type="button"
@@ -293,7 +306,6 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                           </button>
                         )}
 
-                        {/* Confirm cancel */}
                         {isCancelConfirm && (
                           <div className="mt-1 rounded-xl border border-red-100 bg-red-50 p-3">
                             <p className="text-xs text-red-800 font-medium mb-2">Отменить эту запись?</p>
@@ -302,14 +314,14 @@ export function MyBookingsModal({ tenantId, onClose }: Props) {
                                 type="button"
                                 disabled={cancelling}
                                 onClick={() => handleCancel(b.id)}
-                                className="flex-1 h-8 rounded-lg bg-red-500 text-white text-xs font-semibold transition-opacity disabled:opacity-50"
+                                className="flex-1 h-10 rounded-xl bg-red-500 text-white text-xs font-bold transition-opacity disabled:opacity-50"
                               >
                                 {cancelling ? "..." : "Да, отменить"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setCancelConfirm(null)}
-                                className="flex-1 h-8 rounded-lg bg-black/6 text-xs font-medium"
+                                className="flex-1 h-10 rounded-xl bg-black/6 text-xs font-medium"
                                 style={{ color: "var(--color-text)" }}
                               >
                                 Нет

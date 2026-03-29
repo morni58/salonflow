@@ -125,7 +125,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
 
             {/* Desktop nav — centered */}
             <nav
-              className="hidden md:flex items-center gap-10 absolute left-1/2 -translate-x-1/2"
+              className="hidden lg:flex items-center gap-7 xl:gap-10 absolute left-1/2 -translate-x-1/2"
               aria-label="Разделы страницы"
             >
               {NAV_LINKS.map((link) => (
@@ -147,7 +147,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
               {(tenant.contact_json as Record<string, string> | undefined)?.phone && (
                 <a
                   href={`tel:${(tenant.contact_json as Record<string, string>).phone}`}
-                  className="hidden sm:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:bg-black/5"
+                  className="hidden lg:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:bg-black/5"
                   style={{ borderColor: "var(--color-border-muted)", color: "var(--color-text)" }}
                   aria-label="Позвонить"
                 >
@@ -160,7 +160,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
                 <button
                   type="button"
                   onClick={onMyBookings}
-                  className="hidden sm:flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors hover:bg-black/5"
+                  className="hidden lg:flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors hover:bg-black/5"
                   style={{ borderColor: "var(--color-border-muted)", color: "var(--color-text)" }}
                   aria-label="Мои записи"
                 >
