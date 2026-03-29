@@ -114,10 +114,10 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                     <button
                       type="button"
                       onClick={() => removeItem(item.service.id)}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink/35 transition-colors hover:bg-red-50 hover:text-red-400"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-ink/35 transition-colors hover:bg-red-50 hover:text-red-400"
                       aria-label="Удалить"
                     >
-                      <Trash2 size={18} strokeWidth={2} />
+                      <Trash2 size={20} strokeWidth={2} />
                     </button>
                   </div>
 
@@ -126,19 +126,19 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity - 1)}
-                        className="flex h-10 w-10 items-center justify-center rounded-lg text-ink/60 transition-colors hover:bg-black/5 hover:text-ink"
+                        className="flex h-12 w-12 items-center justify-center rounded-xl text-ink/60 transition-colors hover:bg-black/5 hover:text-ink"
                         aria-label="Меньше"
                       >
-                        <Minus size={18} strokeWidth={2} />
+                        <Minus size={20} strokeWidth={2} />
                       </button>
-                      <span className="min-w-[2rem] text-center text-base font-bold text-ink">{item.quantity}</span>
+                      <span className="min-w-[2.5rem] text-center text-lg font-bold text-ink">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => setQuantity(item.service.id, item.quantity + 1)}
-                        className="flex h-10 w-10 items-center justify-center rounded-lg text-ink/60 transition-colors hover:bg-black/5 hover:text-ink"
+                        className="flex h-12 w-12 items-center justify-center rounded-xl text-ink/60 transition-colors hover:bg-black/5 hover:text-ink"
                         aria-label="Больше"
                       >
-                        <Plus size={18} strokeWidth={2} />
+                        <Plus size={20} strokeWidth={2} />
                       </button>
                     </div>
                     <span
@@ -172,30 +172,29 @@ export function CartDrawer({ open, onClose, onCheckout }: Props) {
               <p className="text-xs text-ink-muted opacity-60">{formatDuration(totalDuration)}</p>
             </div>
 
-            <div className="mb-3 flex items-center justify-end gap-3">
+            <div className="mb-3 flex items-center justify-end gap-2">
               {confirmClear ? (
                 <>
-                  <span className="text-xs text-ink-muted opacity-70">Точно очистить?</span>
-                  <button
-                    type="button"
-                    onClick={() => { clearCart(); setConfirmClear(false); }}
-                    className="text-xs font-semibold text-red-500 transition-colors hover:text-red-600"
-                  >
-                    Да, очистить
-                  </button>
                   <button
                     type="button"
                     onClick={() => setConfirmClear(false)}
-                    className="text-xs font-medium text-ink-muted transition-colors hover:text-ink"
+                    className="h-10 rounded-xl border border-black/10 px-4 text-sm font-medium text-ink-muted transition-colors hover:bg-black/5"
                   >
                     Отмена
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { clearCart(); setConfirmClear(false); }}
+                    className="h-10 rounded-xl bg-red-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+                  >
+                    Да, очистить
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={() => setConfirmClear(true)}
-                  className="text-xs font-medium text-red-400/70 transition-colors hover:text-red-500"
+                  className="h-10 rounded-xl border border-red-200 px-4 text-sm font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-500"
                 >
                   Очистить всё
                 </button>

@@ -405,7 +405,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         <button
           type="button"
           onClick={onBack}
-          className="btn-primary-soft mt-5 w-full animate-fade-up rounded-lg py-4 font-semibold"
+          className="btn-primary-soft mt-5 w-full animate-fade-up rounded-xl h-[64px] text-base font-semibold"
           style={{
             background: "var(--color-primary)",
             color: "var(--color-primary-foreground)",
@@ -660,7 +660,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                     setSelectedMasterId(slotAlternate.id);
                     setSelectedTime("");
                   }}
-                  className="w-full rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-left text-sm transition-colors hover:bg-brand-100"
+                  className="w-full rounded-xl border border-brand-200 bg-brand-50 px-4 py-4 text-left text-base transition-colors hover:bg-brand-100"
                   style={{ color: "var(--color-text)" }}
                 >
                   Показать слоты мастера: <b>{slotAlternate.name}</b>

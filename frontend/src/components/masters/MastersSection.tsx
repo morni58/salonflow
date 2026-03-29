@@ -148,13 +148,13 @@ function MasterCard({ master: m, onBook }: { master: MasterPublic; onBook: () =>
         <button
           type="button"
           onClick={onBook}
-          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-200 active:scale-[0.97] hover:opacity-90"
+          className="flex h-[60px] w-full items-center justify-center gap-2 rounded-xl text-sm font-bold uppercase tracking-widest transition-all duration-200 active:scale-[0.97] hover:opacity-90"
           style={{
             background: "var(--color-primary)",
             color: "#fff",
           }}
         >
-          <Calendar size={12} strokeWidth={2.5} aria-hidden />
+          <Calendar size={16} strokeWidth={2.5} aria-hidden />
           Записаться
         </button>
       </div>
