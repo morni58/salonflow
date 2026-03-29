@@ -20,9 +20,10 @@ const DEFAULT_ITEMS = [
 
 type Item = (typeof DEFAULT_ITEMS)[number];
 
-function parseAdvantages(tenant: Tenant): Item[] {
+/** Returns null if owner hasn't configured advantages via bot */
+function parseAdvantages(tenant: Tenant): Item[] | null {
   const raw = tenant.site_content?.advantages;
-  if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_ITEMS;
+  if (!Array.isArray(raw) || raw.length === 0) return null;
   const out: Item[] = [];
   raw.forEach((row) => {
     if (!row || typeof row !== "object") return;
@@ -35,7 +36,7 @@ function parseAdvantages(tenant: Tenant): Item[] {
     if (!title || !text) return;
     out.push({ icon, title, text });
   });
-  return out.length ? out : DEFAULT_ITEMS;
+  return out.length ? out : null;
 }
 
 
@@ -45,6 +46,7 @@ interface Props {
 
 export function AdvantagesSection({ tenant }: Props) {
   const items = parseAdvantages(tenant);
+  if (!items) return null;
 
   return (
     <section

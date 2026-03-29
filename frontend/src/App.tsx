@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, ClipboardList, X, Bell } from "lucide-react";
+import { useBookingPoller } from "./hooks/useBookingPoller";
+import type { StatusNotification } from "./hooks/useBookingPoller";
 import { useTenant } from "./hooks/useTenant";
 import { useSession } from "./hooks/useSession";
 import { CartProvider, useCart } from "./store/cartStore";
@@ -21,6 +23,57 @@ import { ToastProvider } from "./components/common/Toast";
 import { siteText } from "./utils/siteContent";
 
 type View = "home" | "checkout";
+
+const STATUS_LABELS: Record<string, { text: string; emoji: string }> = {
+  pending:   { text: "Ожидает подтверждения", emoji: "⏳" },
+  waiting:   { text: "В очереди",             emoji: "🕐" },
+  confirmed: { text: "Подтверждено!",          emoji: "✅" },
+  completed: { text: "Завершено",              emoji: "🏁" },
+  cancelled: { text: "Отменено",               emoji: "❌" },
+};
+
+function StatusNotifCard({ notif, onDismiss, onOpen }: {
+  notif: StatusNotification;
+  onDismiss: () => void;
+  onOpen: () => void;
+}) {
+  const s = STATUS_LABELS[notif.newStatus] ?? { text: notif.newStatus, emoji: "🔔" };
+  return (
+    <div
+      className="pointer-events-auto flex w-full max-w-xs flex-col gap-1.5 rounded-2xl border bg-white p-4 shadow-2xl animate-slide-in-left"
+      style={{ borderColor: "rgba(0,0,0,0.07)" }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Bell size={15} style={{ color: "var(--color-primary)" }} />
+          <p className="text-xs font-bold uppercase tracking-widest opacity-50" style={{ color: "var(--color-text)" }}>
+            Статус записи
+          </p>
+        </div>
+        <button type="button" onClick={onDismiss} className="flex h-6 w-6 items-center justify-center rounded-lg bg-black/5 hover:bg-black/10 transition-colors shrink-0" aria-label="Закрыть">
+          <X size={12} />
+        </button>
+      </div>
+      <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+        {s.emoji} {s.text}
+      </p>
+      {notif.bookingCode && (
+        <p className="font-mono text-xs opacity-50" style={{ color: "var(--color-text)" }}>{notif.bookingCode}</p>
+      )}
+      {notif.serviceNames.length > 0 && (
+        <p className="text-xs opacity-60 line-clamp-2" style={{ color: "var(--color-text)" }}>{notif.serviceNames.join(", ")}</p>
+      )}
+      <button
+        type="button"
+        onClick={() => { onOpen(); onDismiss(); }}
+        className="mt-1 h-9 w-full rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
+        style={{ background: "var(--color-primary)" }}
+      >
+        Посмотреть запись
+      </button>
+    </div>
+  );
+}
 
 /** Плавающая кнопка корзины (снизу справа) — появляется когда в корзине есть товары */
 function CartFab({ onOpen, cartOpen }: { onOpen: () => void; cartOpen: boolean }) {
@@ -61,6 +114,7 @@ function CartFab({ onOpen, cartOpen }: { onOpen: () => void; cartOpen: boolean }
 function AppInner() {
   const { tenant, loading, error } = useTenant();
   const { track } = useSession(tenant?.id);
+  const { notifications, hasContact, dismiss } = useBookingPoller();
 
   // Инициализация вида из URL (для поддержки кнопки "назад" браузера)
   const [view, setView] = useState<View>(() =>
@@ -306,6 +360,45 @@ function AppInner() {
           >
             Записаться
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      )}
+
+      {/* Floating "Мои записи" — bottom-left, visible when client has past booking */}
+      {hasContact && view === "home" && (
+        <div className="pointer-events-none fixed z-[150] flex flex-col items-start gap-2"
+          style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))", left: "1.25rem" }}
+        >
+          {/* Status change notifications */}
+          {notifications.map((n) => (
+            <StatusNotifCard
+              key={n.uid}
+              notif={n}
+              onDismiss={() => dismiss(n.uid)}
+              onOpen={() => setMyBookingsOpen(true)}
+            />
+          ))}
+
+          {/* "Мои записи" floating button */}
+          <button
+            type="button"
+            onClick={() => setMyBookingsOpen(true)}
+            className="pointer-events-auto flex items-center gap-2.5 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.94]"
+            style={{
+              background: "#1c1917",
+              color: "#fff",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12)",
+              minHeight: "56px",
+            }}
+            aria-label="Мои записи"
+          >
+            <ClipboardList size={20} strokeWidth={2} aria-hidden />
+            <span>Мои записи</span>
+            {notifications.length > 0 && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {notifications.length}
+              </span>
+            )}
           </button>
         </div>
       )}

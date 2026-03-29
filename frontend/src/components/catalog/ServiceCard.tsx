@@ -69,7 +69,7 @@ export function ServiceCard({ service, categoryName, onView }: Props) {
       <div className="flex min-w-0 flex-1 flex-col px-5 pb-5 pt-4">
         {/* Name */}
         <h3
-          className="line-clamp-2 text-xl font-bold leading-snug text-ink mb-1"
+          className="line-clamp-2 text-xl font-bold leading-snug text-ink mb-1 min-h-[3.5rem]"
           style={{ wordBreak: "break-word" }}
         >
           {service.name}

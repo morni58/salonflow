@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { saveBookingContact } from "../../hooks/useBookingPoller";
 import {
   Send,
   Calendar,
@@ -34,7 +35,7 @@ const CONTACTS: { type: ContactType; label: string; icon: string; placeholder: s
 ];
 
 const inputClass =
-  "min-w-0 w-full max-w-full rounded-xl border border-brand-100 bg-white px-5 py-4 text-base outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
+  "min-w-0 w-full max-w-full rounded-xl border border-brand-100 bg-white px-5 py-5 text-lg outline-none shadow-sm transition-all focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--color-primary-20)]";
 
 /** Проверить закрыт ли день по расписанию тенанта (без обращения к API) */
 function isDateClosed(dateStr: string, tenant: Tenant): boolean {
@@ -238,6 +239,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         master_id: requiresMaster ? selectedMasterId : undefined,
       });
       onTrackCheckout();
+      saveBookingContact(tenantId, contactType, contactValue.trim());
       setSuccessInfo({
         date: selectedDate,
         time: selectedTime,
@@ -479,7 +481,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                   setSelectedTime("");
                 }}
                 className={cn(
-                  "flex w-[8.5rem] shrink-0 flex-col items-center gap-2 rounded-xl border p-4 text-center shadow-sm transition-all",
+                  "flex w-[5.5rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2.5 text-center shadow-sm transition-all",
                   selectedMasterId === m.id ? "shadow-soft scale-[1.02]" : "bg-white hover:brightness-[0.995]"
                 )}
                 style={
@@ -490,7 +492,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
                 aria-pressed={selectedMasterId === m.id}
               >
                 <div
-                  className="h-14 w-14 overflow-hidden rounded-md"
+                  className="h-12 w-12 overflow-hidden rounded-md"
                   style={{ background: "var(--color-placeholder-surface)" }}
                 >
                   {m.photo_url ? (
@@ -696,7 +698,7 @@ export function CheckoutForm({ tenantId, tenant, onBack, onTrackCheckout }: Prop
         type="button"
         onClick={handleSubmit}
         disabled={submitting}
-        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-xl h-[64px] text-base font-semibold shadow-soft disabled:opacity-45 transition-opacity"
+        className="btn-primary-soft flex w-full items-center justify-center gap-2 rounded-xl h-[72px] text-lg font-semibold shadow-soft disabled:opacity-45 transition-opacity"
         style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
       >
         {submitting ? (
