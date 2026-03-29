@@ -381,7 +381,7 @@ function AppInner() {
         >
           <button
             type="button"
-            className="pointer-events-auto inline-flex items-center gap-2.5 rounded-lg px-10 py-4 text-sm font-semibold text-white shadow-2xl transition-all duration-300 active:scale-[0.97]"
+            className="pointer-events-auto inline-flex items-center gap-3 rounded-xl px-12 py-5 text-base font-bold text-white shadow-2xl transition-all duration-300 active:scale-[0.97]"
             style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 75%, #7a3520) 100%)", boxShadow: "0 12px 36px rgba(192,137,115,0.55)" }}
             onClick={() => { document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
           >
@@ -408,36 +408,6 @@ function AppInner() {
         </div>
       )}
 
-      {/* Floating «Мои записи» — только до lg; на ПК кнопка в шапке у логотипа */}
-      {view === "home" && (
-        <button
-          type="button"
-          onClick={() => setMyBookingsOpen(true)}
-          className="pointer-events-auto fixed z-[150] flex items-center gap-3 rounded-2xl font-bold shadow-xl transition-all active:scale-[0.94] hover:brightness-110 lg:hidden"
-          style={{
-            bottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
-            left: "max(1rem, env(safe-area-inset-left, 1rem))",
-            background: "var(--color-primary)",
-            color: "#fff",
-            boxShadow: "0 10px 32px rgba(0,0,0,0.28), 0 2px 10px rgba(0,0,0,0.18)",
-            minHeight: "72px",
-            padding: "0 28px",
-            fontSize: "17px",
-          }}
-          aria-label="Мои записи"
-        >
-          <ClipboardList size={28} strokeWidth={2} aria-hidden />
-          <span>Мои записи</span>
-          {notifications.length > 0 && (
-            <span
-              className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-full px-1.5 text-xs font-bold"
-              style={{ background: "#fff", color: "var(--color-primary)" }}
-            >
-              {notifications.length}
-            </span>
-          )}
-        </button>
-      )}
 
       {/* Floating cart FAB — bottom-right when cart has items */}
       <CartFab onOpen={() => { setCartOpen(true); track("cart_open"); }} cartOpen={cartOpen} />

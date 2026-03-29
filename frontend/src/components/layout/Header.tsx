@@ -187,7 +187,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
                     onOpenCart();
                     setMenuOpen(false);
                   }}
-                  className="relative inline-flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white transition-all duration-200 active:scale-[0.96] sm:min-h-[42px] sm:gap-2.5 sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]"
+                  className="relative inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white transition-all duration-200 active:scale-[0.96] sm:min-h-[46px] sm:gap-2.5 sm:px-5 sm:py-2.5 sm:text-[11px] sm:tracking-[0.12em]"
                   style={{
                     background: "#1c1917",
                     boxShadow: itemCount > 0 ? "0 3px 12px rgba(0,0,0,0.16)" : "0 2px 6px rgba(0,0,0,0.1)",
@@ -195,10 +195,10 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
                   aria-label="Корзина и запись"
                 >
                   <div className="relative flex items-center justify-center">
-                    <ShoppingBag size={22} strokeWidth={2} className="sm:h-[23px] sm:w-[23px]" aria-hidden />
+                    <ShoppingBag size={24} strokeWidth={2} className="sm:h-[25px] sm:w-[25px]" aria-hidden />
                     {itemCount > 0 && (
                       <span
-                        className={`absolute -right-2 -top-2 flex min-h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold leading-none sm:-right-2.5 sm:-top-2.5 sm:min-h-[1.2rem] sm:min-w-[1.2rem] sm:text-[10px]${popping ? " cart-pop" : ""}`}
+                        className={`absolute -right-2.5 -top-2.5 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold leading-none${popping ? " cart-pop" : ""}`}
                         style={{ color: "var(--color-primary)" }}
                       >
                         {itemCount > 9 ? "9+" : itemCount}
