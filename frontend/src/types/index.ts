@@ -115,6 +115,23 @@ export interface ReviewImage {
   created_at: string;
 }
 
+// ── My Bookings ───────────────────────────────
+
+export type BookingStatus = "pending" | "waiting" | "confirmed" | "completed" | "cancelled";
+
+export interface MyBooking {
+  id: string;
+  booking_code: string;
+  status: BookingStatus;
+  datetime_iso: string;
+  datetime_display: string;
+  total_price: number;
+  total_duration_minutes: number;
+  service_names: string[];
+  master_name: string | null;
+  created_at: string;
+}
+
 // ── Analytics ─────────────────────────────────
 
 export type AnalyticsEvent = "visit" | "catalog_view" | "cart_open" | "checkout";

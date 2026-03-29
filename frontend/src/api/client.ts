@@ -95,6 +95,32 @@ export async function fetchReviews(tenantId: string): Promise<ReviewImage[]> {
   return res.reviews;
 }
 
+// ── My Bookings ─────────────────────────
+
+export async function lookupMyBookings(
+  tenantId: string,
+  contactType: string,
+  contactValue: string
+): Promise<import("../types").MyBooking[]> {
+  const res = await request<{ bookings: import("../types").MyBooking[] }>("/my-bookings/lookup", {
+    method: "POST",
+    body: JSON.stringify({ tenant_id: tenantId, contact_type: contactType, contact_value: contactValue }),
+  });
+  return res.bookings;
+}
+
+export async function cancelMyBooking(
+  tenantId: string,
+  bookingId: string,
+  contactType: string,
+  contactValue: string
+): Promise<void> {
+  await request<{ ok: boolean }>("/my-bookings/cancel", {
+    method: "POST",
+    body: JSON.stringify({ tenant_id: tenantId, booking_id: bookingId, contact_type: contactType, contact_value: contactValue }),
+  });
+}
+
 // ── Analytics ───────────────────────────
 
 export async function trackEvent(

@@ -13,7 +13,7 @@ from app.core.config import get_settings
 from app.core.scheduler import setup_scheduler
 from app.core.rate_limit import setup_rate_limiting
 from app.bot.setup import create_dispatcher
-from app.api.routes import tenant, catalog, slots, booking, analytics, content, masters
+from app.api.routes import tenant, catalog, slots, booking, analytics, content, masters, my_bookings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -192,6 +192,7 @@ app.include_router(slots.router, prefix="/api", tags=["Slots"])
 app.include_router(booking.router, prefix="/api", tags=["Booking"])
 app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
 app.include_router(content.router, prefix="/api", tags=["Content"])
+app.include_router(my_bookings.router, prefix="/api", tags=["MyBookings"])
 
 
 @app.get("/api/health")

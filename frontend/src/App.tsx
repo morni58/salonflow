@@ -14,6 +14,7 @@ import { CheckoutForm } from "./components/checkout/CheckoutForm";
 import { PortfolioSection } from "./components/portfolio/PortfolioSection";
 import { ReviewsSection } from "./components/reviews/ReviewsSection";
 import { ContactSection } from "./components/layout/ContactSection";
+import { MyBookingsModal } from "./components/my-bookings/MyBookingsModal";
 import { AnimateIn } from "./components/common/AnimateIn";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { ToastProvider } from "./components/common/Toast";
@@ -66,6 +67,7 @@ function AppInner() {
     window.location.pathname.startsWith("/checkout") ? "checkout" : "home"
   );
   const [cartOpen, setCartOpen] = useState(false);
+  const [myBookingsOpen, setMyBookingsOpen] = useState(false);
   const [floatVisible, setFloatVisible] = useState(false);
 
   // Floating CTA on scroll
@@ -199,6 +201,7 @@ function AppInner() {
             track("cart_open");
           }}
           onNavClick={handleNavClick}
+          onMyBookings={() => setMyBookingsOpen(true)}
         />
       )}
 
@@ -270,6 +273,13 @@ function AppInner() {
           </div>
         )}
       </main>
+
+      {myBookingsOpen && tenant && (
+        <MyBookingsModal
+          tenantId={tenant.id}
+          onClose={() => setMyBookingsOpen(false)}
+        />
+      )}
 
       <CartDrawer
         open={cartOpen}

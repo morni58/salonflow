@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, ShoppingBag, Phone } from "lucide-react";
+import { Menu, X, ShoppingBag, Phone, ClipboardList } from "lucide-react";
 import type { Tenant } from "../../types";
 import { useCart } from "../../store/cartStore";
 import { siteText } from "../../utils/siteContent";
@@ -10,6 +10,7 @@ interface Props {
   onOpenCart: () => void;
   onGoHome?: () => void;
   onNavClick?: (sectionId: string) => void;
+  onMyBookings?: () => void;
 }
 
 function navLinks(tenant: Tenant) {
@@ -23,7 +24,7 @@ function navLinks(tenant: Tenant) {
   ] as const;
 }
 
-export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
+export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings }: Props) {
   const NAV_LINKS = navLinks(tenant);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -154,6 +155,20 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
                   <span>{(tenant.contact_json as Record<string, string>).phone}</span>
                 </a>
               )}
+              {/* Мои записи */}
+              {onMyBookings && (
+                <button
+                  type="button"
+                  onClick={onMyBookings}
+                  className="hidden sm:flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors hover:bg-black/5"
+                  style={{ borderColor: "var(--color-border-muted)", color: "var(--color-text)" }}
+                  aria-label="Мои записи"
+                >
+                  <ClipboardList size={15} strokeWidth={2} />
+                  Мои записи
+                </button>
+              )}
+
               {/* Запись (desktop text) */}
               <button
                 type="button"
@@ -244,6 +259,21 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick }: Props) {
             </button>
           ))}
         </nav>
+
+        {/* Мои записи (mobile menu) */}
+        {onMyBookings && (
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); onMyBookings(); }}
+            className="absolute bottom-28 left-0 right-0 flex justify-center"
+            aria-label="Мои записи"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium opacity-55 hover:opacity-100 transition-opacity" style={{ color: "var(--color-text)" }}>
+              <ClipboardList size={16} strokeWidth={2} />
+              Мои записи
+            </span>
+          </button>
+        )}
 
         {/* CTA bottom */}
         <div className="absolute bottom-12 left-0 right-0 flex justify-center px-8">
