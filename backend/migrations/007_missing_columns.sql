@@ -26,14 +26,14 @@ CREATE TABLE IF NOT EXISTS slot_overrides (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     master_id UUID REFERENCES masters(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
+    slot_date DATE NOT NULL,
     slot_time TIME NOT NULL,
+    is_blocked BOOLEAN NOT NULL DEFAULT TRUE,
     reason TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(tenant_id, master_id, date, slot_time)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_slot_overrides_tenant ON slot_overrides(tenant_id, date);
-CREATE INDEX IF NOT EXISTS idx_slot_overrides_master ON slot_overrides(master_id, date) WHERE master_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_slot_overrides_tenant ON slot_overrides(tenant_id, slot_date);
+CREATE INDEX IF NOT EXISTS idx_slot_overrides_master ON slot_overrides(master_id, slot_date) WHERE master_id IS NOT NULL;
 
 COMMENT ON TABLE slot_overrides IS 'Заблокированные слоты: мастер занят, технический перерыв и т.д.';
