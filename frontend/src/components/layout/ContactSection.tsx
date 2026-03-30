@@ -29,7 +29,7 @@ export function ContactSection({ tenant }: Props) {
     (!!contact.instagram && contact.instagram !== "#");
 
   return (
-    <section id="contacts" className="py-16 sm:py-20">
+    <section id="contacts" data-anchor-section className="scroll-mt-24 py-16 sm:py-20">
       <div className="mb-10 text-center">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40" style={{ color: "var(--color-text)" }}>
           Как нас найти

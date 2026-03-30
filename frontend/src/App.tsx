@@ -115,6 +115,7 @@ function AppInner() {
   const { tenant, loading, error } = useTenant();
   const { track } = useSession(tenant?.id);
   const { notifications, dismiss } = useBookingPoller();
+  const { itemCount } = useCart();
 
   // Инициализация вида из URL (для поддержки кнопки "назад" браузера)
   const [view, setView] = useState<View>(() =>
@@ -377,7 +378,7 @@ function AppInner() {
       {view === "home" && (
         <div
           className="pointer-events-none fixed bottom-0 left-0 right-0 z-[150] flex justify-center px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] transition-all duration-500 sm:hidden"
-          style={{ opacity: floatVisible && !cartOpen ? 1 : 0, transform: floatVisible && !cartOpen ? "translateY(0)" : "translateY(120%)" }}
+          style={{ opacity: floatVisible && !cartOpen && itemCount === 0 ? 1 : 0, transform: floatVisible && !cartOpen && itemCount === 0 ? "translateY(0)" : "translateY(120%)" }}
         >
           <button
             type="button"

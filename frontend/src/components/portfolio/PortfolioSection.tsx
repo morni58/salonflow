@@ -126,7 +126,7 @@ export function PortfolioSection({
             )}
 
             {/* Masonry grid */}
-            <div className="columns-2 gap-3 md:columns-3 lg:columns-4 lg:gap-4">
+            <div className="columns-2 gap-3 lg:columns-3 xl:columns-4 lg:gap-4">
               {allImages.map((img, idx) => (
                 <div key={img.id} className="mb-3 break-inside-avoid lg:mb-4">
                   <button

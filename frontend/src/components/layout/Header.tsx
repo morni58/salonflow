@@ -212,7 +212,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
               <button
                 type="button"
                 onClick={() => setMenuOpen(true)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors md:hidden"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors md:hidden"
                 style={{ color: "var(--color-text)" }}
                 aria-label="Открыть меню"
               >
