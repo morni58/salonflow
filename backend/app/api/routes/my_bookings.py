@@ -84,20 +84,23 @@ def _lookup_bookings_sync(tenant_id: str, contact_type: str, contact_value: str)
 
     result = []
     for b in bookings.data:
-        dt_utc = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00"))
+        raw_dt = b.get("preferred_datetime")
+        if not raw_dt:
+            continue
+        dt_utc = datetime.fromisoformat(raw_dt.replace("Z", "+00:00"))
         dt_local = dt_utc.astimezone(tz)
         svc_names = [services_map.get(sid, "Услуга") for sid in (b.get("service_ids") or [])]
         result.append({
             "id": b["id"],
             "booking_code": b.get("booking_code") or "",
-            "status": b["status"],
+            "status": b.get("status") or "pending",
             "datetime_iso": dt_local.strftime("%Y-%m-%dT%H:%M:%S"),
             "datetime_display": dt_local.strftime("%d.%m.%Y, %H:%M"),
-            "total_price": b["total_price"],
+            "total_price": b.get("total_price") or 0,
             "total_duration_minutes": b.get("total_duration_minutes") or 0,
             "service_names": svc_names,
             "master_name": masters_map.get(b.get("master_id") or "", None),
-            "created_at": b["created_at"],
+            "created_at": b.get("created_at") or "",
         })
     return result
 

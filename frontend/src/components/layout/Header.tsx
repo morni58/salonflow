@@ -150,7 +150,7 @@ export function Header({ tenant, onOpenCart, onGoHome, onNavClick, onMyBookings 
 
             {/* Right: звонок | рядом «Мои записи» + корзина | бургер */}
             <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-              {(tenant.contact_json as Record<string, string> | undefined)?.phone && (
+              {typeof (tenant.contact_json as Record<string, unknown> | undefined)?.phone === "string" && (
                 <a
                   href={`tel:${(tenant.contact_json as Record<string, string>).phone}`}
                   className="hidden items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors hover:bg-black/5 lg:flex"

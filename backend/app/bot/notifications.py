@@ -181,7 +181,6 @@ async def send_booking_notification(
         from zoneinfo import ZoneInfo
         tz = ZoneInfo(tz_str)
     except Exception:
-        from zoneinfo import ZoneInfo
         tz = ZoneInfo("UTC")
     dt_local = preferred_datetime.astimezone(tz)
     dt_str = dt_local.strftime("%d.%m.%Y, %H:%M")
@@ -278,11 +277,12 @@ def _build_daily_brief_text_sync(tenant_id: str) -> str:
         from zoneinfo import ZoneInfo
         tz = ZoneInfo(tz_str)
     except Exception:
-        from zoneinfo import ZoneInfo
         tz = ZoneInfo("UTC")
 
     if bookings.data:
         for b in bookings.data:
+            if not b.get("preferred_datetime"):
+                continue
             dt = datetime.fromisoformat(b["preferred_datetime"].replace("Z", "+00:00")).astimezone(tz)
             time_str = dt.strftime("%H:%M")
 

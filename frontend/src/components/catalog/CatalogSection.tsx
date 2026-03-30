@@ -31,8 +31,8 @@ export function CatalogSection({
   }, [tenantId]);
 
   const filteredPairs = active
-    ? categories.filter((c) => c.name === active).flatMap((c) => c.services.map((s) => ({ service: s, category: c.name })))
-    : categories.flatMap((c) => c.services.map((s) => ({ service: s, category: c.name })));
+    ? categories.filter((c) => c.name === active).flatMap((c) => (c.services ?? []).map((s) => ({ service: s, category: c.name })))
+    : categories.flatMap((c) => (c.services ?? []).map((s) => ({ service: s, category: c.name })));
 
   if (loading) {
     return (
@@ -49,7 +49,7 @@ export function CatalogSection({
     );
   }
 
-  const totalServices = categories.reduce((acc, c) => acc + c.services.length, 0);
+  const totalServices = categories.reduce((acc, c) => acc + (c.services?.length ?? 0), 0);
 
   return (
     <section id="catalog" data-anchor-section className="scroll-mt-24 py-20 md:py-28">
